@@ -1,0 +1,118 @@
+import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { DEPARTAMENTOS_POR_DIRECCION, type Direcciones } from '../types'
+import {
+  IconDashboard, IconOperaciones, IconTalento, IconComercial, IconFinanzas,
+  IconChevronDown, IconCerrar,
+} from './Icons'
+
+const DIRECCIONES: Direcciones[] = ['Operaciones', 'Talento Humano', 'Comercial', 'Finanzas']
+
+const ICONOS_DIR: Record<Direcciones, typeof IconOperaciones> = {
+  'Operaciones': IconOperaciones,
+  'Talento Humano': IconTalento,
+  'Comercial': IconComercial,
+  'Finanzas': IconFinanzas,
+}
+
+export function Sidebar() {
+  const [abierto, setAbierto] = useState(false)
+  const [direccionAbierta, setDireccionAbierta] = useState<Direcciones | null>(null)
+  const { signOut, user, perfil } = useAuth()
+
+  return (
+    <>
+      <button
+        className="fixed top-4 left-4 z-50 rounded-lg bg-blue-700 p-2 text-white lg:hidden"
+        onClick={() => setAbierto(!abierto)}
+        aria-label="Menu"
+      >
+        {abierto ? <IconCerrar /> : (
+          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+
+      {abierto && (
+        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setAbierto(false)} />
+      )}
+
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-900 text-white transition-transform
+        lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:h-screen
+        ${abierto ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="flex items-center gap-3 border-b border-slate-700 p-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-lg font-bold">
+            EL
+          </div>
+          <div>
+            <h1 className="text-lg font-bold">Super EvaLuxor</h1>
+            <p className="text-xs text-slate-400">Evaluaciones de desempeno</p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3">
+          <NavLink
+            to="/"
+            end
+            onClick={() => setAbierto(false)}
+            className={({ isActive }) =>
+              `mb-2 flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`
+            }
+          >
+            <IconDashboard />
+            Dashboard
+          </NavLink>
+
+          {DIRECCIONES.map((dir) => {
+            const IconDir = ICONOS_DIR[dir]
+            return (
+              <div key={dir} className="mb-1">
+                <button
+                  onClick={() => setDireccionAbierta(direccionAbierta === dir ? null : dir)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm transition-colors hover:bg-slate-800 ${direccionAbierta === dir ? 'bg-slate-800' : ''}`}
+                >
+                  <IconDir />
+                  <span className="flex-1 font-medium">{dir}</span>
+                  <IconChevronDown className={`h-4 w-4 transition-transform ${direccionAbierta === dir ? 'rotate-180' : ''}`} />
+                </button>
+                {direccionAbierta === dir && (
+                  <div className="ml-4 mt-1 space-y-1 border-l border-slate-700 pl-3">
+                    {DEPARTAMENTOS_POR_DIRECCION[dir].map((depto) => {
+                      const path = depto === 'Supermercados'
+                        ? '/operaciones/supermercados'
+                        : `/departamento/${depto.toLowerCase().replace(/\s+/g, '-')}`
+                      return (
+                        <NavLink
+                          key={depto}
+                          to={path}
+                          onClick={() => setAbierto(false)}
+                          className={({ isActive }) =>
+                            `block rounded-lg px-4 py-2 text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`
+                          }
+                        >
+                          {depto}
+                        </NavLink>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="border-t border-slate-700 p-4">
+          <p className="truncate text-sm text-slate-400">{user?.email}</p>
+          <p className="text-xs text-slate-500 capitalize">{perfil?.rol ?? 'cargando...'}</p>
+          <button onClick={signOut} className="mt-2 w-full rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-300 transition-colors hover:bg-red-600 hover:text-white">
+            Cerrar sesion
+          </button>
+        </div>
+      </aside>
+    </>
+  )
+}
