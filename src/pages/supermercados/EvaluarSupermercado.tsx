@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
@@ -30,12 +30,6 @@ interface AreaEvalState {
   fotos: string[]
 }
 
-function ahoraLocal() {
-  const ahora = new Date()
-  ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset())
-  return ahora.toISOString().slice(0, 16)
-}
-
 export function EvaluarSupermercado() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -47,8 +41,7 @@ export function EvaluarSupermercado() {
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fechaInicio, setFechaInicio] = useState(ahoraLocal)
-  const [fechaCierre, setFechaCierre] = useState('')
+  const fechaInicioRef = useRef(new Date().toISOString())
   const [firma, setFirma] = useState<string | null>(null)
   const [mensajeProgreso, setMensajeProgreso] = useState<string | null>(null)
 
@@ -192,10 +185,6 @@ export function EvaluarSupermercado() {
   async function guardarEvaluacion() {
     if (!user || !id || !supermercado) return
 
-    if (!fechaCierre) {
-      setError('Debes establecer la hora de cierre de la evaluacion.')
-      return
-    }
     if (!firma) {
       setError('El gerente del supermercado debe firmar la evaluacion.')
       return
@@ -205,8 +194,8 @@ export function EvaluarSupermercado() {
     setError(null)
 
     const evaluacionId = generarUUID()
-    const fechaISO = new Date(fechaInicio).toISOString()
-    const fechaCierreISO = new Date(fechaCierre).toISOString()
+    const fechaISO = fechaInicioRef.current
+    const fechaCierreISO = new Date().toISOString()
 
     const registros = areas.flatMap((a) =>
       a.comentarios.map((cm) => ({
@@ -334,27 +323,7 @@ export function EvaluarSupermercado() {
         <div className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{mensajeProgreso}</div>
       )}
 
-      <div className="mb-6 space-y-4 rounded-xl bg-white p-5 shadow-sm">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Fecha y hora de inicio</label>
-          <input
-            type="datetime-local"
-            value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Hora de cierre <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="datetime-local"
-            value={fechaCierre}
-            onChange={(e) => setFechaCierre(e.target.value)}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-          />
-        </div>
+      <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">
             Firma del gerente <span className="text-red-500">*</span>
