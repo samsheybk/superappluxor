@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type { Supermercado, Area, SupermercadoArea } from '../../types'
 import { Modal } from '../../components/Modal'
-import { IconSupermercado, IconEditar, IconEliminar, IconAgregar, IconEvaluar } from '../../components/Icons'
+import { IconSupermercado, IconEditar, IconEliminar, IconAgregar, IconEvaluar, IconConcepto } from '../../components/Icons'
 
 export function ListaSupermercados() {
   const location = useLocation()
@@ -155,6 +155,10 @@ export function ListaSupermercados() {
           <IconAgregar />
           Agregar departamento
         </button>
+        <Link to="/operaciones/supermercados/conceptos" className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-purple-700">
+          <IconConcepto />
+          Gestionar conceptos
+        </Link>
       </div>
 
       {showFormSuper && (
@@ -176,18 +180,18 @@ export function ListaSupermercados() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {supermercados.map((s) => (
           <div key={s.id} className="group relative rounded-xl bg-white shadow-sm transition-all hover:shadow-md">
-            <div className="p-5">
+            <Link to={`/operaciones/supermercados/${s.id}`} className="block p-5">
               <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                 <IconSupermercado className="h-6 w-6" />
               </div>
               <h2 className="font-semibold text-slate-800">{s.nombre}</h2>
               <p className="mt-1 text-xs text-slate-400">Gerente: {s.gerente?.nombre ?? 'Sin asignar'}</p>
-            </div>
+            </Link>
 
             <div className="border-t border-slate-100 px-5 py-3">
               <div className="flex flex-wrap gap-2">
                 <Link
-                  to={`/operaciones/supermercados/${s.id}`}
+                  to={`/operaciones/supermercados/${s.id}/evaluar`}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
                 >
                   <IconEvaluar />

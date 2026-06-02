@@ -7,6 +7,9 @@ import { Dashboard } from './pages/Dashboard'
 import { Departamento } from './pages/Departamento'
 import { ListaSupermercados } from './pages/supermercados/ListaSupermercados'
 import { EvaluarSupermercado } from './pages/supermercados/EvaluarSupermercado'
+import { GestionConceptos } from './pages/supermercados/GestionConceptos'
+import { HistorialEvaluaciones } from './pages/supermercados/HistorialEvaluaciones'
+import { DetalleEvaluacion } from './pages/supermercados/DetalleEvaluacion'
 
 function App() {
   return (
@@ -25,7 +28,10 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
-            <Route path="/operaciones/supermercados/:id" element={<EvaluarSupermercado />} />
+            <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />
+            <Route path="/operaciones/supermercados/:id/evaluar" element={<EvaluarSupermercado />} />
+            <Route path="/operaciones/supermercados/:id/evaluacion/:evaluacionId" element={<DetalleEvaluacion />} />
+            <Route path="/operaciones/supermercados/:id" element={<HistorialEvaluaciones />} />
           </Route>
         </Routes>
       </AuthProvider>

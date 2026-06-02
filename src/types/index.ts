@@ -62,9 +62,39 @@ export interface EvaluacionSupermercado {
   supermercado_id: string
   area_id: string
   fecha_inicio: string
-  orden: number
-  limpieza: number
-  comentarios: string
+  creado_por: string
+  creado_en: string
+}
+
+export interface Concepto {
+  id: string
+  nombre: string
+  created_at: string
+}
+
+export interface ConceptoCriticidad {
+  id: string
+  concepto_id: string
+  nivel: string
+  penalizacion: number
+  created_at: string
+}
+
+export interface ConceptoArea {
+  id: string
+  concepto_id: string
+  area_id: string
+}
+
+export interface EvaluacionComentario {
+  id: string
+  evaluacion_id: string
+  supermercado_id: string
+  area_id: string
+  concepto_id: string
+  criticidad_id: string
+  comentario: string
+  fecha_inicio: string
   creado_por: string
   creado_en: string
 }
