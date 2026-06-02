@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import type { Supermercado, Area, SupermercadoArea, Concepto, ConceptoCriticidad } from '../../types'
 import { IconAgregar, IconEliminar } from '../../components/Icons'
+import { SignaturePad } from '../../components/SignaturePad'
+import { generarPDF } from '../../utils/generarPDF'
 
 function generarUUID() {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -25,12 +27,22 @@ interface AreaEvalState {
   nombre: string
   peso: number
   comentarios: ComentarioState[]
+  fotos: string[]
 }
 
 function ahoraLocal() {
   const ahora = new Date()
   ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset())
   return ahora.toISOString().slice(0, 16)
+}
+
+const STORAGE_BUCKET = 'evaluacion-pdfs'
+
+async function asegurarBucket() {
+  const { data: buckets } = await supabase.storage.listBuckets()
+  if (!buckets?.find((b) => b.name === STORAGE_BUCKET)) {
+    await supabase.storage.createBucket(STORAGE_BUCKET, { public: true })
+  }
 }
 
 export function EvaluarSupermercado() {
@@ -45,6 +57,9 @@ export function EvaluarSupermercado() {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fechaInicio, setFechaInicio] = useState(ahoraLocal)
+  const [fechaCierre, setFechaCierre] = useState('')
+  const [firma, setFirma] = useState<string | null>(null)
+  const [mensajeProgreso, setMensajeProgreso] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -62,6 +77,7 @@ export function EvaluarSupermercado() {
           nombre: sa.area?.nombre ?? '?',
           peso: sa.peso,
           comentarios: [],
+          fotos: [],
         }))
       )
 
@@ -147,8 +163,7 @@ export function EvaluarSupermercado() {
   }
 
   function puntajeArea(area: AreaEvalState): number {
-    const pen = penalizacionTotal(area.areaId)
-    return Math.max(0, area.peso - pen)
+    return Math.max(0, area.peso - penalizacionTotal(area.areaId))
   }
 
   function puntajeTotal(): { earned: number; max: number } {
@@ -157,13 +172,50 @@ export function EvaluarSupermercado() {
     return { earned, max }
   }
 
+  function manejarFotosArea(areaId: string, archivos: FileList | null) {
+    if (!archivos?.length) return
+    Array.from(archivos).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string
+        setAreas((prev) =>
+          prev.map((a) =>
+            a.areaId === areaId ? { ...a, fotos: [...a.fotos, dataUrl] } : a
+          )
+        )
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function eliminarFoto(areaId: string, index: number) {
+    setAreas((prev) =>
+      prev.map((a) =>
+        a.areaId === areaId
+          ? { ...a, fotos: a.fotos.filter((_, i) => i !== index) }
+          : a
+      )
+    )
+  }
+
   async function guardarEvaluacion() {
     if (!user || !id || !supermercado) return
+
+    if (!fechaCierre) {
+      setError('Debes establecer la hora de cierre de la evaluacion.')
+      return
+    }
+    if (!firma) {
+      setError('El gerente del supermercado debe firmar la evaluacion.')
+      return
+    }
+
     setGuardando(true)
     setError(null)
 
     const evaluacionId = generarUUID()
     const fechaISO = new Date(fechaInicio).toISOString()
+    const fechaCierreISO = new Date(fechaCierre).toISOString()
 
     const registros = areas.flatMap((a) =>
       a.comentarios.map((cm) => ({
@@ -191,13 +243,99 @@ export function EvaluarSupermercado() {
       return
     }
 
+    setMensajeProgreso('Guardando comentarios...')
     const { error: err } = await supabase.from('evaluacion_comentarios').insert(registros)
     if (err) {
       setError(err.message)
       setGuardando(false)
-    } else {
-      navigate('/operaciones/supermercados', { state: { mensaje: `Evaluacion de "${supermercado.nombre}" guardada` } })
+      setMensajeProgreso(null)
+      return
     }
+
+    setMensajeProgreso('Guardando informacion de la evaluacion...')
+    const { error: headerErr } = await supabase.from('evaluaciones').insert({
+      id: evaluacionId,
+      supermercado_id: id,
+      fecha_inicio: fechaISO,
+      fecha_cierre: fechaCierreISO,
+      firma,
+      creado_por: user.id,
+    })
+    if (headerErr) {
+      setError(headerErr.message)
+      setGuardando(false)
+      setMensajeProgreso(null)
+      return
+    }
+
+    setMensajeProgreso('Generando PDF...')
+    await new Promise((r) => setTimeout(r, 100))
+
+    const datosPDF = {
+      supermercadoNombre: supermercado.nombre,
+      fechaInicio: new Date(fechaISO).toLocaleString('es-VE'),
+      fechaCierre: new Date(fechaCierreISO).toLocaleString('es-VE'),
+      evaluadorNombre: user.email ?? 'Evaluador',
+      firma,
+      areas: areas.map((a) => ({
+        nombre: a.nombre,
+        peso: a.peso,
+        comentarios: a.comentarios.map((cm) => {
+          const c = conceptos.find((co) => co.id === cm.conceptoId)
+          const cr = c?.criticidades.find((cr) => cr.id === cm.criticidadId)
+          return {
+            concepto: c?.nombre ?? '?',
+            criticidad: cr?.nivel ?? '',
+            penalizacion: cr?.penalizacion ?? 0,
+            texto: cm.texto,
+          }
+        }),
+        fotos: a.fotos,
+      })),
+    }
+
+    let blob: Blob
+    try {
+      blob = await generarPDF(datosPDF)
+    } catch (pdfErr) {
+      setError('Error al generar el PDF: ' + (pdfErr instanceof Error ? pdfErr.message : 'desconocido'))
+      setGuardando(false)
+      setMensajeProgreso(null)
+      return
+    }
+
+    setMensajeProgreso('Subiendo PDF...')
+    try {
+      await asegurarBucket()
+    } catch {
+      // ignore if bucket already exists or creation fails
+    }
+
+    const pdfPath = `${id}/${evaluacionId}.pdf`
+    const { error: uploadErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(pdfPath, blob, {
+        contentType: 'application/pdf',
+        upsert: true,
+      })
+
+    if (uploadErr) {
+      setError('Error al subir el PDF: ' + uploadErr.message)
+      setGuardando(false)
+      setMensajeProgreso(null)
+      return
+    }
+
+    const { data: urlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(pdfPath)
+
+    if (urlData?.publicUrl) {
+      await supabase.from('evaluaciones').update({ pdf_url: urlData.publicUrl }).eq('id', evaluacionId)
+    }
+
+    setMensajeProgreso(null)
+    navigate('/operaciones/supermercados', { state: { mensaje: `Evaluacion de "${supermercado.nombre}" guardada con PDF` } })
   }
 
   if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
@@ -229,14 +367,37 @@ export function EvaluarSupermercado() {
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="mb-6">
-        <label className="mb-1 block text-sm font-medium text-slate-700">Fecha y hora de inicio de la evaluacion</label>
-        <input
-          type="datetime-local"
-          value={fechaInicio}
-          onChange={(e) => setFechaInicio(e.target.value)}
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-        />
+      {mensajeProgreso && (
+        <div className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{mensajeProgreso}</div>
+      )}
+
+      <div className="mb-6 space-y-4 rounded-xl bg-white p-5 shadow-sm">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Fecha y hora de inicio</label>
+          <input
+            type="datetime-local"
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Hora de cierre <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="datetime-local"
+            value={fechaCierre}
+            onChange={(e) => setFechaCierre(e.target.value)}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Firma del gerente <span className="text-red-500">*</span>
+          </label>
+          <SignaturePad value={firma} onChange={setFirma} disabled={guardando} />
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -312,6 +473,41 @@ export function EvaluarSupermercado() {
                   <IconAgregar className="h-4 w-4" />
                   Agregar comentario
                 </button>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-medium text-slate-700">Fotos del area</label>
+                <div className="flex flex-wrap gap-2">
+                  {area.fotos.map((foto, i) => (
+                    <div key={i} className="group relative">
+                      <img
+                        src={foto}
+                        alt={`Foto ${i + 1}`}
+                        className="h-20 w-20 rounded-lg border border-slate-200 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => eliminarFoto(area.areaId, i)}
+                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        title="Eliminar foto"
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500">
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => manejarFotosArea(area.areaId, e.target.files)}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           )

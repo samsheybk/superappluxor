@@ -99,6 +99,17 @@ export interface EvaluacionComentario {
   creado_en: string
 }
 
+export interface EvaluacionHeader {
+  id: string
+  supermercado_id: string
+  fecha_inicio: string
+  fecha_cierre: string | null
+  firma: string | null
+  pdf_url: string | null
+  creado_por: string
+  creado_en: string
+}
+
 export const SUPERMERCADOS = [
   'LAS ACACIAS', 'SAN JUAN', 'SANTA RITA', 'NAGUANAGUA', 'EL BOSQUE',
   'BARQUISIMETO', 'TUCACAS', 'EL CASTAÑO', 'LA MORA', 'VILLAS DE ARAGUA',

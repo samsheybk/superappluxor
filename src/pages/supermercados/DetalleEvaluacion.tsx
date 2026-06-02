@@ -23,6 +23,9 @@ export function DetalleEvaluacion() {
   const { id, evaluacionId } = useParams<{ id: string; evaluacionId: string }>()
   const [supermercadoNombre, setSupermercadoNombre] = useState('')
   const [fechaInicio, setFechaInicio] = useState('')
+  const [fechaCierre, setFechaCierre] = useState('')
+  const [firma, setFirma] = useState<string | null>(null)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [areas, setAreas] = useState<AreaAgrupada[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -31,6 +34,7 @@ export function DetalleEvaluacion() {
 
     Promise.all([
       supabase.from('supermercados').select('nombre').eq('id', id).single(),
+      supabase.from('evaluaciones').select('fecha_inicio, fecha_cierre, firma, pdf_url').eq('id', evaluacionId).single(),
       supabase.from('supermercado_areas').select('area_id, peso').eq('supermercado_id', id),
       supabase.from('evaluacion_comentarios')
         .select('id, area_id, concepto_id, criticidad_id, comentario, fecha_inicio')
@@ -39,8 +43,16 @@ export function DetalleEvaluacion() {
       supabase.from('areas').select('id, nombre'),
       supabase.from('conceptos').select('id, nombre'),
       supabase.from('concepto_criticidades').select('id, nivel, penalizacion'),
-    ]).then(([sRes, saRes, ecRes, aRes, coRes, ccRes]) => {
+    ]).then(([sRes, evRes, saRes, ecRes, aRes, coRes, ccRes]) => {
       if (sRes.data) setSupermercadoNombre(sRes.data.nombre)
+
+      const fechaInicioHeader = evRes.data?.fecha_inicio ?? null
+      if (evRes.data) {
+        setFechaInicio(fechaInicioHeader ?? '')
+        setFechaCierre(evRes.data.fecha_cierre ?? '')
+        setFirma(evRes.data.firma ?? null)
+        setPdfUrl(evRes.data.pdf_url ?? null)
+      }
 
       const areaNombre: Record<string, string> = {}
       ;(aRes.data ?? []).forEach((a: Area) => { areaNombre[a.id] = a.nombre })
@@ -65,11 +77,13 @@ export function DetalleEvaluacion() {
 
       if (!ecRes.data?.length) {
         setAreas([])
-        setFechaInicio('')
         setLoading(false)
         return
       }
-      setFechaInicio(ecRes.data[0].fecha_inicio)
+
+      if (!fechaInicioHeader && ecRes.data[0].fecha_inicio) {
+        setFechaInicio(ecRes.data[0].fecha_inicio)
+      }
 
       const agrupadas: Record<string, ComentarioConDetalle[]> = {}
       comentarios.forEach((cm: ComentarioConDetalle) => {
@@ -98,6 +112,13 @@ export function DetalleEvaluacion() {
   const totalPen = areas.reduce((s, a) => s + a.total_pen, 0)
   const puntajeFinal = Math.max(0, totalPeso - totalPen)
 
+  function formatearFecha(fecha: string) {
+    if (!fecha) return '—'
+    return new Date(fecha).toLocaleDateString('es-VE', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    })
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
@@ -110,19 +131,38 @@ export function DetalleEvaluacion() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">{supermercadoNombre}</h1>
-            <p className="text-slate-500">
-              {fechaInicio ? new Date(fechaInicio).toLocaleDateString('es-VE', {
-                year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-              }) : 'Sin fecha'}
-            </p>
+            <p className="text-xs text-slate-500">Inicio: {formatearFecha(fechaInicio)}</p>
+            {fechaCierre && <p className="text-xs text-slate-500">Cierre: {formatearFecha(fechaCierre)}</p>}
           </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-500">Puntaje final</p>
-            <p className="text-3xl font-bold text-blue-600">{puntajeFinal}</p>
-            <p className="text-xs text-slate-400">de {totalPeso} pts {totalPen > 0 && <span className="text-red-500">(-{totalPen})</span>}</p>
+          <div className="flex items-center gap-3">
+            {pdfUrl && (
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Descargar PDF
+              </a>
+            )}
+            <div className="text-right">
+              <p className="text-sm text-slate-500">Puntaje final</p>
+              <p className="text-3xl font-bold text-blue-600">{puntajeFinal}</p>
+              <p className="text-xs text-slate-400">de {totalPeso} pts {totalPen > 0 && <span className="text-red-500">(-{totalPen})</span>}</p>
+            </div>
           </div>
         </div>
       </div>
+
+      {firma && (
+        <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
+          <p className="mb-2 text-sm font-medium text-slate-700">Firma del gerente</p>
+          <img src={firma} alt="Firma del gerente" className="h-16 rounded border border-slate-200 bg-slate-50 object-contain" />
+        </div>
+      )}
 
       <div className="space-y-4">
         {areas.map((area) => (
