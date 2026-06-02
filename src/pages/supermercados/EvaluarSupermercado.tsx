@@ -323,15 +323,6 @@ export function EvaluarSupermercado() {
         <div className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{mensajeProgreso}</div>
       )}
 
-      <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Firma del gerente <span className="text-red-500">*</span>
-          </label>
-          <SignaturePad value={firma} onChange={setFirma} disabled={guardando} />
-        </div>
-      </div>
-
       <div className="space-y-4">
         {areas.map((area) => {
           const pen = penalizacionTotal(area.areaId)
@@ -451,6 +442,15 @@ export function EvaluarSupermercado() {
           <p className="text-slate-400">Este supermercado no tiene departamentos asignados.</p>
         </div>
       )}
+
+      <div className="mt-6 rounded-xl bg-white p-5 shadow-sm">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            Firma del gerente <span className="text-red-500">*</span>
+          </label>
+          <SignaturePad value={firma} onChange={setFirma} disabled={guardando} />
+        </div>
+      </div>
 
       <div className="mt-6 flex justify-end gap-3">
         <Link
