@@ -48,7 +48,7 @@ function textoAjustado(doc: jsPDF, texto: string, x: number, y: number, maxWidth
   return yy
 }
 
-export async function generarPDF(datos: DatosPDF): Promise<Blob> {
+export async function generarPDF(datos: DatosPDF): Promise<string> {
   const doc = new jsPDF()
   let y = 20
   const margin = 20
@@ -217,5 +217,5 @@ export async function generarPDF(datos: DatosPDF): Promise<Blob> {
   doc.setTextColor('#94a3b8')
   doc.text(`Documento generado el ${new Date().toLocaleDateString('es-VE', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, y)
 
-  return doc.output('blob')
+  return doc.output('datauristring')
 }

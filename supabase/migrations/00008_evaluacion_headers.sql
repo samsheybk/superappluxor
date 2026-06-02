@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS evaluaciones (
   fecha_inicio TIMESTAMPTZ NOT NULL,
   fecha_cierre TIMESTAMPTZ,
   firma TEXT,
-  pdf_url TEXT,
+  pdf_base64 TEXT,
   creado_por UUID NOT NULL REFERENCES perfiles(id),
   creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
@@ -34,15 +34,6 @@ function ahoraLocal() {
   const ahora = new Date()
   ahora.setMinutes(ahora.getMinutes() - ahora.getTimezoneOffset())
   return ahora.toISOString().slice(0, 16)
-}
-
-const STORAGE_BUCKET = 'evaluacion-pdfs'
-
-async function asegurarBucket() {
-  const { data: buckets } = await supabase.storage.listBuckets()
-  if (!buckets?.find((b) => b.name === STORAGE_BUCKET)) {
-    await supabase.storage.createBucket(STORAGE_BUCKET, { public: true })
-  }
 }
 
 export function EvaluarSupermercado() {
@@ -294,9 +285,9 @@ export function EvaluarSupermercado() {
       })),
     }
 
-    let blob: Blob
+    let pdfDataUrl: string
     try {
-      blob = await generarPDF(datosPDF)
+      pdfDataUrl = await generarPDF(datosPDF)
     } catch (pdfErr) {
       setError('Error al generar el PDF: ' + (pdfErr instanceof Error ? pdfErr.message : 'desconocido'))
       setGuardando(false)
@@ -304,35 +295,7 @@ export function EvaluarSupermercado() {
       return
     }
 
-    setMensajeProgreso('Subiendo PDF...')
-    try {
-      await asegurarBucket()
-    } catch {
-      // ignore if bucket already exists or creation fails
-    }
-
-    const pdfPath = `${id}/${evaluacionId}.pdf`
-    const { error: uploadErr } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(pdfPath, blob, {
-        contentType: 'application/pdf',
-        upsert: true,
-      })
-
-    if (uploadErr) {
-      setError('Error al subir el PDF: ' + uploadErr.message)
-      setGuardando(false)
-      setMensajeProgreso(null)
-      return
-    }
-
-    const { data: urlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(pdfPath)
-
-    if (urlData?.publicUrl) {
-      await supabase.from('evaluaciones').update({ pdf_url: urlData.publicUrl }).eq('id', evaluacionId)
-    }
+    await supabase.from('evaluaciones').update({ pdf_base64: pdfDataUrl }).eq('id', evaluacionId)
 
     setMensajeProgreso(null)
     navigate('/operaciones/supermercados', { state: { mensaje: `Evaluacion de "${supermercado.nombre}" guardada con PDF` } })

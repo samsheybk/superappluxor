@@ -25,7 +25,7 @@ export function DetalleEvaluacion() {
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaCierre, setFechaCierre] = useState('')
   const [firma, setFirma] = useState<string | null>(null)
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null)
   const [areas, setAreas] = useState<AreaAgrupada[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -34,7 +34,7 @@ export function DetalleEvaluacion() {
 
     Promise.all([
       supabase.from('supermercados').select('nombre').eq('id', id).single(),
-      supabase.from('evaluaciones').select('fecha_inicio, fecha_cierre, firma, pdf_url').eq('id', evaluacionId).single(),
+      supabase.from('evaluaciones').select('fecha_inicio, fecha_cierre, firma, pdf_base64').eq('id', evaluacionId).single(),
       supabase.from('supermercado_areas').select('area_id, peso').eq('supermercado_id', id),
       supabase.from('evaluacion_comentarios')
         .select('id, area_id, concepto_id, criticidad_id, comentario, fecha_inicio')
@@ -51,7 +51,7 @@ export function DetalleEvaluacion() {
         setFechaInicio(fechaInicioHeader ?? '')
         setFechaCierre(evRes.data.fecha_cierre ?? '')
         setFirma(evRes.data.firma ?? null)
-        setPdfUrl(evRes.data.pdf_url ?? null)
+        setPdfBase64(evRes.data.pdf_base64 ?? null)
       }
 
       const areaNombre: Record<string, string> = {}
@@ -135,11 +135,10 @@ export function DetalleEvaluacion() {
             {fechaCierre && <p className="text-xs text-slate-500">Cierre: {formatearFecha(fechaCierre)}</p>}
           </div>
           <div className="flex items-center gap-3">
-            {pdfUrl && (
+            {pdfBase64 && (
               <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={pdfBase64}
+                download={`evaluacion-${supermercadoNombre.replace(/\s+/g, '-').toLowerCase()}.pdf`}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
