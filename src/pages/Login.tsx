@@ -24,8 +24,8 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-lg shadow-blue-600/30">
-            EL
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg">
+            <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-12 w-12 rounded-lg object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white">Super EvaLuxor</h1>
           <p className="mt-1 text-slate-400">Evaluaciones de desempeño</p>

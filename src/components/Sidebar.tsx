@@ -23,31 +23,36 @@ export function Sidebar() {
 
   return (
     <>
-      <button
-        className="fixed top-4 left-4 z-50 rounded-lg bg-blue-700 p-2 text-white lg:hidden"
-        onClick={() => setAbierto(!abierto)}
-        aria-label="Menu"
-      >
-        {abierto ? <IconCerrar /> : (
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
-      </button>
+      {/* Top navigation bar for mobile */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 bg-slate-900 px-4 py-3 text-white lg:hidden">
+        <button
+          className="rounded-lg p-1.5 hover:bg-slate-800"
+          onClick={() => setAbierto(!abierto)}
+          aria-label="Menu"
+        >
+          {abierto ? <IconCerrar /> : (
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+        <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-8 w-8 rounded-lg object-contain" />
+        <span className="text-sm font-bold">Super EvaLuxor</span>
+      </nav>
 
+      {/* Overlay for mobile */}
       {abierto && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setAbierto(false)} />
       )}
 
+      {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-900 text-white transition-transform
-        lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:h-screen
+        fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-slate-900 text-white transition-transform pt-14
+        lg:static lg:sticky lg:top-0 lg:translate-x-0 lg:h-screen lg:pt-0
         ${abierto ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex items-center gap-3 border-b border-slate-700 p-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-lg font-bold">
-            EL
-          </div>
+        <div className="hidden lg:flex items-center gap-3 border-b border-slate-700 p-5">
+          <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-10 w-10 rounded-lg object-contain" />
           <div>
             <h1 className="text-lg font-bold">Super EvaLuxor</h1>
             <p className="text-xs text-slate-400">Evaluaciones de desempeno</p>
