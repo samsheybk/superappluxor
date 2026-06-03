@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { ParticlesBackground } from '../components/ParticlesBackground'
+import { MiniGame } from '../components/MiniGame'
+import { IconJuego } from '../components/Icons'
 
 export function Login() {
+  const [gameOpen, setGameOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -21,8 +25,9 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4 overflow-hidden">
+      <ParticlesBackground />
+      <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg">
             <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-12 w-12 rounded-lg object-contain" />
@@ -79,6 +84,16 @@ export function Login() {
           </button>
         </form>
       </div>
+
+      <button
+        onClick={() => setGameOpen(true)}
+        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-110 hover:bg-blue-700 active:scale-95"
+        title="Mini juego"
+      >
+        <IconJuego className="h-6 w-6" />
+      </button>
+
+      {gameOpen && <MiniGame cerrar={() => setGameOpen(false)} />}
     </div>
   )
 }
