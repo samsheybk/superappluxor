@@ -20,6 +20,7 @@ interface ComentarioState {
   conceptoId: string
   criticidadId: string
   texto: string
+  fotos: string[]
 }
 
 interface AreaEvalState {
@@ -27,7 +28,6 @@ interface AreaEvalState {
   nombre: string
   peso: number
   comentarios: ComentarioState[]
-  fotos: string[]
 }
 
 export function EvaluarSupermercado() {
@@ -61,7 +61,6 @@ export function EvaluarSupermercado() {
           nombre: sa.area?.nombre ?? '?',
           peso: sa.peso,
           comentarios: [],
-          fotos: [],
         }))
       )
 
@@ -101,7 +100,7 @@ export function EvaluarSupermercado() {
     setAreas((prev) =>
       prev.map((a) =>
         a.areaId === areaId
-          ? { ...a, comentarios: [...a.comentarios, { _tempId: generarUUID(), conceptoId: '', criticidadId: '', texto: '' }] }
+          ? { ...a, comentarios: [...a.comentarios, { _tempId: generarUUID(), conceptoId: '', criticidadId: '', texto: '', fotos: [] }] }
           : a
       )
     )
@@ -156,7 +155,7 @@ export function EvaluarSupermercado() {
     return { earned, max }
   }
 
-  function manejarFotosArea(areaId: string, archivos: FileList | null) {
+  function manejarFotosComentario(areaId: string, tempId: string, archivos: FileList | null) {
     if (!archivos?.length) return
     Array.from(archivos).forEach((file) => {
       const reader = new FileReader()
@@ -164,7 +163,14 @@ export function EvaluarSupermercado() {
         const dataUrl = e.target?.result as string
         setAreas((prev) =>
           prev.map((a) =>
-            a.areaId === areaId ? { ...a, fotos: [...a.fotos, dataUrl] } : a
+            a.areaId === areaId
+              ? {
+                  ...a,
+                  comentarios: a.comentarios.map((cm) =>
+                    cm._tempId === tempId ? { ...cm, fotos: [...cm.fotos, dataUrl] } : cm
+                  ),
+                }
+              : a
           )
         )
       }
@@ -172,11 +178,18 @@ export function EvaluarSupermercado() {
     })
   }
 
-  function eliminarFoto(areaId: string, index: number) {
+  function eliminarFotoComentario(areaId: string, tempId: string, index: number) {
     setAreas((prev) =>
       prev.map((a) =>
         a.areaId === areaId
-          ? { ...a, fotos: a.fotos.filter((_, i) => i !== index) }
+          ? {
+              ...a,
+              comentarios: a.comentarios.map((cm) =>
+                cm._tempId === tempId
+                  ? { ...cm, fotos: cm.fotos.filter((_, i) => i !== index) }
+                  : cm
+              ),
+            }
           : a
       )
     )
@@ -268,9 +281,9 @@ export function EvaluarSupermercado() {
             criticidad: cr?.nivel ?? '',
             penalizacion: cr?.penalizacion ?? 0,
             texto: cm.texto,
+            fotos: cm.fotos,
           }
         }),
-        fotos: a.fotos,
       })),
     }
 
@@ -386,6 +399,35 @@ export function EvaluarSupermercado() {
                           <IconEliminar className="h-4 w-4" />
                         </button>
                       </div>
+                      {cm.fotos.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {cm.fotos.map((foto, i) => (
+                            <div key={i} className="group relative">
+                              <img src={foto} alt={`Foto ${i + 1}`} className="h-14 w-14 rounded border border-slate-200 object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => eliminarFotoComentario(area.areaId, cm._tempId, i)}
+                                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-xs text-slate-500 hover:text-blue-600">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Agregar fotos
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => manejarFotosComentario(area.areaId, cm._tempId, e.target.files)}
+                        />
+                      </label>
                     </div>
                   )
                 })}
@@ -396,41 +438,6 @@ export function EvaluarSupermercado() {
                   <IconAgregar className="h-4 w-4" />
                   Agregar comentario
                 </button>
-              </div>
-
-              <div className="mt-4">
-                <label className="mb-2 block text-sm font-medium text-slate-700">Fotos del area</label>
-                <div className="flex flex-wrap gap-2">
-                  {area.fotos.map((foto, i) => (
-                    <div key={i} className="group relative">
-                      <img
-                        src={foto}
-                        alt={`Foto ${i + 1}`}
-                        className="h-20 w-20 rounded-lg border border-slate-200 object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => eliminarFoto(area.areaId, i)}
-                        className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        title="Eliminar foto"
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ))}
-                  <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500">
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => manejarFotosArea(area.areaId, e.target.files)}
-                    />
-                  </label>
-                </div>
               </div>
             </div>
           )

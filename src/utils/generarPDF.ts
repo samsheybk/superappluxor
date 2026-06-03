@@ -5,13 +5,13 @@ interface ComentarioPDF {
   criticidad: string
   penalizacion: number
   texto: string
+  fotos: string[]
 }
 
 interface AreaPDF {
   nombre: string
   peso: number
   comentarios: ComentarioPDF[]
-  fotos: string[]
 }
 
 interface DatosPDF {
@@ -21,6 +21,15 @@ interface DatosPDF {
   evaluadorNombre: string
   firma: string | null
   areas: AreaPDF[]
+}
+
+function imgDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+    img.onerror = reject
+    img.src = dataUrl
+  })
 }
 
 function medida(texto: string, doc: jsPDF): number {
@@ -113,7 +122,12 @@ export async function generarPDF(datos: DatosPDF): Promise<string> {
     doc.text('Firma del gerente:', margin, y)
     saltar(LH)
     try {
-      doc.addImage(datos.firma, 'PNG', margin + 10, y, 50, 15)
+      const dims = await imgDimensions(datos.firma)
+      const maxH = 18
+      const ratio = dims.width / dims.height
+      const fw = dims.height > maxH ? maxH * ratio : dims.width
+      const fh = dims.height > maxH ? maxH : dims.height
+      doc.addImage(datos.firma, 'PNG', margin + 10, y, fw, fh)
     } catch {
       doc.text('(imagen de firma no disponible)', margin + 10, y + 5)
     }
@@ -151,41 +165,65 @@ export async function generarPDF(datos: DatosPDF): Promise<string> {
       }
 
       areaPen += cm.penalizacion
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
       const nivelColor =
         cm.criticidad === 'ALTO' ? '#dc2626' :
         cm.criticidad === 'MEDIO' ? '#d97706' : '#16a34a'
       doc.setTextColor(nivelColor)
-      doc.text(`${cm.criticidad} (-${cm.penalizacion})`, margin + 2, y)
       doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.text(`${cm.criticidad} (-${cm.penalizacion})`, margin + 4, y)
       doc.setTextColor('#1e293b')
       doc.text(cm.concepto, margin + 30, y)
+      y += LH
       doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
       doc.setTextColor('#475569')
-      y = textoAjustado(doc, cm.texto, margin + 55, y, maxWidth - 55, LH)
+      y = textoAjustado(doc, cm.texto, margin + 4, y, maxWidth - 8, LH)
+
+      if (cm.fotos.length > 0) {
+        y += 2
+        const MAX_H = 40
+        const GAP = 4
+        let x = margin + 4
+        for (const foto of cm.fotos) {
+          if (y > doc.internal.pageSize.height - 50) {
+            doc.addPage()
+            y = 20
+            x = margin + 4
+          }
+          try {
+            const dims = await imgDimensions(foto)
+            const ratio = dims.width / dims.height
+            let imgW = dims.height > MAX_H ? MAX_H * ratio : dims.width
+            const imgH = dims.height > MAX_H ? MAX_H : dims.height
+            const remaining = margin + maxWidth - x
+            if (imgW > remaining) {
+              if (imgW > maxWidth - 8) {
+                imgW = maxWidth - 8
+              }
+              if (x !== margin + 4) {
+                y += imgH + GAP
+                x = margin + 4
+              }
+            }
+            if (y > doc.internal.pageSize.height - 50) {
+              doc.addPage()
+              y = 20
+              x = margin + 4
+            }
+            const fmt = foto.startsWith('data:image/png') ? 'PNG' : 'JPEG'
+            doc.addImage(foto, fmt, x, y, imgW, imgH)
+            x += imgW + GAP
+          } catch {
+            doc.text('(img)', x, y + 5)
+            x += 12
+          }
+        }
+        y += MAX_H + 4
+      }
     }
 
-    for (const foto of area.fotos) {
-      if (y > doc.internal.pageSize.height - 50) {
-        doc.addPage()
-        y = 20
-      }
-      doc.setTextColor('#000000')
-      doc.text('— Foto —', margin + 2, y)
-      saltar(LH)
-      try {
-        const imgWidth = 70
-        const imgHeight = 50
-        doc.addImage(foto, 'JPEG', margin + 2, y, imgWidth, imgHeight)
-        saltar(imgHeight + 4)
-      } catch {
-        doc.text('(imagen no disponible)', margin + 2, y + 5)
-        saltar(LH)
-      }
-    }
-
-    if (area.comentarios.length === 0 && area.fotos.length === 0) {
+    if (area.comentarios.length === 0) {
       doc.setTextColor('#94a3b8')
       doc.text('Sin comentarios', margin + 4, y)
       saltar(LH)
