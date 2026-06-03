@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type { Area } from '../../types'
 
@@ -21,6 +21,7 @@ interface AreaAgrupada {
 
 export function DetalleEvaluacion() {
   const { id, evaluacionId } = useParams<{ id: string; evaluacionId: string }>()
+  const navigate = useNavigate()
   const [supermercadoNombre, setSupermercadoNombre] = useState('')
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaCierre, setFechaCierre] = useState('')
@@ -28,6 +29,7 @@ export function DetalleEvaluacion() {
   const [pdfBase64, setPdfBase64] = useState<string | null>(null)
   const [areas, setAreas] = useState<AreaAgrupada[]>([])
   const [loading, setLoading] = useState(true)
+  const [eliminando, setEliminando] = useState(false)
 
   useEffect(() => {
     if (!id || !evaluacionId) return
@@ -119,6 +121,15 @@ export function DetalleEvaluacion() {
     })
   }
 
+  async function eliminar() {
+    if (!id || !evaluacionId) return
+    if (!window.confirm(`Eliminar esta evaluacion? Esta accion no se puede deshacer.`)) return
+    setEliminando(true)
+    await supabase.from('evaluacion_comentarios').delete().eq('evaluacion_id', evaluacionId)
+    await supabase.from('evaluacion_headers').delete().eq('id', evaluacionId)
+    navigate(`/operaciones/supermercados/${id}`)
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
@@ -147,6 +158,13 @@ export function DetalleEvaluacion() {
                 Descargar PDF
               </a>
             )}
+            <button
+              onClick={eliminar}
+              disabled={eliminando}
+              className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+            >
+              {eliminando ? 'Eliminando...' : 'Eliminar'}
+            </button>
             <div className="text-right">
               <p className="text-sm text-slate-500">Puntaje final</p>
               <p className="text-3xl font-bold text-blue-600">{puntajeFinal}</p>

@@ -18,9 +18,11 @@ export function HistorialEvaluaciones() {
   const [supermercado, setSupermercado] = useState<Supermercado | null>(null)
   const [evaluaciones, setEvaluaciones] = useState<EvalResumen[]>([])
   const [loading, setLoading] = useState(true)
+  const [eliminando, setEliminando] = useState<string | null>(null)
 
-  useEffect(() => {
+  function cargarDatos() {
     if (!id) return
+    setLoading(true)
     Promise.all([
       supabase.from('supermercados').select('*').eq('id', id).single(),
       supabase.from('supermercado_areas').select('area_id, peso').eq('supermercado_id', id),
@@ -66,7 +68,18 @@ export function HistorialEvaluaciones() {
       setEvaluaciones(lista)
       setLoading(false)
     })
-  }, [id])
+  }
+
+  useEffect(() => { cargarDatos() }, [id])
+
+  async function eliminarEvaluacion(ev: EvalResumen) {
+    if (!window.confirm(`Eliminar evaluacion del ${new Date(ev.fecha_inicio).toLocaleDateString('es-VE')}? Esta accion no se puede deshacer.`)) return
+    setEliminando(ev.evaluacion_id)
+    await supabase.from('evaluacion_comentarios').delete().eq('evaluacion_id', ev.evaluacion_id)
+    await supabase.from('evaluacion_headers').delete().eq('id', ev.evaluacion_id)
+    setEliminando(null)
+    cargarDatos()
+  }
 
   if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
   if (!supermercado) return <div className="py-10 text-center text-slate-500">Supermercado no encontrado</div>
@@ -108,32 +121,50 @@ export function HistorialEvaluaciones() {
 
       <div className="space-y-3">
         {evaluaciones.map((ev) => (
-          <Link
-            key={ev.evaluacion_id}
-            to={`/operaciones/supermercados/${id}/evaluacion/${ev.evaluacion_id}`}
-            className="block rounded-xl bg-white p-5 shadow-sm transition-all hover:shadow-md"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-800">
-                  {new Date(ev.fecha_inicio).toLocaleDateString('es-VE', {
-                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-                  })}
-                </p>
-                <p className="text-xs text-slate-500">Evaluador: {ev.evaluador}</p>
-                <p className="text-xs text-slate-500">{ev.areas} departamentos evaluados</p>
+          <div key={ev.evaluacion_id} className="group relative rounded-xl bg-white shadow-sm transition-all hover:shadow-md">
+            <Link
+              to={`/operaciones/supermercados/${id}/evaluacion/${ev.evaluacion_id}`}
+              className="block p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-800">
+                    {new Date(ev.fecha_inicio).toLocaleDateString('es-VE', {
+                      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </p>
+                  <p className="text-xs text-slate-500">Evaluador: {ev.evaluador}</p>
+                  <p className="text-xs text-slate-500">{ev.areas} departamentos evaluados</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-slate-800">{ev.puntaje}</p>
+                  <p className="text-xs text-slate-400">
+                    de {ev.total_peso} pts
+                    {ev.total_penalizacion > 0 && (
+                      <span className="ml-1 text-red-500">(-{ev.total_penalizacion})</span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-slate-800">{ev.puntaje}</p>
-                <p className="text-xs text-slate-400">
-                  de {ev.total_peso} pts
-                  {ev.total_penalizacion > 0 && (
-                    <span className="ml-1 text-red-500">(-{ev.total_penalizacion})</span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </Link>
+            </Link>
+            <button
+              onClick={() => eliminarEvaluacion(ev)}
+              disabled={eliminando === ev.evaluacion_id}
+              className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-50"
+              title="Eliminar evaluacion"
+            >
+              {eliminando === ev.evaluacion_id ? (
+                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         ))}
       </div>
     </div>

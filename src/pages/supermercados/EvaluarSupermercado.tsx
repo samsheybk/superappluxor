@@ -300,7 +300,7 @@ export function EvaluarSupermercado() {
     await supabase.from('evaluacion_headers').update({ pdf_base64: pdfDataUrl }).eq('id', evaluacionId)
 
     setMensajeProgreso(null)
-    navigate('/operaciones/supermercados', { state: { mensaje: `Evaluacion de "${supermercado.nombre}" guardada con PDF` } })
+    navigate(`/operaciones/supermercados/${id}/evaluacion/${evaluacionId}`)
   }
 
   if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
