@@ -99,6 +99,8 @@ export interface EvaluacionComentario {
   creado_en: string
 }
 
+export type TablaEvaluacionHeader = 'evaluacion_headers'
+
 export interface EvaluacionHeader {
   id: string
   supermercado_id: string

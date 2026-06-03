@@ -233,7 +233,7 @@ export function EvaluarSupermercado() {
     }
 
     setMensajeProgreso('Guardando informacion de la evaluacion...')
-    const { error: headerErr } = await supabase.from('evaluaciones').insert({
+    const { error: headerErr } = await supabase.from('evaluacion_headers').insert({
       id: evaluacionId,
       supermercado_id: id,
       fecha_inicio: fechaISO,
@@ -284,7 +284,7 @@ export function EvaluarSupermercado() {
       return
     }
 
-    await supabase.from('evaluaciones').update({ pdf_base64: pdfDataUrl }).eq('id', evaluacionId)
+    await supabase.from('evaluacion_headers').update({ pdf_base64: pdfDataUrl }).eq('id', evaluacionId)
 
     setMensajeProgreso(null)
     navigate('/operaciones/supermercados', { state: { mensaje: `Evaluacion de "${supermercado.nombre}" guardada con PDF` } })

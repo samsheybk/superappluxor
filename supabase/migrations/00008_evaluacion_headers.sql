@@ -1,18 +1,17 @@
-CREATE TABLE IF NOT EXISTS evaluaciones (
-  id UUID PRIMARY KEY,
-  supermercado_id UUID NOT NULL REFERENCES supermercados(id) ON DELETE CASCADE,
-  fecha_inicio TIMESTAMPTZ NOT NULL,
-  fecha_cierre TIMESTAMPTZ,
-  firma TEXT,
-  pdf_base64 TEXT,
-  creado_por UUID NOT NULL REFERENCES perfiles(id),
-  creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+CREATE TABLE IF NOT EXISTS evaluacion_headers (id UUID PRIMARY KEY);
 
-ALTER TABLE evaluaciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS supermercado_id UUID REFERENCES supermercados(id) ON DELETE CASCADE;
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS fecha_inicio TIMESTAMPTZ;
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS fecha_cierre TIMESTAMPTZ;
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS firma TEXT;
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS pdf_base64 TEXT;
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS creado_por UUID REFERENCES perfiles(id);
+ALTER TABLE evaluacion_headers ADD COLUMN IF NOT EXISTS creado_en TIMESTAMPTZ DEFAULT now();
 
-DROP POLICY IF EXISTS "Admin puede todo en evaluaciones" ON evaluaciones;
-CREATE POLICY "Admin puede todo en evaluaciones" ON evaluaciones
+ALTER TABLE evaluacion_headers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admin puede todo en evaluacion_headers" ON evaluacion_headers;
+CREATE POLICY "Admin puede todo en evaluacion_headers" ON evaluacion_headers
   FOR ALL
   USING (es_admin())
   WITH CHECK (es_admin());

@@ -34,7 +34,7 @@ export function DetalleEvaluacion() {
 
     Promise.all([
       supabase.from('supermercados').select('nombre').eq('id', id).single(),
-      supabase.from('evaluaciones').select('fecha_inicio, fecha_cierre, firma, pdf_base64').eq('id', evaluacionId).single(),
+      supabase.from('evaluacion_headers').select('fecha_inicio, fecha_cierre, firma, pdf_base64').eq('id', evaluacionId).single(),
       supabase.from('supermercado_areas').select('area_id, peso').eq('supermercado_id', id),
       supabase.from('evaluacion_comentarios')
         .select('id, area_id, concepto_id, criticidad_id, comentario, fecha_inicio')
