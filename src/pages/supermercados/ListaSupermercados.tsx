@@ -10,7 +10,7 @@ export function ListaSupermercados() {
   const location = useLocation()
   const [supermercados, setSupermercados] = useState<(Supermercado & { gerente?: { nombre: string; email: string } | null })[]>([])
   const [areasDisponibles, setAreasDisponibles] = useState<Area[]>([])
-  const [evaluadores, setEvaluadores] = useState<{ id: string; nombre: string; email: string }[]>([])
+  const [evaluadores, setEvaluadores] = useState<{ id: string; nombre: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [mensaje, setMensaje] = useState((location.state as { mensaje?: string })?.mensaje ?? '')
   const [confirmarDeshabilitar, setConfirmarDeshabilitar] = useState<string | null>(null)
@@ -62,6 +62,7 @@ export function ListaSupermercados() {
   function cerrarModal() {
     setModalAbierto(false)
     setSupermercadoModal(null)
+    setAreasEdit([])
   }
 
   async function guardarModal() {

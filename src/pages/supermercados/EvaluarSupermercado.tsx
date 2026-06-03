@@ -353,7 +353,16 @@ export function EvaluarSupermercado() {
                 {pen > 0 && (
                   <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">-{pen} pts</span>
                 )}
-                <span className="ml-auto rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
+                <span className={`ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
+                  score < area.peso * 0.7
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {score < area.peso * 0.7 && (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  )}
                   {score}/{area.peso}
                 </span>
               </div>

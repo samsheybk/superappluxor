@@ -7,7 +7,7 @@ import { LoadingScreen } from '../../components/LoadingScreen'
 export function ConfigSupermercados() {
   const [supermercados, setSupermercados] = useState<(Supermercado & { gerente?: { nombre: string; email: string } | null })[]>([])
   const [areasDisponibles, setAreasDisponibles] = useState<Area[]>([])
-  const [evaluadores, setEvaluadores] = useState<{ id: string; nombre: string; email: string }[]>([])
+  const [evaluadores, setEvaluadores] = useState<{ id: string; nombre: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [editandoNombre, setEditandoNombre] = useState<string | null>(null)
   const [nombreEdit, setNombreEdit] = useState('')

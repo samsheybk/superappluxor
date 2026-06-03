@@ -244,9 +244,9 @@ export function Dashboard() {
           <ResponsiveContainer width="100%" height={Math.max(200, promedios.filter((p) => p.totalEvaluaciones > 0).length * 40)}>
             <BarChart data={promedios.filter((p) => p.totalEvaluaciones > 0)} layout="vertical" margin={{ left: 120, right: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v}%`} />
+              <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v ?? 0}%`} />
               <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
-              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Tooltip formatter={(v: unknown) => `${v ?? 0}%`} />
               <Bar dataKey="promedio" fill="#3B82F6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
