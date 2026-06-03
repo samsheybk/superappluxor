@@ -374,11 +374,21 @@ export function MiniGame({ cerrar }: { cerrar: () => void }) {
       <div className="rounded-2xl bg-slate-800 p-4 shadow-2xl">
         <canvas
           ref={canvasRef}
-          className="rounded-xl"
+          className="rounded-xl touch-none"
           onMouseMove={(e) => {
             const rect = canvasRef.current?.getBoundingClientRect()
             if (rect) {
               const x = e.clientX - rect.left
+              const maxX = 400 - (effectsRef.current.some(
+                e => e.type === 'mega' && e.endFrame > frameRef.current
+              ) ? BASE_CART_W * 3 : BASE_CART_W)
+              cartXRef.current = Math.max(0, Math.min(maxX, x - 35))
+            }
+          }}
+          onTouchMove={(e) => {
+            const rect = canvasRef.current?.getBoundingClientRect()
+            if (rect && e.touches[0]) {
+              const x = e.touches[0].clientX - rect.left
               const maxX = 400 - (effectsRef.current.some(
                 e => e.type === 'mega' && e.endFrame > frameRef.current
               ) ? BASE_CART_W * 3 : BASE_CART_W)
