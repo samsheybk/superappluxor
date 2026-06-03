@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type { Area } from '../../types'
+import { Modal } from '../../components/Modal'
+import { LoadingScreen } from '../../components/LoadingScreen'
+import QRCode from 'qrcode'
 
 interface ComentarioConDetalle {
   id: string
@@ -30,6 +33,8 @@ export function DetalleEvaluacion() {
   const [areas, setAreas] = useState<AreaAgrupada[]>([])
   const [loading, setLoading] = useState(true)
   const [eliminando, setEliminando] = useState(false)
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false)
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     if (!id || !evaluacionId) return
@@ -45,7 +50,7 @@ export function DetalleEvaluacion() {
       supabase.from('areas').select('id, nombre'),
       supabase.from('conceptos').select('id, nombre'),
       supabase.from('concepto_criticidades').select('id, nivel, penalizacion'),
-    ]).then(([sRes, evRes, saRes, ecRes, aRes, coRes, ccRes]) => {
+    ]).then(async ([sRes, evRes, saRes, ecRes, aRes, coRes, ccRes]) => {
       if (sRes.data) setSupermercadoNombre(sRes.data.nombre)
 
       const fechaInicioHeader = evRes.data?.fecha_inicio ?? null
@@ -58,9 +63,6 @@ export function DetalleEvaluacion() {
 
       const areaNombre: Record<string, string> = {}
       ;(aRes.data ?? []).forEach((a: Area) => { areaNombre[a.id] = a.nombre })
-
-      const areaPeso: Record<string, number> = {}
-      ;(saRes.data ?? []).forEach((a: { area_id: string; peso: number }) => { areaPeso[a.area_id] = a.peso })
 
       const conceptoNombre: Record<string, string> = {}
       ;(coRes.data ?? []).forEach((c: { id: string; nombre: string }) => { conceptoNombre[c.id] = c.nombre })
@@ -77,38 +79,44 @@ export function DetalleEvaluacion() {
         comentario: r.comentario,
       }))
 
-      if (!ecRes.data?.length) {
-        setAreas([])
-        setLoading(false)
-        return
-      }
-
-      if (!fechaInicioHeader && ecRes.data[0].fecha_inicio) {
-        setFechaInicio(ecRes.data[0].fecha_inicio)
-      }
-
-      const agrupadas: Record<string, ComentarioConDetalle[]> = {}
+      const comentariosPorAreaId: Record<string, ComentarioConDetalle[]> = {}
+      const areaIdMap: Record<string, string> = {}
+      ;(aRes.data ?? []).forEach((a: Area) => { areaIdMap[a.id] = a.nombre })
       comentarios.forEach((cm: ComentarioConDetalle) => {
-        if (!agrupadas[cm.area_nombre]) agrupadas[cm.area_nombre] = []
-        agrupadas[cm.area_nombre].push(cm)
-      })
-
-      const lista = Object.entries(agrupadas).map(([nombre, comentarios]) => {
-        const areaId = (ecRes.data ?? []).find((r: { area_id: string }) => areaNombre[r.area_id] === nombre)?.area_id
-        return {
-          nombre,
-          peso: areaPeso[areaId ?? ''] ?? 0,
-          comentarios,
-          total_pen: comentarios.reduce((s, c) => s + c.penalizacion, 0),
+        const aid = Object.entries(areaIdMap).find(([, n]) => n === cm.area_nombre)?.[0]
+        if (aid) {
+          if (!comentariosPorAreaId[aid]) comentariosPorAreaId[aid] = []
+          comentariosPorAreaId[aid].push(cm)
         }
       })
 
+      const lista = (saRes.data ?? []).map((sa: { area_id: string; peso: number }) => {
+        const cmts = comentariosPorAreaId[sa.area_id] ?? []
+        return {
+          nombre: areaNombre[sa.area_id] ?? '?',
+          peso: sa.peso,
+          comentarios: cmts,
+          total_pen: cmts.reduce((s: number, c: ComentarioConDetalle) => s + c.penalizacion, 0),
+        }
+      })
+
+      if (lista.length > 0 && !fechaInicioHeader && ecRes.data?.[0]?.fecha_inicio) {
+        setFechaInicio(ecRes.data[0].fecha_inicio)
+      }
+
       setAreas(lista)
       setLoading(false)
+
+      try {
+        const url = window.location.origin + window.location.pathname
+        if (qrCanvasRef.current) {
+          await QRCode.toCanvas(qrCanvasRef.current, url, { width: 120, margin: 1 })
+        }
+      } catch { /* QR no disponible */ }
     })
   }, [id, evaluacionId])
 
-  if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
+  if (loading) return <LoadingScreen />
 
   const totalPeso = areas.reduce((s, a) => s + a.peso, 0)
   const totalPen = areas.reduce((s, a) => s + a.total_pen, 0)
@@ -121,12 +129,14 @@ export function DetalleEvaluacion() {
     })
   }
 
-  async function eliminar() {
+  async function confirmarEliminar() {
     if (!id || !evaluacionId) return
-    if (!window.confirm(`Eliminar esta evaluacion? Esta accion no se puede deshacer.`)) return
     setEliminando(true)
-    await supabase.from('evaluacion_comentarios').delete().eq('evaluacion_id', evaluacionId)
-    await supabase.from('evaluacion_headers').delete().eq('id', evaluacionId)
+    setMostrarConfirmacion(false)
+    const { error: err1 } = await supabase.from('evaluacion_comentarios').delete().eq('evaluacion_id', evaluacionId)
+    if (err1) { console.error('Error borrando comentarios:', err1); setEliminando(false); return }
+    const { error: err2 } = await supabase.from('evaluacion_headers').delete().eq('id', evaluacionId)
+    if (err2) { console.error('Error borrando header:', err2); setEliminando(false); return }
     navigate(`/operaciones/supermercados/${id}`)
   }
 
@@ -159,7 +169,7 @@ export function DetalleEvaluacion() {
               </a>
             )}
             <button
-              onClick={eliminar}
+              onClick={() => setMostrarConfirmacion(true)}
               disabled={eliminando}
               className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
             >
@@ -176,8 +186,16 @@ export function DetalleEvaluacion() {
 
       {firma && (
         <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
-          <p className="mb-2 text-sm font-medium text-slate-700">Firma del gerente</p>
-          <img src={firma} alt="Firma del gerente" className="h-16 rounded border border-slate-200 bg-slate-50 object-contain" />
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <p className="mb-2 text-sm font-medium text-slate-700">Firma del gerente</p>
+              <img src={firma} alt="Firma del gerente" className="h-16 rounded border border-slate-200 bg-slate-50 object-contain" />
+            </div>
+            <div className="shrink-0 text-center">
+              <p className="mb-1 text-xs font-medium text-slate-500">Escanear para descargar</p>
+              <canvas ref={qrCanvasRef} className="inline-block rounded border border-slate-100" />
+            </div>
+          </div>
         </div>
       )}
 
@@ -229,6 +247,23 @@ export function DetalleEvaluacion() {
           <p className="text-slate-400">Esta evaluacion no tiene datos.</p>
         </div>
       )}
+
+      <Modal abierto={mostrarConfirmacion} titulo="Eliminar evaluacion" onCerrar={() => setMostrarConfirmacion(false)}>
+        <div className="space-y-4">
+          <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            <p className="mb-2 font-medium"> Esta accion es IRREVERSIBLE.</p>
+            <p>Se borraran todos los comentarios, fotos y el PDF asociado a esta evaluacion.</p>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setMostrarConfirmacion(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button onClick={confirmarEliminar} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type { Supermercado, Area, SupermercadoArea } from '../../types'
 import { Modal } from '../../components/Modal'
-import { IconSupermercado, IconEditar, IconEliminar, IconAgregar, IconEvaluar, IconConcepto } from '../../components/Icons'
+import { LoadingScreen } from '../../components/LoadingScreen'
+import { IconSupermercado, IconEditar, IconAgregar, IconEvaluar, IconConcepto, IconDeshabilitar, IconHabilitar } from '../../components/Icons'
 
 export function ListaSupermercados() {
   const location = useLocation()
@@ -12,7 +13,7 @@ export function ListaSupermercados() {
   const [evaluadores, setEvaluadores] = useState<{ id: string; nombre: string; email: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [mensaje, setMensaje] = useState((location.state as { mensaje?: string })?.mensaje ?? '')
-  const [confirmarEliminar, setConfirmarEliminar] = useState<string | null>(null)
+  const [confirmarDeshabilitar, setConfirmarDeshabilitar] = useState<string | null>(null)
 
   const [modalAbierto, setModalAbierto] = useState(false)
   const [supermercadoModal, setSupermercadoModal] = useState<Supermercado | null>(null)
@@ -42,7 +43,7 @@ export function ListaSupermercados() {
     }
     const aRes = await supabase.from('areas').select('*').order('nombre')
     if (aRes.data) setAreasDisponibles(aRes.data as Area[])
-    const pRes = await supabase.from('perfiles').select('id, nombre, email').neq('rol', 'admin').order('nombre')
+    const pRes = await supabase.from('perfiles').select('id, nombre').neq('rol', 'admin').order('nombre')
     if (pRes.data) setEvaluadores(pRes.data)
     setLoading(false)
   }
@@ -91,11 +92,11 @@ export function ListaSupermercados() {
     }
   }
 
-  async function eliminarSupermercado(id: string) {
-    const { error } = await supabase.from('supermercados').delete().eq('id', id)
+  async function toggleActivo(id: string, activo: boolean) {
+    const { error } = await supabase.from('supermercados').update({ activo }).eq('id', id)
     if (error) { setMensaje(`Error: ${error.message}`) } else {
-      setMensaje('Supermercado eliminado')
-      setConfirmarEliminar(null)
+      setMensaje(activo ? 'Supermercado habilitado' : 'Supermercado deshabilitado')
+      setConfirmarDeshabilitar(null)
       cargarDatos()
     }
   }
@@ -125,7 +126,7 @@ export function ListaSupermercados() {
     setAreasEdit((prev) => prev.map((a) => (a.id === saId ? { ...a, peso } : a)))
   }
 
-  if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
+  if (loading) return <LoadingScreen />
 
   return (
     <div className="space-y-6">
@@ -179,36 +180,49 @@ export function ListaSupermercados() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {supermercados.map((s) => (
-          <div key={s.id} className="group relative rounded-xl bg-white shadow-sm transition-all hover:shadow-md">
+          <div key={s.id} className={`group relative rounded-xl bg-white shadow-sm transition-all hover:shadow-md ${!s.activo ? 'opacity-60' : ''}`}>
             <Link to={`/operaciones/supermercados/${s.id}`} className="block p-5">
               <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                 <IconSupermercado className="h-6 w-6" />
               </div>
-              <h2 className="font-semibold text-slate-800">{s.nombre}</h2>
+              <h2 className="font-semibold text-slate-800">
+                {s.nombre}
+                {!s.activo && <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">Deshabilitado</span>}
+              </h2>
               <p className="mt-1 text-xs text-slate-400">Gerente: {s.gerente?.nombre ?? 'Sin asignar'}</p>
             </Link>
 
             <div className="border-t border-slate-100 px-5 py-3">
               <div className="flex flex-wrap gap-2">
-                <Link
-                  to={`/operaciones/supermercados/${s.id}/evaluar`}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
-                >
-                  <IconEvaluar />
-                  Evaluar
-                </Link>
-                <button onClick={() => abrirModal(s)} className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
-                  <IconEditar />
-                  Editar
-                </button>
-                {confirmarEliminar === s.id ? (
-                  <div className="flex gap-1">
-                    <button onClick={() => eliminarSupermercado(s.id)} className="rounded bg-red-600 px-2 py-1 text-xs text-white">Si</button>
-                    <button onClick={() => setConfirmarEliminar(null)} className="rounded bg-slate-100 px-2 py-1 text-xs">No</button>
-                  </div>
+                {s.activo ? (
+                  <>
+                    <Link
+                      to={`/operaciones/supermercados/${s.id}/evaluar`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+                    >
+                      <IconEvaluar />
+                      Evaluar
+                    </Link>
+                    <button onClick={() => abrirModal(s)} className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                      <IconEditar />
+                      Editar
+                    </button>
+                    {confirmarDeshabilitar === s.id ? (
+                      <div className="flex gap-1">
+                        <button onClick={() => toggleActivo(s.id, false)} className="inline-flex items-center gap-1 rounded bg-orange-600 px-2 py-1 text-xs text-white">Deshabilitar</button>
+                        <button onClick={() => setConfirmarDeshabilitar(null)} className="rounded bg-slate-100 px-2 py-1 text-xs">No</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmarDeshabilitar(s.id)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-400 transition-colors hover:border-orange-200 hover:bg-orange-50 hover:text-orange-500" title="Deshabilitar">
+                        <IconDeshabilitar />
+                        Deshabilitar
+                      </button>
+                    )}
+                  </>
                 ) : (
-                  <button onClick={() => setConfirmarEliminar(s.id)} className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600" title="Eliminar">
-                    <IconEliminar />
+                  <button onClick={() => toggleActivo(s.id, true)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+                    <IconHabilitar />
+                    Habilitar
                   </button>
                 )}
               </div>

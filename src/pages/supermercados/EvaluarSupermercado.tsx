@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import type { Supermercado, Area, SupermercadoArea, Concepto, ConceptoCriticidad } from '../../types'
 import { IconAgregar, IconEliminar } from '../../components/Icons'
 import { SignaturePad } from '../../components/SignaturePad'
+import { LoadingScreen } from '../../components/LoadingScreen'
 import { generarPDF } from '../../utils/generarPDF'
 
 function generarUUID() {
@@ -151,7 +152,8 @@ export function EvaluarSupermercado() {
 
   function puntajeTotal(): { earned: number; max: number } {
     const max = areas.reduce((s, a) => s + a.peso, 0)
-    const earned = areas.reduce((s, a) => s + Math.max(0, a.peso - penalizacionTotal(a.areaId)), 0)
+    const totalPen = areas.reduce((s, a) => s + penalizacionTotal(a.areaId), 0)
+    const earned = Math.max(0, max - totalPen)
     return { earned, max }
   }
 
@@ -303,7 +305,7 @@ export function EvaluarSupermercado() {
     navigate(`/operaciones/supermercados/${id}/evaluacion/${evaluacionId}`)
   }
 
-  if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
+  if (loading) return <LoadingScreen />
   if (!supermercado) return <div className="py-10 text-center text-slate-500">Supermercado no encontrado</div>
 
   return (

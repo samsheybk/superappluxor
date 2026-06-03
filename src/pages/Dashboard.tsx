@@ -1,145 +1,314 @@
+import { useEffect, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-  LineChart, Line,
 } from 'recharts'
-import { DEPARTAMENTOS_POR_DIRECCION, type Direcciones } from '../types'
-import { Link } from 'react-router-dom'
-import { IconOperaciones, IconTalento, IconComercial, IconFinanzas } from '../components/Icons'
+import { supabase } from '../lib/supabaseClient'
+import { LoadingScreen } from '../components/LoadingScreen'
 
-const DIRECCIONES: Direcciones[] = ['Operaciones', 'Talento Humano', 'Comercial', 'Finanzas']
-
-const COLORES_DIR: Record<Direcciones, string> = {
-  'Operaciones': '#3B82F6',
-  'Talento Humano': '#10B981',
-  'Comercial': '#F59E0B',
-  'Finanzas': '#8B5CF6',
+interface SuperData {
+  id: string
+  nombre: string
 }
 
-const ICONOS: Record<Direcciones, React.ReactNode> = {
-  'Operaciones': <IconOperaciones className="h-6 w-6" />,
-  'Talento Humano': <IconTalento className="h-6 w-6" />,
-  'Comercial': <IconComercial className="h-6 w-6" />,
-  'Finanzas': <IconFinanzas className="h-6 w-6" />,
+interface AreaData {
+  id: string
+  nombre: string
 }
 
-const datosSemanales = [
-  { semana: 'Sem 1', Operaciones: 78, 'Talento Humano': 85, Comercial: 72, Finanzas: 90 },
-  { semana: 'Sem 2', Operaciones: 82, 'Talento Humano': 80, Comercial: 76, Finanzas: 88 },
-  { semana: 'Sem 3', Operaciones: 75, 'Talento Humano': 88, Comercial: 80, Finanzas: 85 },
-  { semana: 'Sem 4', Operaciones: 80, 'Talento Humano': 82, Comercial: 78, Finanzas: 92 },
-]
+interface ConceptoData {
+  id: string
+  nombre: string
+}
 
-const datosDirecciones = DIRECCIONES.map((dir) => ({
-  name: dir,
-  value: DEPARTAMENTOS_POR_DIRECCION[dir].length,
-  color: COLORES_DIR[dir],
-}))
+interface EvalHeader {
+  id: string
+  supermercado_id: string
+}
 
-const datosGenerales = [
-  { mes: 'Ene', puntaje: 82 },
-  { mes: 'Feb', puntaje: 78 },
-  { mes: 'Mar', puntaje: 85 },
-  { mes: 'Abr', puntaje: 80 },
-  { mes: 'May', puntaje: 88 },
-  { mes: 'Jun', puntaje: 84 },
-]
+interface EvalComent {
+  evaluacion_id: string
+  supermercado_id: string
+  area_id: string
+  concepto_id: string
+  criticidad_id: string
+}
 
-const resumen = [
-  { label: 'Departamentos', valor: '21', cambio: '+0', color: 'text-blue-600' },
-  { label: 'Evaluaciones este mes', valor: '0', cambio: '0', color: 'text-emerald-600' },
-  { label: 'Puntaje promedio', valor: '--', cambio: '--', color: 'text-amber-600' },
-  { label: 'Direcciones', valor: '4', cambio: '+0', color: 'text-purple-600' },
-]
+interface SA {
+  supermercado_id: string
+  area_id: string
+  peso: number
+}
+
+interface CC {
+  id: string
+  penalizacion: number
+}
+
+interface PromedioSuper {
+  nombre: string
+  promedio: number
+  totalEvaluaciones: number
+}
+
+interface DeptoNegativo {
+  nombre: string
+  totalPenalizacion: number
+}
+
+interface ConceptoCount {
+  nombre: string
+  apariciones: number
+}
 
 export function Dashboard() {
+  const [loading, setLoading] = useState(true)
+  const [promedios, setPromedios] = useState<PromedioSuper[]>([])
+  const [totales, setTotales] = useState<{ nombre: string; total: number }[]>([])
+  const [mejores, setMejores] = useState<PromedioSuper[]>([])
+  const [deptosNegativos, setDeptosNegativos] = useState<DeptoNegativo[]>([])
+  const [conceptosCount, setConceptosCount] = useState<ConceptoCount[]>([])
+
+  useEffect(() => {
+    async function cargar() {
+      const [supRes, areasRes, conceptosRes, headersRes, comentsRes, saRes, ccRes] = await Promise.all([
+        supabase.from('supermercados').select('id, nombre').eq('activo', true),
+        supabase.from('areas').select('id, nombre'),
+        supabase.from('conceptos').select('id, nombre'),
+        supabase.from('evaluacion_headers').select('id, supermercado_id'),
+        supabase.from('evaluacion_comentarios').select('evaluacion_id, supermercado_id, area_id, concepto_id, criticidad_id'),
+        supabase.from('supermercado_areas').select('supermercado_id, area_id, peso'),
+        supabase.from('concepto_criticidades').select('id, penalizacion'),
+      ])
+
+      const supermercados: SuperData[] = supRes.data ?? []
+      const areas: AreaData[] = areasRes.data ?? []
+      const conceptos: ConceptoData[] = conceptosRes.data ?? []
+      const headers: EvalHeader[] = headersRes.data ?? []
+      const coments: EvalComent[] = comentsRes.data ?? []
+      const sareas: SA[] = saRes.data ?? []
+      const crits: CC[] = ccRes.data ?? []
+
+      if (supermercados.length === 0) { setLoading(false); return }
+
+      // Build lookup maps
+      const pesoPorSuperArea: Record<string, Record<string, number>> = {}
+      for (const sa of sareas) {
+        if (!pesoPorSuperArea[sa.supermercado_id]) pesoPorSuperArea[sa.supermercado_id] = {}
+        pesoPorSuperArea[sa.supermercado_id][sa.area_id] = sa.peso
+      }
+
+      const penPorCrit: Record<string, number> = {}
+      for (const c of crits) penPorCrit[c.id] = c.penalizacion
+
+      const nombreArea: Record<string, string> = {}
+      for (const a of areas) nombreArea[a.id] = a.nombre
+
+      const nombreConcepto: Record<string, string> = {}
+      for (const c of conceptos) nombreConcepto[c.id] = c.nombre
+
+      const nombreSuper: Record<string, string> = {}
+      for (const s of supermercados) nombreSuper[s.id] = s.nombre
+
+      // Group comments by evaluacion_id
+      const comentsPorEval: Record<string, EvalComent[]> = {}
+      for (const c of coments) {
+        if (!comentsPorEval[c.evaluacion_id]) comentsPorEval[c.evaluacion_id] = []
+        comentsPorEval[c.evaluacion_id].push(c)
+      }
+
+      // --- Calculate per-evaluation scores ---
+      // For each evaluation, for each area: earned = peso - sum(penalties for that area)
+      // Total = sum of earned across areas; Max = sum of pesos across evaluated areas
+      const evalScores: Record<string, { earned: number; max: number; superId: string }> = {}
+      for (const h of headers) {
+        const evalComents = comentsPorEval[h.id] ?? []
+        const supPesos = pesoPorSuperArea[h.supermercado_id] ?? {}
+
+        // Group comments by area_id within this evaluation
+        const penPorArea: Record<string, number> = {}
+        const areasInEval = new Set<string>()
+        for (const ec of evalComents) {
+          areasInEval.add(ec.area_id)
+          penPorArea[ec.area_id] = (penPorArea[ec.area_id] || 0) + (penPorCrit[ec.criticidad_id] || 0)
+        }
+
+        let earned = 0
+        let maxPts = 0
+        for (const aid of areasInEval) {
+          const peso = supPesos[aid] ?? 0
+          maxPts += peso
+          earned += Math.max(0, peso - (penPorArea[aid] || 0))
+        }
+
+        if (maxPts > 0) {
+          evalScores[h.id] = { earned, max: maxPts, superId: h.supermercado_id }
+        }
+      }
+
+      // --- 1 & 3: Promedio por supermercado + Mejores 3 ---
+      const scoresPorSuper: Record<string, { earned: number; max: number; count: number }> = {}
+      for (const ev of Object.values(evalScores)) {
+        if (!scoresPorSuper[ev.superId]) scoresPorSuper[ev.superId] = { earned: 0, max: 0, count: 0 }
+        scoresPorSuper[ev.superId].earned += ev.earned
+        scoresPorSuper[ev.superId].max += ev.max
+        scoresPorSuper[ev.superId].count += 1
+      }
+
+      const promList: PromedioSuper[] = supermercados.map((s) => {
+        const data = scoresPorSuper[s.id]
+        const promedio = data && data.max > 0 ? Math.round((data.earned / data.max) * 100) : 0
+        return { nombre: s.nombre, promedio, totalEvaluaciones: data?.count ?? 0 }
+      })
+
+      setPromedios(promList.sort((a, b) => b.promedio - a.promedio))
+
+      // --- 2: Total evaluaciones por supermercado ---
+      const totalEvalPorSuper: Record<string, number> = {}
+      for (const h of headers) {
+        totalEvalPorSuper[h.supermercado_id] = (totalEvalPorSuper[h.supermercado_id] || 0) + 1
+      }
+      setTotales(
+        supermercados
+          .map((s) => ({ nombre: s.nombre, total: totalEvalPorSuper[s.id] ?? 0 }))
+          .sort((a, b) => b.total - a.total)
+      )
+
+      // --- 3: Mejores 3 ---
+      setMejores(promList.filter((p) => p.totalEvaluaciones > 0).sort((a, b) => b.promedio - a.promedio).slice(0, 3))
+
+      // --- 4: Departamentos con mas puntos negativos totales ---
+      const penPorAreaTotal: Record<string, number> = {}
+      for (const c of coments) {
+        penPorAreaTotal[c.area_id] = (penPorAreaTotal[c.area_id] || 0) + (penPorCrit[c.criticidad_id] || 0)
+      }
+      setDeptosNegativos(
+        Object.entries(penPorAreaTotal)
+          .map(([aid, total]) => ({ nombre: nombreArea[aid] ?? aid, totalPenalizacion: total }))
+          .sort((a, b) => b.totalPenalizacion - a.totalPenalizacion)
+          .slice(0, 10)
+      )
+
+      // --- 5: Conceptos con mas apariciones ---
+      const conceptCounts: Record<string, number> = {}
+      for (const c of coments) {
+        conceptCounts[c.concepto_id] = (conceptCounts[c.concepto_id] || 0) + 1
+      }
+      setConceptosCount(
+        Object.entries(conceptCounts)
+          .map(([cid, count]) => ({ nombre: nombreConcepto[cid] ?? cid, apariciones: count }))
+          .sort((a, b) => b.apariciones - a.apariciones)
+          .slice(0, 10)
+      )
+
+      setLoading(false)
+    }
+    cargar()
+  }, [])
+
+  if (loading) return <LoadingScreen mensaje="Preparando los indicadores..." />
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-        <p className="text-slate-500">Resumen general de evaluaciones de desempeno</p>
+        <p className="text-slate-500">Indicadores generales de evaluaciones</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {resumen.map((item) => (
-          <div key={item.label} className="rounded-xl bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">{item.label}</p>
-            <p className={`mt-1 text-3xl font-bold ${item.color}`}>{item.valor}</p>
-            <p className="mt-1 text-xs text-slate-400">{item.cambio} vs mes anterior</p>
+      {/* Mejores 3 supermercados */}
+      {mejores.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold text-slate-800">Mejores 3 supermercados</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {mejores.map((m, i) => (
+              <div key={m.nombre} className="rounded-xl bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-lg font-bold text-amber-700">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="font-medium text-slate-800">{m.nombre}</p>
+                    <p className="text-2xl font-bold text-emerald-600">{m.promedio}%</p>
+                    <p className="text-xs text-slate-400">{m.totalEvaluaciones} evaluaciones</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Promedio de resultado por supermercado */}
+      {promedios.some((p) => p.totalEvaluaciones > 0) && (
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-800">Promedio de resultado por supermercado</h2>
+          <ResponsiveContainer width="100%" height={Math.max(200, promedios.filter((p) => p.totalEvaluaciones > 0).length * 40)}>
+            <BarChart data={promedios.filter((p) => p.totalEvaluaciones > 0)} layout="vertical" margin={{ left: 120, right: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v}%`} />
+              <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Bar dataKey="promedio" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Total de evaluaciones por supermercado */}
+      {totales.some((t) => t.total > 0) && (
+        <div className="rounded-xl bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-800">Total de evaluaciones por supermercado</h2>
+          <ResponsiveContainer width="100%" height={Math.max(200, totales.filter((t) => t.total > 0).length * 40)}>
+            <BarChart data={totales.filter((t) => t.total > 0)} layout="vertical" margin={{ left: 120, right: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+              <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+              <Tooltip />
+              <Bar dataKey="total" fill="#10B981" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-800">Evolucion mensual</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={datosGenerales}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="mes" stroke="#94a3b8" fontSize={12} />
-              <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
-              <Tooltip />
-              <Line type="monotone" dataKey="puntaje" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-800">Departamentos por direccion</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie data={datosDirecciones} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, value }) => `${name}: ${value}`}>
-                {datosDirecciones.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="rounded-xl bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Puntaje semanal por direccion</h2>
-        <ResponsiveContainer width="100%" height={320}>
-          <BarChart data={datosSemanales}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="semana" stroke="#94a3b8" fontSize={12} />
-            <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={12} />
-            <Tooltip />
-            <Bar dataKey="Operaciones" fill={COLORES_DIR['Operaciones']} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Talento Humano" fill={COLORES_DIR['Talento Humano']} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Comercial" fill={COLORES_DIR['Comercial']} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Finanzas" fill={COLORES_DIR['Finanzas']} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        {DIRECCIONES.map((dir) => (
-          <div key={dir} className={`rounded-xl border-l-4 p-5 shadow-sm`} style={{ borderColor: COLORES_DIR[dir], backgroundColor: `${COLORES_DIR[dir]}10` }}>
-            <div className="mb-3 flex items-center gap-2 text-slate-600">
-              {ICONOS[dir]}
-              <h2 className="text-lg font-semibold text-slate-800">{dir}</h2>
-            </div>
-            <div className="space-y-2">
-              {DEPARTAMENTOS_POR_DIRECCION[dir].map((depto) => (
-                <Link
-                  key={depto}
-                  to={`/departamento/${depto.toLowerCase().replace(/\s+/g, '-')}`}
-                  className="flex items-center justify-between rounded-lg bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm transition-colors hover:bg-slate-100"
-                >
-                  <span>{depto}</span>
-                  <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              ))}
-            </div>
+        {/* Departamentos con mas puntos negativos */}
+        {deptosNegativos.length > 0 && (
+          <div className="rounded-xl bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-800">Departamentos con mas puntos negativos</h2>
+            <ResponsiveContainer width="100%" height={Math.max(200, deptosNegativos.length * 40)}>
+              <BarChart data={deptosNegativos} layout="vertical" margin={{ left: 120, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+                <Tooltip />
+                <Bar dataKey="totalPenalizacion" fill="#EF4444" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        ))}
+        )}
+
+        {/* Conceptos con mas apariciones */}
+        {conceptosCount.length > 0 && (
+          <div className="rounded-xl bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-lg font-semibold text-slate-800">Conceptos con mas apariciones</h2>
+            <ResponsiveContainer width="100%" height={Math.max(200, conceptosCount.length * 40)}>
+              <BarChart data={conceptosCount} layout="vertical" margin={{ left: 120, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+                <Tooltip />
+                <Bar dataKey="apariciones" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
+
+      {/* Mensaje si no hay datos */}
+      {totales.every((t) => t.total === 0) && (
+        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
+          <p className="text-slate-400">No hay evaluaciones registradas. Crea una evaluacion para ver los indicadores.</p>
+        </div>
+      )}
     </div>
   )
 }

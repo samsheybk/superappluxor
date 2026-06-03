@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import type { Supermercado, Area, SupermercadoArea } from '../../types'
 import { Modal } from '../../components/Modal'
+import { LoadingScreen } from '../../components/LoadingScreen'
 
 export function ConfigSupermercados() {
   const [supermercados, setSupermercados] = useState<(Supermercado & { gerente?: { nombre: string; email: string } | null })[]>([])
@@ -16,7 +17,7 @@ export function ConfigSupermercados() {
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevaAreaNombre, setNuevaAreaNombre] = useState('')
   const [mensaje, setMensaje] = useState('')
-  const [confirmarEliminar, setConfirmarEliminar] = useState<string | null>(null)
+  const [confirmarDeshabilitar, setConfirmarDeshabilitar] = useState<string | null>(null)
 
   useEffect(() => {
     cargarDatos()
@@ -41,7 +42,7 @@ export function ConfigSupermercados() {
     if (aRes.error) console.error('Error areas:', aRes.error)
     if (aRes.data) setAreasDisponibles(aRes.data as Area[])
 
-    const pRes = await supabase.from('perfiles').select('id, nombre, email').neq('rol', 'admin').order('nombre')
+    const pRes = await supabase.from('perfiles').select('id, nombre').neq('rol', 'admin').order('nombre')
     if (pRes.error) console.error('Error evaluadores:', pRes.error)
     if (pRes.data) setEvaluadores(pRes.data)
 
@@ -83,11 +84,11 @@ export function ConfigSupermercados() {
     }
   }
 
-  async function eliminarSupermercado(id: string) {
-    const { error } = await supabase.from('supermercados').delete().eq('id', id)
+  async function toggleActivo(id: string, activo: boolean) {
+    const { error } = await supabase.from('supermercados').update({ activo }).eq('id', id)
     if (error) { setMensaje(`Error: ${error.message}`) } else {
-      setMensaje('Supermercado eliminado')
-      setConfirmarEliminar(null)
+      setMensaje(activo ? 'Supermercado habilitado' : 'Supermercado deshabilitado')
+      setConfirmarDeshabilitar(null)
       cargarDatos()
     }
   }
@@ -128,7 +129,7 @@ export function ConfigSupermercados() {
     cargarDatos()
   }
 
-  if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
+  if (loading) return <LoadingScreen />
 
   return (
     <div className="space-y-6">
@@ -173,7 +174,7 @@ export function ConfigSupermercados() {
 
       <div className="space-y-2">
         {supermercados.map((s) => (
-          <div key={s.id} className="flex items-center justify-between gap-4 rounded-xl bg-white px-5 py-4 shadow-sm">
+          <div key={s.id} className={`flex items-center justify-between gap-4 rounded-xl px-5 py-4 shadow-sm ${!s.activo ? 'bg-slate-100 opacity-60' : 'bg-white'}`}>
             <div className="flex-1 min-w-0">
               {editandoNombre === s.id ? (
                 <div className="flex gap-2">
@@ -182,7 +183,10 @@ export function ConfigSupermercados() {
                   <button onClick={() => setEditandoNombre(null)} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200">Cancelar</button>
                 </div>
               ) : (
-                <h3 className="font-semibold text-slate-800">{s.nombre}</h3>
+                <h3 className="font-semibold text-slate-800">
+                  {s.nombre}
+                  {!s.activo && <span className="ml-2 rounded bg-slate-300 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">Deshabilitado</span>}
+                </h3>
               )}
               <p className="text-xs text-slate-400">Gerente: {s.gerente?.nombre ?? 'Sin asignar'}</p>
             </div>
@@ -199,18 +203,31 @@ export function ConfigSupermercados() {
                 ))}
               </select>
 
-              <button onClick={() => abrirModal(s)} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
-                Editar
-              </button>
-
-              {confirmarEliminar === s.id ? (
-                <div className="flex items-center gap-1">
-                  <button onClick={() => eliminarSupermercado(s.id)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs text-white hover:bg-red-700">Eliminar</button>
-                  <button onClick={() => setConfirmarEliminar(null)} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200">Cancelar</button>
-                </div>
+              {s.activo ? (
+                <>
+                  <button onClick={() => abrirModal(s)} className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                    Editar
+                  </button>
+                  {confirmarDeshabilitar === s.id ? (
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => toggleActivo(s.id, false)} className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs text-white hover:bg-orange-700">Deshabilitar</button>
+                      <button onClick={() => setConfirmarDeshabilitar(null)} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200">Cancelar</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmarDeshabilitar(s.id)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-500 hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      Deshabilitar
+                    </button>
+                  )}
+                </>
               ) : (
-                <button onClick={() => setConfirmarEliminar(s.id)} className="rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-600 hover:bg-red-100" title="Eliminar">
-                  🗑️
+                <button onClick={() => toggleActivo(s.id, true)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Habilitar
                 </button>
               )}
             </div>

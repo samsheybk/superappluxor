@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type { Concepto, ConceptoCriticidad, Area } from '../../types'
+import { LoadingScreen } from '../../components/LoadingScreen'
 
 interface ConceptoCompleto extends Concepto {
   criticidades: ConceptoCriticidad[]
@@ -86,7 +87,7 @@ export function GestionConceptos() {
     cargarTodo()
   }
 
-  if (loading) return <div className="py-10 text-center text-slate-500">Cargando...</div>
+  if (loading) return <LoadingScreen />
 
   return (
     <div className="space-y-6">
