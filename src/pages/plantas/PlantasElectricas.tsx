@@ -210,27 +210,32 @@ function PlantQRModal({ planta, supNombre, onClose }: {
           <div className="text-center">
             <p className="text-sm font-medium text-slate-800">{supNombre}</p>
             <p className="text-sm text-slate-500">{planta.marca} {planta.modelo}</p>
-            <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
-              <span className="flex-1 break-all text-xs text-slate-500">{url}</span>
-              <button onClick={copiarUrl}
-                className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
-              >
-                {copiado ? 'Copiado' : 'Copiar'}
-              </button>
+            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
+              <span className="block break-all text-xs text-slate-500">{url}</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-center gap-2">
+            <button onClick={onClose}
+              className="rounded-lg bg-slate-500 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600"
+            >
+              Cerrar
+            </button>
+            <button onClick={copiarUrl}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              {copiado ? 'Copiado' : 'Copiar'}
+            </button>
+            <button onClick={() => window.open(url, '_blank')}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            >
+              Abrir
+            </button>
             </div>
           </div>
         </div>
-        <div className="mt-4 flex justify-center">
-          <button onClick={onClose}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Cerrar
-          </button>
-        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
 function calcularHoras(inicial: number | null, final: number | null) {
   if (inicial == null || final == null) return 0

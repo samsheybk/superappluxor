@@ -772,7 +772,7 @@ export function TallerAutomotriz() {
                                 </svg>
                               </button>
                               <input ref={(el) => { fileInputRefs.current[item.key] = el }}
-                                type="file" accept="image/*" className="hidden"
+                                type="file" accept="image/*" capture="environment" className="hidden"
                                 onChange={(e) => handleAgregarFoto(item.key, e)} />
                             </div>
                             {fotos.length > 0 && (

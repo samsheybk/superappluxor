@@ -92,6 +92,7 @@ export function VerificarPlanta() {
   const [registros, setRegistros] = useState<PlantaRegistro[]>([])
   const [cargas, setCargas] = useState<PlantaCarga[]>([])
   const [mantenimientos, setMantenimientos] = useState<PlantaMantenimiento[]>([])
+  const [alarmas, setAlarmas] = useState<any[]>([])
 
   const [combustibleInicial, setCombustibleInicial] = useState(0)
   const [combustibleFinal, setCombustibleFinal] = useState(0)
@@ -126,6 +127,8 @@ export function VerificarPlanta() {
         if (regRes.data) setRegistros(regRes.data)
         if (carRes.data) setCargas(carRes.data)
         if (manRes.data) setMantenimientos(manRes.data)
+        const { data: alRes } = await supabase.from('planta_alarmas').select('*').eq('planta_id', id).order('created_at', { ascending: false }).limit(20)
+        if (alRes) setAlarmas(alRes)
       } catch (e: any) { setError(e.message) }
       finally { setLoading(false) }
     })()
@@ -160,6 +163,36 @@ export function VerificarPlanta() {
   const consumoPromedio = horasSesiones > 0 ? consumoTotal / horasSesiones : 0
   const totalConsumido = sesionesCompletas.reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
 
+  async function verificarAlarmas() {
+    if (!id || !planta) return
+    const pct = capacidadTanque > 0 ? saldoActual / capacidadTanque : 1
+    const alarmas: { tipo: string; mensaje: string; valor_registrado: number; limite: number }[] = []
+
+    if (pct < 0.15) {
+      alarmas.push({
+        tipo: 'combustible_bajo',
+        mensaje: `Combustible al ${(pct * 100).toFixed(0)}% de la capacidad`,
+        valor_registrado: saldoActual,
+        limite: capacidadTanque * 0.15,
+      })
+    }
+
+    if (horasDesdeUltCambio >= 100) {
+      alarmas.push({
+        tipo: 'aceite_vencido',
+        mensaje: `${horasDesdeUltCambio.toFixed(1)}h sin cambio de aceite (límite 100h)`,
+        valor_registrado: horasDesdeUltCambio,
+        limite: 100,
+      })
+    }
+
+    if (alarmas.length === 0) return
+    const { error } = await supabase.from('planta_alarmas').insert(
+      alarmas.map((a) => ({ ...a, planta_id: id }))
+    )
+    if (error) console.error('Error al registrar alarmas:', error)
+  }
+
   async function encender() {
     if (!id || !user) return; setEncendiendo(true)
     try {
@@ -167,6 +200,7 @@ export function VerificarPlanta() {
       setHorometroInicial(0); setCombustibleInicial(0); setAccion(null)
       const { data } = await supabase.from('planta_registros').select('*').eq('planta_id', id).order('encendido_en', { ascending: false })
       if (data) setRegistros(data)
+      await verificarAlarmas()
     } catch (e: any) { setError(e.message) } finally { setEncendiendo(false) }
   }
 
@@ -177,6 +211,7 @@ export function VerificarPlanta() {
       setHorometroFinal(0); setCombustibleFinal(0); setAccion(null)
       const { data } = await supabase.from('planta_registros').select('*').eq('planta_id', id).order('encendido_en', { ascending: false })
       if (data) setRegistros(data)
+      await verificarAlarmas()
     } catch (e: any) { setError(e.message) } finally { setApagando(false) }
   }
 
@@ -187,6 +222,7 @@ export function VerificarPlanta() {
       setCantidadCarga(0); setAccion(null)
       const { data } = await supabase.from('planta_cargas_combustible').select('*').eq('planta_id', id).order('created_at', { ascending: false })
       if (data) setCargas(data)
+      await verificarAlarmas()
     } catch (e: any) { setError(e.message) } finally { setCargandoCombustible(false) }
   }
 
@@ -208,6 +244,7 @@ export function VerificarPlanta() {
       setAccion(null)
       const { data } = await supabase.from('planta_mantenimientos').select('*').eq('planta_id', id).order('created_at', { ascending: false })
       if (data) setMantenimientos(data)
+      await verificarAlarmas()
     } catch (e: any) { setError(e.message) } finally { setGuardandoMantenimiento(false) }
   }
 
@@ -595,7 +632,7 @@ export function VerificarPlanta() {
                     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    <input type="file" accept="image/*" className="hidden"
+                    <input type="file" accept="image/*" capture="environment" className="hidden"
                       onChange={(e) => agregarFotoReporte(e.target.files)}
                     />
                   </label>
@@ -614,6 +651,32 @@ export function VerificarPlanta() {
               >
                 Enviar por WhatsApp
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Alarmas */}
+        {alarmas.length > 0 && (
+          <div className="rounded-xl bg-white shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-3">
+              <svg className="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-medium text-slate-600">Alertas registradas</span>
+              <span className="ml-auto text-xs text-slate-400">{alarmas.length}</span>
+            </div>
+            <div className="border-t border-slate-100 space-y-1 px-4 pb-3 max-h-40 overflow-y-auto">
+              {alarmas.map((a: any) => (
+                <div key={a.id} className="flex items-center gap-2 py-1 text-xs">
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 font-medium ${
+                    a.tipo === 'combustible_bajo' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'
+                  }`}>
+                    {a.tipo === 'combustible_bajo' ? 'Combustible' : 'Aceite'}
+                  </span>
+                  <span className="text-slate-600">{a.mensaje}</span>
+                  <span className="ml-auto text-slate-400">{new Date(a.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}

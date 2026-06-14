@@ -434,6 +434,7 @@ export function EvaluarSupermercado() {
                         <input
                           type="file"
                           accept="image/*"
+                          capture="environment"
                           className="hidden"
                           onChange={(e) => manejarFotosComentario(area.areaId, cm._tempId, e.target.files)}
                         />
