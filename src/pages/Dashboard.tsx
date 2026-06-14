@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie,
+  AreaChart, Area,
 } from 'recharts'
 import { supabase } from '../lib/supabaseClient'
 import { LoadingScreen } from '../components/LoadingScreen'
+
+function colorRango(valor: number, min: number, max: number): string {
+  if (max === min) return '#EF4444'
+  const t = (valor - min) / (max - min)
+  const r = Math.round(239 * t + 34 * (1 - t))
+  const g = Math.round(68 * t + 197 * (1 - t))
+  const b = Math.round(68 * t + 94 * (1 - t))
+  return `rgb(${r},${g},${b})`
+}
 
 interface SuperData {
   id: string
@@ -90,7 +101,6 @@ export function Dashboard() {
 
       if (supermercados.length === 0) { setLoading(false); return }
 
-      // Build lookup maps
       const pesoPorSuperArea: Record<string, Record<string, number>> = {}
       for (const sa of sareas) {
         if (!pesoPorSuperArea[sa.supermercado_id]) pesoPorSuperArea[sa.supermercado_id] = {}
@@ -109,22 +119,17 @@ export function Dashboard() {
       const nombreSuper: Record<string, string> = {}
       for (const s of supermercados) nombreSuper[s.id] = s.nombre
 
-      // Group comments by evaluacion_id
       const comentsPorEval: Record<string, EvalComent[]> = {}
       for (const c of coments) {
         if (!comentsPorEval[c.evaluacion_id]) comentsPorEval[c.evaluacion_id] = []
         comentsPorEval[c.evaluacion_id].push(c)
       }
 
-      // --- Calculate per-evaluation scores ---
-      // For each evaluation, for each area: earned = peso - sum(penalties for that area)
-      // Total = sum of earned across areas; Max = sum of pesos across evaluated areas
       const evalScores: Record<string, { earned: number; max: number; superId: string }> = {}
       for (const h of headers) {
         const evalComents = comentsPorEval[h.id] ?? []
         const supPesos = pesoPorSuperArea[h.supermercado_id] ?? {}
 
-        // Group comments by area_id within this evaluation
         const penPorArea: Record<string, number> = {}
         const areasInEval = new Set<string>()
         for (const ec of evalComents) {
@@ -145,7 +150,6 @@ export function Dashboard() {
         }
       }
 
-      // --- 1 & 3: Promedio por supermercado + Mejores 3 ---
       const scoresPorSuper: Record<string, { earned: number; max: number; count: number }> = {}
       for (const ev of Object.values(evalScores)) {
         if (!scoresPorSuper[ev.superId]) scoresPorSuper[ev.superId] = { earned: 0, max: 0, count: 0 }
@@ -162,7 +166,6 @@ export function Dashboard() {
 
       setPromedios(promList.sort((a, b) => b.promedio - a.promedio))
 
-      // --- 2: Total evaluaciones por supermercado ---
       const totalEvalPorSuper: Record<string, number> = {}
       for (const h of headers) {
         totalEvalPorSuper[h.supermercado_id] = (totalEvalPorSuper[h.supermercado_id] || 0) + 1
@@ -173,10 +176,8 @@ export function Dashboard() {
           .sort((a, b) => b.total - a.total)
       )
 
-      // --- 3: Mejores 3 ---
       setMejores(promList.filter((p) => p.totalEvaluaciones > 0).sort((a, b) => b.promedio - a.promedio).slice(0, 3))
 
-      // --- 4: Departamentos con mas puntos negativos totales ---
       const penPorAreaTotal: Record<string, number> = {}
       for (const c of coments) {
         penPorAreaTotal[c.area_id] = (penPorAreaTotal[c.area_id] || 0) + (penPorCrit[c.criticidad_id] || 0)
@@ -188,7 +189,6 @@ export function Dashboard() {
           .slice(0, 10)
       )
 
-      // --- 5: Conceptos con mas apariciones ---
       const conceptCounts: Record<string, number> = {}
       for (const c of coments) {
         conceptCounts[c.concepto_id] = (conceptCounts[c.concepto_id] || 0) + 1
@@ -208,7 +208,7 @@ export function Dashboard() {
   if (loading) return <LoadingScreen mensaje="Preparando los indicadores..." />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
         <p className="text-slate-500">Indicadores generales de evaluaciones</p>
@@ -237,68 +237,105 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Promedio de resultado por supermercado */}
+      {/* Promedio de resultado por supermercado - barras verticales */}
       {promedios.some((p) => p.totalEvaluaciones > 0) && (
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">Promedio de resultado por supermercado</h2>
-          <ResponsiveContainer width="100%" height={Math.max(200, promedios.filter((p) => p.totalEvaluaciones > 0).length * 40)}>
-            <BarChart data={promedios.filter((p) => p.totalEvaluaciones > 0)} layout="vertical" margin={{ left: 120, right: 20 }}>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={promedios.filter((p) => p.totalEvaluaciones > 0)} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis type="number" domain={[0, 100]} stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v ?? 0}%`} />
-              <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+              <XAxis dataKey="nombre" stroke="#94a3b8" fontSize={12} angle={-30} textAnchor="end" height={60} />
+              <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `${v}%`} />
               <Tooltip formatter={(v: unknown) => `${v ?? 0}%`} />
-              <Bar dataKey="promedio" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+              <Bar dataKey="promedio" fill="#3B82F6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* Total de evaluaciones por supermercado */}
+      {/* Total de evaluaciones por supermercado - area chart con picos */}
       {totales.some((t) => t.total > 0) && (
         <div className="rounded-xl bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-slate-800">Total de evaluaciones por supermercado</h2>
-          <ResponsiveContainer width="100%" height={Math.max(200, totales.filter((t) => t.total > 0).length * 40)}>
-            <BarChart data={totales.filter((t) => t.total > 0)} layout="vertical" margin={{ left: 120, right: 20 }}>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={totales.filter((t) => t.total > 0)} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
+              <defs>
+                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-              <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+              <XAxis dataKey="nombre" stroke="#94a3b8" fontSize={12} angle={-30} textAnchor="end" height={60} />
+              <YAxis stroke="#94a3b8" fontSize={12} />
               <Tooltip />
-              <Bar dataKey="total" fill="#10B981" radius={[0, 4, 4, 0]} />
-            </BarChart>
+              <Area type="monotone" dataKey="total" stroke="#10B981" strokeWidth={2} fill="url(#colorTotal)" dot={{ r: 4, fill: '#10B981' }} activeDot={{ r: 6 }} />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Departamentos con mas puntos negativos */}
+        {/* Departamentos con mas puntos negativos - barras verticales */}
         {deptosNegativos.length > 0 && (
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Departamentos con mas puntos negativos</h2>
-            <ResponsiveContainer width="100%" height={Math.max(200, deptosNegativos.length * 40)}>
-              <BarChart data={deptosNegativos} layout="vertical" margin={{ left: 120, right: 20 }}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={deptosNegativos} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+                <XAxis dataKey="nombre" stroke="#94a3b8" fontSize={12} angle={-30} textAnchor="end" height={60} />
+                <YAxis stroke="#94a3b8" fontSize={12} />
                 <Tooltip />
-                <Bar dataKey="totalPenalizacion" fill="#EF4444" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="totalPenalizacion" radius={[4, 4, 0, 0]}>
+                  {deptosNegativos.map((d, i) => {
+                    const vals = deptosNegativos.map((x) => x.totalPenalizacion)
+                    return <Cell key={i} fill={colorRango(d.totalPenalizacion, Math.min(...vals), Math.max(...vals))} />
+                  })}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* Conceptos con mas apariciones */}
+        {/* Conceptos con mas apariciones - grafico de torta */}
         {conceptosCount.length > 0 && (
           <div className="rounded-xl bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Conceptos con mas apariciones</h2>
-            <ResponsiveContainer width="100%" height={Math.max(200, conceptosCount.length * 40)}>
-              <BarChart data={conceptosCount} layout="vertical" margin={{ left: 120, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                <YAxis type="category" dataKey="nombre" stroke="#94a3b8" fontSize={12} width={110} />
+            <ResponsiveContainer width="100%" height={350}>
+              <PieChart>
+                <Pie
+                  data={conceptosCount}
+                  dataKey="apariciones"
+                  nameKey="nombre"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={110}
+                  innerRadius={50}
+                  paddingAngle={3}
+                >
+                  {(() => {
+                    const vals = conceptosCount.map((c) => c.apariciones)
+                    const min = Math.min(...vals)
+                    const max = Math.max(...vals)
+                    return conceptosCount.map((c, i) => (
+                      <Cell key={i} fill={colorRango(c.apariciones, min, max)} />
+                    ))
+                  })()}
+                </Pie>
                 <Tooltip />
-                <Bar dataKey="apariciones" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+              {conceptosCount.map((c) => {
+                const vals = conceptosCount.map((x) => x.apariciones)
+                return (
+                  <span key={c.nombre} className="flex items-center gap-1">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colorRango(c.apariciones, Math.min(...vals), Math.max(...vals)) }} />
+                    {c.nombre}: {c.apariciones}
+                  </span>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

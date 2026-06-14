@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js'
 interface Perfil {
   id: string
   nombre: string
+  username: string
   rol: 'admin' | 'evaluador'
 }
 
@@ -12,7 +13,7 @@ interface AuthContextType {
   user: User | null
   perfil: Perfil | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<string | null>
+  signIn: (username: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
 }
 
@@ -24,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   async function fetchPerfil(uid: string) {
-    const { data } = await supabase.from('perfiles').select('id, nombre, rol').eq('id', uid).single()
+    const { data } = await supabase.from('perfiles').select('id, nombre, username, rol').eq('id', uid).single()
     setPerfil(data as Perfil | null)
   }
 
@@ -46,7 +47,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signIn(email: string, password: string): Promise<string | null> {
+  async function signIn(username: string, password: string): Promise<string | null> {
+    const { data: email, error: rpcError } = await supabase.rpc('obtener_email_por_username', { p_username: username })
+    if (rpcError) return rpcError.message
+    if (!email) return 'Usuario no encontrado'
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (data.user) fetchPerfil(data.user.id)
     return error?.message ?? null
