@@ -638,5 +638,152 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_documentacion_indicadores_depto ON documentacion_indicadores(departamento);
 
 -- ============================================================
+-- Modulo de Evaluacion de Almacen y Distribucion
+-- ============================================================
+CREATE TABLE IF NOT EXISTS almacen_areas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL UNIQUE,
+  peso INTEGER NOT NULL DEFAULT 10
+);
+
+CREATE TABLE IF NOT EXISTS almacen_conceptos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS almacen_concepto_criticidades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  concepto_id UUID NOT NULL REFERENCES almacen_conceptos(id) ON DELETE CASCADE,
+  nivel TEXT NOT NULL,
+  penalizacion INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS almacen_concepto_areas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  concepto_id UUID NOT NULL REFERENCES almacen_conceptos(id) ON DELETE CASCADE,
+  area_id UUID NOT NULL REFERENCES almacen_areas(id) ON DELETE CASCADE,
+  UNIQUE(concepto_id, area_id)
+);
+
+CREATE TABLE IF NOT EXISTS almacen_evaluaciones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fecha_inicio TIMESTAMPTZ NOT NULL DEFAULT now(),
+  fecha_cierre TIMESTAMPTZ,
+  inspector TEXT NOT NULL DEFAULT '',
+  observaciones TEXT NOT NULL DEFAULT '',
+  fotos JSONB NOT NULL DEFAULT '[]',
+  firma TEXT,
+  pdf_base64 TEXT,
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS almacen_evaluacion_comentarios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  evaluacion_id UUID NOT NULL REFERENCES almacen_evaluaciones(id) ON DELETE CASCADE,
+  area_id UUID NOT NULL REFERENCES almacen_areas(id),
+  concepto_id UUID NOT NULL REFERENCES almacen_conceptos(id),
+  criticidad_id UUID NOT NULL REFERENCES almacen_concepto_criticidades(id),
+  comentario TEXT NOT NULL DEFAULT '',
+  fotos JSONB NOT NULL DEFAULT '[]'
+);
+
+INSERT INTO almacen_areas (nombre, peso) VALUES
+  ('Cavas', 20), ('Perecederos', 20), ('No perecedero', 20),
+  ('Servicios Generales', 20), ('Importados', 20)
+ON CONFLICT (nombre) DO NOTHING;
+
+INSERT INTO almacen_conceptos (nombre) VALUES
+  ('Temperatura de cavas'), ('Orden y limpieza'), ('Uso de EPP'),
+  ('Estado de montacargas'), ('Exceso de mercancia por baja rotacion'),
+  ('Productos identificados con ficha de recepcion'),
+  ('Aplicacion del metodo FIFO'), ('Iluminacion, ventilacion y fugas de agua')
+ON CONFLICT (nombre) DO NOTHING;
+
+DO $$ DECLARE c RECORD; BEGIN
+  FOR c IN SELECT id FROM almacen_conceptos LOOP
+    IF NOT EXISTS (SELECT 1 FROM almacen_concepto_criticidades WHERE concepto_id = c.id AND nivel = 'ALTO') THEN
+      INSERT INTO almacen_concepto_criticidades (concepto_id, nivel, penalizacion) VALUES (c.id, 'ALTO', 10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM almacen_concepto_criticidades WHERE concepto_id = c.id AND nivel = 'MEDIO') THEN
+      INSERT INTO almacen_concepto_criticidades (concepto_id, nivel, penalizacion) VALUES (c.id, 'MEDIO', 5);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM almacen_concepto_criticidades WHERE concepto_id = c.id AND nivel = 'BAJO') THEN
+      INSERT INTO almacen_concepto_criticidades (concepto_id, nivel, penalizacion) VALUES (c.id, 'BAJO', 2);
+    END IF;
+  END LOOP;
+END $$;
+
+DO $$ DECLARE con RECORD; ar RECORD; BEGIN
+  FOR con IN SELECT id FROM almacen_conceptos LOOP
+    FOR ar IN SELECT id FROM almacen_areas WHERE nombre = 'Cavas' LOOP
+      IF NOT EXISTS (SELECT 1 FROM almacen_concepto_areas WHERE concepto_id = con.id AND area_id = ar.id) THEN
+        INSERT INTO almacen_concepto_areas (concepto_id, area_id) VALUES (con.id, ar.id);
+      END IF;
+    END LOOP;
+  END LOOP;
+END $$;
+
+DO $$ DECLARE tempId UUID; ar RECORD; BEGIN
+  SELECT id INTO tempId FROM almacen_conceptos WHERE nombre = 'Temperatura de cavas';
+  FOR ar IN SELECT id FROM almacen_areas WHERE nombre IN ('Perecederos', 'No perecedero', 'Servicios Generales', 'Importados') LOOP
+    DELETE FROM almacen_concepto_areas WHERE concepto_id = tempId AND area_id = ar.id;
+  END LOOP;
+END $$;
+
+ALTER TABLE almacen_areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE almacen_conceptos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE almacen_concepto_criticidades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE almacen_concepto_areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE almacen_evaluaciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE almacen_evaluacion_comentarios ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer almacen_areas') THEN
+    CREATE POLICY "Autenticado puede leer almacen_areas" ON almacen_areas FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer almacen_conceptos') THEN
+    CREATE POLICY "Autenticado puede leer almacen_conceptos" ON almacen_conceptos FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer almacen_concepto_criticidades') THEN
+    CREATE POLICY "Autenticado puede leer almacen_concepto_criticidades" ON almacen_concepto_criticidades FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer almacen_concepto_areas') THEN
+    CREATE POLICY "Autenticado puede leer almacen_concepto_areas" ON almacen_concepto_areas FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer almacen_evaluaciones') THEN
+    CREATE POLICY "Autenticado puede leer almacen_evaluaciones" ON almacen_evaluaciones FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer almacen_evaluacion_comentarios') THEN
+    CREATE POLICY "Autenticado puede leer almacen_evaluacion_comentarios" ON almacen_evaluacion_comentarios FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admin puede insertar almacen_evaluaciones') THEN
+    CREATE POLICY "Admin puede insertar almacen_evaluaciones" ON almacen_evaluaciones FOR INSERT WITH CHECK (es_admin());
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admin puede insertar almacen_evaluacion_comentarios') THEN
+    CREATE POLICY "Admin puede insertar almacen_evaluacion_comentarios" ON almacen_evaluacion_comentarios FOR INSERT WITH CHECK (es_admin());
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admin puede eliminar almacen_evaluaciones') THEN
+    CREATE POLICY "Admin puede eliminar almacen_evaluaciones" ON almacen_evaluaciones FOR DELETE USING (es_admin());
+  END IF;
+END $$;
+
+-- Seed: Documentacion de Almacen en documentacion_indicadores
+INSERT INTO documentacion_indicadores (titulo, tipo, introduccion, objetivo_principal, objetivos_secundarios, metodo_evaluacion, valoracion_resultados, impacto_negocio, responsables_directos, frecuencia_medicion, departamento, repercusion_laboral)
+VALUES (
+  'Inspeccion Semanal de Almacen', 'KPI',
+  'El area de Almacen y Distribucion es responsable de la recepcion, almacenamiento y despacho de mercancia. Para garantizar la calidad y seguridad de las operaciones, se realiza una inspeccion semal que cubre aspectos criticos de infraestructura, procesos y equipos.',
+  'Evaluar semanalmente las condiciones operativas del almacen para asegurar el cumplimiento de los estandares de calidad, seguridad y conservacion de la mercancia.',
+  '["Verificar que la temperatura de las cavas y cuartos frios se mantenga dentro del rango optimo", "Asegurar el orden y la limpieza general del area de almacenamiento", "Confirmar el uso correcto de los equipos de proteccion personal (EPP)", "Inspeccionar el estado mecanico y operativo de los montacargas", "Detectar exceso de mercancia por baja rotacion y tomar acciones correctivas", "Verificar que todos los productos esten identificados con su ficha de recepcion", "Auditar la aplicacion del metodo FIFO en la rotacion de inventario", "Evaluar las condiciones de iluminacion, ventilacion y detectar fugas de agua"]',
+  'Se realiza una inspeccion semanal recorriendo cada area del almacen con una lista de verificacion que cubre: temperatura de cavas y cuartos frios (registro digital), orden y limpieza general (5S), uso de EPP del personal, estado de montacargas (hoja de checklist diario), identificacion de productos con baja rotacion, fichas de recepcion visibles en cada lote, aplicacion de FIFO en fechas de vencimiento/lote, y condiciones de infraestructura (iluminacion, ventilacion, fugas). Cada item se califica como Cumple / No Cumple / No Aplica.',
+  'Los resultados se tabulan semanalmente. Se considera APROBADO si al menos el 90% de los items evaluados cumplen. Se genera un plan de accion correctiva para cada item No Cumple con responsable y fecha limite.',
+  'El incumplimiento recurrente puede derivar en perdida de mercancia por caducidad o deterioro, accidentes laborales por mal estado de equipos o instalaciones, multas por incumplimiento normativo sanitario, y sobrecostos operativos por baja rotacion no gestionada.',
+  '["Jefe de Almacen", "Supervisor de Operaciones", "Coordinador de Calidad"]',
+  'Semanal', 'Almacen y distribucion',
+  'Un ambiente de trabajo ordenado, limpio y seguro reduce el riesgo de accidentes y enfermedades ocupacionales. La participacion del equipo en las inspecciones fomenta la cultura de mejora continua y responsabilidad compartida.'
+)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================

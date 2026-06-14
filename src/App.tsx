@@ -7,6 +7,10 @@ import { Dashboard } from './pages/Dashboard'
 import { Departamento } from './pages/Departamento'
 import { TallerAutomotriz } from './pages/taller/TallerAutomotriz'
 import { PlantasElectricas } from './pages/plantas/PlantasElectricas'
+import { EvaluarAlmacen } from './pages/almacen/EvaluarAlmacen'
+import { DetalleEvaluacion as DetalleEvaluacionAlmacen } from './pages/almacen/DetalleEvaluacion'
+import { GestionConceptosAlmacen } from './pages/almacen/GestionConceptos'
+import { ListaEvaluaciones } from './pages/almacen/ListaEvaluaciones'
 import { VerificarPlanta } from './pages/plantas/VerificarPlanta'
 import { ReporteFalla } from './pages/plantas/ReporteFalla'
 import { ListaSupermercados } from './pages/supermercados/ListaSupermercados'
@@ -33,6 +37,10 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/departamento/taller-automotriz" element={<TallerAutomotriz />} />
             <Route path="/departamento/plantas-electricas" element={<PlantasElectricas />} />
+            <Route path="/departamento/almacen-y-distribucion" element={<ListaEvaluaciones />} />
+            <Route path="/departamento/almacen-y-distribucion/conceptos" element={<GestionConceptosAlmacen />} />
+            <Route path="/departamento/almacen-y-distribucion/evaluar" element={<EvaluarAlmacen />} />
+            <Route path="/departamento/almacen-y-distribucion/evaluacion/:evaluacionId" element={<DetalleEvaluacionAlmacen />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />
