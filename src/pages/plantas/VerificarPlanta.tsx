@@ -80,6 +80,30 @@ function IconAlert() {
   )
 }
 
+function FuelGauge({ pct, capacidad }: { pct: number; capacidad: number }) {
+  const fillPct = Math.max(0, Math.min(100, pct))
+  const bodyH = 14
+  const fillH = (fillPct / 100) * bodyH
+  const fillY = 19 - fillH
+  const color = fillPct > 50 ? '#22c55e' : fillPct > 25 ? '#d97706' : '#ef4444'
+
+  return (
+    <svg viewBox="0 0 24 24" className="h-10 w-10">
+      <defs>
+        <clipPath id={`pumpFill-${capacidad}`}>
+          <rect x="4.5" y={fillY} width="9" height={fillH} />
+        </clipPath>
+      </defs>
+      <rect x="4.5" y="5" width="9" height="14" rx="1.5" fill="none" stroke="#cbd5e1" strokeWidth={1.5} />
+      <rect x="4.5" y="5" width="9" height="14" rx="1.5" fill={color} opacity={0.55} clipPath={`url(#pumpFill-${capacidad})`} />
+      <rect x="6" y="7" width="6" height="2.5" rx="0.5" fill="#e2e8f0" />
+      <circle cx="9" cy="3.5" r="1" fill={color} opacity={0.8} />
+      <path d="M13.5 10h2.5a1.5 1.5 0 011.5 1.5v2" fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeLinecap="round" />
+      <path d="M17.5 13.5v1.5a1 1 0 01-1 1H15" fill="none" stroke="#94a3b8" strokeWidth={1.5} strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function VerificarPlanta() {
   const { id } = useParams<{ id: string }>()
   const { user, perfil } = useAuth()
@@ -144,6 +168,7 @@ export function VerificarPlanta() {
   const totalConsumido = registros.filter((r) => r.apagado_en != null && r.combustible_final != null)
     .reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
   const saldoActual = saldoInicial + totalCargasGas - totalConsumido
+  const capacidadTanque = parseFloat(planta?.capacidad_combustible ?? '0')
 
   async function encender() {
     if (!id || !user) return; setEncendiendo(true)
@@ -280,9 +305,9 @@ export function VerificarPlanta() {
             <p className="text-xs text-slate-500">Consumido</p>
             <p className="text-lg font-bold text-red-600">-{totalConsumido.toFixed(1)} <span className="text-xs font-normal">L</span></p>
           </div>
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-200">
-            <p className="text-xs text-slate-500">Gasoil actual</p>
-            <p className={`text-lg font-bold ${saldoActual < 0 ? 'text-red-600' : 'text-green-600'}`}>
+          <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-200 flex flex-col items-center gap-1">
+            <FuelGauge pct={capacidadTanque > 0 ? (saldoActual / capacidadTanque) * 100 : 0} capacidad={capacidadTanque} />
+            <p className="text-xs font-semibold text-slate-700">
               {saldoActual.toFixed(1)} <span className="text-xs font-normal">L</span>
             </p>
           </div>
