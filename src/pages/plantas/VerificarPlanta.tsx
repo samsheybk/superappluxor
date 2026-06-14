@@ -105,6 +105,8 @@ export function VerificarPlanta() {
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
   const [historialAbierto, setHistorialAbierto] = useState(false)
   const [reporteDetalle, setReporteDetalle] = useState('')
+  type FiltroHistorial = 'todo' | 'sesiones' | 'mantenimientos' | 'cargas'
+  const [filtroHistorial, setFiltroHistorial] = useState<FiltroHistorial>('todo')
 
   useEffect(() => {
     if (!id) return
@@ -451,43 +453,75 @@ export function VerificarPlanta() {
         )}
 
         {/* History toggle */}
-        {(registros.length > 0 || mantenimientos.length > 0) && (
+        {(registros.length > 0 || mantenimientos.length > 0 || cargas.length > 0) && (
           <div className="rounded-xl bg-white shadow-sm">
-            <button onClick={() => setHistorialAbierto(!historialAbierto)}
+            <button onClick={() => { setHistorialAbierto(!historialAbierto); setFiltroHistorial('todo') }}
               className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-xl"
             >
               <IconHistory />
               Historial
-              <span className="ml-auto text-xs text-slate-400">{registros.length} sesiones · {mantenimientos.length} mantenimientos</span>
+              <span className="ml-auto text-xs text-slate-400">{registros.length} sesiones · {mantenimientos.length} mantenimientos · {cargas.length} cargas</span>
               <svg className={`h-4 w-4 transition-transform ${historialAbierto ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {historialAbierto && (
-              <div className="border-t border-slate-100 px-4 py-3 space-y-4 max-h-80 overflow-y-auto">
-                {registros.map((r) => {
-                  const horas = calcularHoras(r.horometro_inicial, r.horometro_final)
-                  return (
-                    <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                      <span className="text-slate-500">{new Date(r.encendido_en).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                      <span className="text-slate-300">→</span>
-                      <span className="text-slate-500">{r.apagado_en ? new Date(r.apagado_en).toLocaleDateString('es-VE', { hour: '2-digit', minute: '2-digit' }) : '...'}</span>
-                      {r.apagado_en && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{horas.toFixed(1)}h</span>}
-                      {r.apagado_en
-                        ? <span className="text-slate-400">H: {r.horometro_inicial}→{r.horometro_final} · {r.combustible_inicial}→{r.combustible_final}L{r.combustible_final != null ? ` (${(r.combustible_inicial - r.combustible_final).toFixed(1)}L)` : ''}</span>
-                        : <span className="text-slate-400">H: {r.horometro_inicial}h · Inicial: {r.combustible_inicial}L</span>
-                      }
+              <div className="border-t border-slate-100">
+                {/* Filtros */}
+                <div className="flex gap-1 border-b border-slate-100 px-4 pt-2 pb-2">
+                  {(['todo', 'sesiones', 'mantenimientos', 'cargas'] as FiltroHistorial[]).map((f) => (
+                    <button key={f} onClick={() => setFiltroHistorial(f)}
+                      className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                        filtroHistorial === f
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                    >
+                      {f === 'todo' ? 'Todo' : f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  ))}
+                </div>
+                <div className="px-4 py-3 space-y-4 max-h-80 overflow-y-auto">
+                  {filtroHistorial !== 'mantenimientos' && filtroHistorial !== 'cargas' && registros.map((r) => {
+                    const horas = calcularHoras(r.horometro_inicial, r.horometro_final)
+                    return (
+                      <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                        {r.apagado_en && <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">Sesión</span>}
+                        {!r.apagado_en && <span className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-600">En curso</span>}
+                        <span className="text-slate-500">{new Date(r.encendido_en).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-slate-300">→</span>
+                        <span className="text-slate-500">{r.apagado_en ? new Date(r.apagado_en).toLocaleDateString('es-VE', { hour: '2-digit', minute: '2-digit' }) : '...'}</span>
+                        {r.apagado_en && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{horas.toFixed(1)}h</span>}
+                        {r.apagado_en
+                          ? <span className="text-slate-400">H: {r.horometro_inicial}→{r.horometro_final} · {r.combustible_inicial}→{r.combustible_final}L{r.combustible_final != null ? ` (${(r.combustible_inicial - r.combustible_final).toFixed(1)}L)` : ''}</span>
+                          : <span className="text-slate-400">H: {r.horometro_inicial}h · Inicial: {r.combustible_inicial}L</span>
+                        }
+                      </div>
+                    )
+                  })}
+                  {filtroHistorial !== 'sesiones' && filtroHistorial !== 'cargas' && mantenimientos.map((m) => (
+                    <div key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                      <span className="shrink-0 rounded-full bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-purple-600">{m.tipo}</span>
+                      <span className="text-slate-500">{new Date(m.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}</span>
+                      <span className="text-slate-500">${m.costo.toFixed(2)}</span>
+                      {m.descripcion && <span className="text-slate-400 truncate max-w-[200px]">{m.descripcion}</span>}
                     </div>
-                  )
-                })}
-                {mantenimientos.map((m) => (
-                  <div key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                    <span className="rounded-full bg-purple-50 px-1.5 py-0.5 text-xs font-medium text-purple-600">{m.tipo}</span>
-                    <span className="text-slate-500">{new Date(m.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}</span>
-                    <span className="text-slate-500">${m.costo.toFixed(2)}</span>
-                    {m.descripcion && <span className="text-slate-400 truncate max-w-[200px]">{m.descripcion}</span>}
-                  </div>
-                ))}
+                  ))}
+                  {filtroHistorial !== 'sesiones' && filtroHistorial !== 'mantenimientos' && cargas.map((c) => (
+                    <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-600">Carga</span>
+                      <span className="text-slate-500">{new Date(c.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="text-slate-600 font-medium">+{c.cantidad}L</span>
+                    </div>
+                  ))}
+                  {(() => {
+                    const total = 
+                      (filtroHistorial !== 'mantenimientos' && filtroHistorial !== 'cargas' ? registros.length : 0) +
+                      (filtroHistorial !== 'sesiones' && filtroHistorial !== 'cargas' ? mantenimientos.length : 0) +
+                      (filtroHistorial !== 'sesiones' && filtroHistorial !== 'mantenimientos' ? cargas.length : 0)
+                    return total === 0 ? <p className="text-center text-xs text-slate-400 py-4">Sin resultados</p> : null
+                  })()}
+                </div>
               </div>
             )}
           </div>
