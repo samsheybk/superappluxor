@@ -1,5 +1,5 @@
 -- ============================================================
--- FULL SCHEMA: Super EvaLuxor
+-- FULL SCHEMA: Super App Luxor
 -- Ejecutar TODO en el SQL Editor de Supabase (nueva cuenta)
 -- ============================================================
 

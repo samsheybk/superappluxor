@@ -31,9 +31,9 @@ export function Login() {
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg">
-            <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-12 w-12 rounded-lg object-contain" />
+            <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super App Luxor" className="h-12 w-12 rounded-lg object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Super EvaLuxor</h1>
+          <h1 className="text-3xl font-bold text-white">Super App Luxor</h1>
           <p className="mt-1 text-slate-400">Evaluaciones de desempeño</p>
         </div>
 

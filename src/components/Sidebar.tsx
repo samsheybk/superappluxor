@@ -36,8 +36,8 @@ export function Sidebar() {
             </svg>
           )}
         </button>
-        <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-8 w-8 rounded-lg object-contain" />
-        <span className="text-sm font-bold">Super EvaLuxor</span>
+        <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super App Luxor" className="h-8 w-8 rounded-lg object-contain" />
+        <span className="text-sm font-bold">Super App Luxor</span>
       </nav>
 
       {/* Overlay for mobile */}
@@ -52,9 +52,9 @@ export function Sidebar() {
         ${abierto ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="hidden lg:flex items-center gap-3 border-b border-slate-700 p-5">
-          <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super EvaLuxor" className="h-10 w-10 rounded-lg object-contain" />
+          <img src="/logo_fusion_luxor_euromaxx.webp" alt="Super App Luxor" className="h-10 w-10 rounded-lg object-contain" />
           <div>
-            <h1 className="text-lg font-bold">Super EvaLuxor</h1>
+            <h1 className="text-lg font-bold">Super App Luxor</h1>
             <p className="text-xs text-slate-400">Evaluaciones de desempeno</p>
           </div>
         </div>

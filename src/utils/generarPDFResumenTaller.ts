@@ -96,7 +96,7 @@ export function generarPDFResumenTaller(
 
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  doc.text('Super EvaLuxor', margin, y)
+  doc.text('Super App Luxor', margin, y)
   saltar(7)
 
   doc.setFontSize(13)
@@ -142,17 +142,22 @@ export function generarPDFResumenTaller(
       doc.text(cat.titulo, margin + 2, y)
       saltar(LH)
 
-      for (const item of cat.items) {
+      const cols = 4
+      const colW = (maxWidth - 8) / cols
+      for (let i = 0; i < cat.items.length; i++) {
+        const item = cat.items[i]
         const pct = calcPromedio(registros, item.key)
         const color = pct >= 80 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626'
+        const cx = margin + 4 + (i % cols) * colW
         doc.setTextColor(color)
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(8)
-        doc.text(`${pct}%`, margin + 4, y)
+        doc.text(`${pct}%`, cx, y)
         doc.setTextColor('#334155')
-        doc.text(item.label, margin + 14, y)
-        saltar(LH - 1)
+        doc.text(item.label, cx + 10, y)
+        if ((i + 1) % cols === 0) saltar(LH - 1)
       }
+      if (cat.items.length % cols !== 0) saltar(LH - 1)
 
       doc.setDrawColor('#e2e8f0')
       doc.setLineWidth(0.3)

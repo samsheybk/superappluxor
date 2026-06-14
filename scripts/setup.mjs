@@ -30,7 +30,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 async function setup() {
-  console.log('🔧 Configurando Super EvaLuxor...\n')
+  console.log('🔧 Configurando Super App Luxor...\n')
 
   // 1. Crear usuario admin
   console.log('1. Creando usuario admin...')

@@ -81,7 +81,7 @@ export async function generarPDF(datos: DatosPDF): Promise<string> {
 
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  doc.text('Super EvaLuxor', margin, y)
+  doc.text('Super App Luxor', margin, y)
   saltar(8)
 
   doc.setFontSize(13)
