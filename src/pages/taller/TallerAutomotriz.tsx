@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { IconAgregar, IconEditar, IconEliminar } from '../../components/Icons'
 import { SignaturePad } from '../../components/SignaturePad'
 import { LoadingScreen } from '../../components/LoadingScreen'
+import { generarPDFTaller } from '../../utils/generarPDFTaller'
 
 type Tab = 'vehiculos' | 'inspeccion' | 'mantenimiento'
 
@@ -50,52 +51,52 @@ const CATEGORIAS_INSPECCION = [
   {
     id: 'limp', titulo: 'Limpieza (Aspecto y Sanidad)',
     items: [
-      { key: 'limp_cabina_interna', label: 'Cabina interna' },
-      { key: 'limp_carroceria_externa', label: 'Carrocería externa' },
-      { key: 'limp_area_carga', label: 'Área de carga (Furgón/Plataforma)' },
-      { key: 'limp_parabrisas_ventanas', label: 'Parabrisas y ventanas' },
+      { key: 'limp_cabina_interna', label: 'Cabina interna', tipo: 'ambos' },
+      { key: 'limp_carroceria_externa', label: 'Carrocería externa', tipo: 'ambos' },
+      { key: 'limp_area_carga', label: 'Área de carga (Furgón/Plataforma)', tipo: 'carga' },
+      { key: 'limp_parabrisas_ventanas', label: 'Parabrisas y ventanas', tipo: 'ambos' },
     ],
   },
   {
     id: 'elec', titulo: 'Eléctrico (Iluminación y Componentes)',
     items: [
-      { key: 'elec_luces_principales', label: 'Luces principales (altas y bajas)' },
-      { key: 'elec_luces_senalizacion', label: 'Luces de señalización (direccionales / emergencia)' },
-      { key: 'elec_luces_freno_retroceso', label: 'Luces de freno y marcha atrás' },
-      { key: 'elec_tablero_instrumentos', label: 'Tablero de instrumentos' },
-      { key: 'elec_limpia_parabrisas', label: 'Limpia parabrisas' },
-      { key: 'elec_bateria', label: 'Batería (bornes y cables)' },
+      { key: 'elec_luces_principales', label: 'Luces principales (altas y bajas)', tipo: 'ambos' },
+      { key: 'elec_luces_senalizacion', label: 'Luces de señalización (direccionales / emergencia)', tipo: 'ambos' },
+      { key: 'elec_luces_freno_retroceso', label: 'Luces de freno y marcha atrás', tipo: 'ambos' },
+      { key: 'elec_tablero_instrumentos', label: 'Tablero de instrumentos', tipo: 'ambos' },
+      { key: 'elec_limpia_parabrisas', label: 'Limpia parabrisas', tipo: 'ambos' },
+      { key: 'elec_bateria', label: 'Batería (bornes y cables)', tipo: 'ambos' },
     ],
   },
   {
     id: 'mec', titulo: 'Mecánico (Funcionamiento y Fluidos)',
     items: [
-      { key: 'mec_fluidos', label: 'Niveles de fluidos' },
-      { key: 'mec_fugas', label: 'Fugas visibles' },
-      { key: 'mec_frenos', label: 'Sistema de frenos' },
-      { key: 'mec_neumaticos', label: 'Neumáticos (presión y dibujo)' },
-      { key: 'mec_correas', label: 'Correas del motor' },
-      { key: 'mec_suspension_direccion', label: 'Suspensión y dirección' },
+      { key: 'mec_fluidos', label: 'Niveles de fluidos', tipo: 'ambos' },
+      { key: 'mec_fugas', label: 'Fugas visibles', tipo: 'ambos' },
+      { key: 'mec_frenos', label: 'Sistema de frenos', tipo: 'ambos' },
+      { key: 'mec_neumaticos', label: 'Neumáticos (presión y dibujo)', tipo: 'ambos' },
+      { key: 'mec_correas', label: 'Correas del motor', tipo: 'ambos' },
+      { key: 'mec_suspension_direccion', label: 'Suspensión y dirección', tipo: 'ambos' },
     ],
   },
   {
     id: 'est', titulo: 'Estética (Estructura e Imagen)',
     items: [
-      { key: 'est_carroceria', label: 'Carrocería general (abolladuras / rayones)' },
-      { key: 'est_parabrisas', label: 'Parabrisas (rajaduras / grietas)' },
-      { key: 'est_tapiceria_asientos', label: 'Tapicería y asientos' },
-      { key: 'est_retrovisores_parachoques', label: 'Retrovisores y parachoques' },
-      { key: 'est_cerraduras_manillas', label: 'Cerraduras y manillas' },
+      { key: 'est_carroceria', label: 'Carrocería general (abolladuras / rayones)', tipo: 'ambos' },
+      { key: 'est_parabrisas', label: 'Parabrisas (rajaduras / grietas)', tipo: 'ambos' },
+      { key: 'est_tapiceria_asientos', label: 'Tapicería y asientos', tipo: 'ambos' },
+      { key: 'est_retrovisores_parachoques', label: 'Retrovisores y parachoques', tipo: 'ambos' },
+      { key: 'est_cerraduras_manillas', label: 'Cerraduras y manillas', tipo: 'ambos' },
     ],
   },
   {
     id: 'aux', titulo: 'Auxilio Vial (Herramientas y Emergencia)',
     items: [
-      { key: 'aux_caucho_repuesto', label: 'Caucho (llanta) de repuesto' },
-      { key: 'aux_herramientas', label: 'Herramientas de cambio (gato / llave)' },
-      { key: 'aux_triangulos', label: 'Triángulos de seguridad o conos' },
-      { key: 'aux_extintor', label: 'Extintor de incendios' },
-      { key: 'aux_tacos', label: 'Tacos de bloqueo (Chock blocks)' },
+      { key: 'aux_caucho_repuesto', label: 'Caucho (llanta) de repuesto', tipo: 'ambos' },
+      { key: 'aux_herramientas', label: 'Herramientas de cambio (gato / llave)', tipo: 'ambos' },
+      { key: 'aux_triangulos', label: 'Triángulos de seguridad o conos', tipo: 'ambos' },
+      { key: 'aux_extintor', label: 'Extintor de incendios', tipo: 'ambos' },
+      { key: 'aux_tacos', label: 'Tacos de bloqueo (Chock blocks)', tipo: 'carga' },
     ],
   },
 ] as const
@@ -279,6 +280,10 @@ export function TallerAutomotriz() {
   })
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
 
+  const [fotosPorCampo, setFotosPorCampo] = useState<Record<string, { foto: string; comentario: string }[]>>({})
+  const [guardandoPDF, setGuardandoPDF] = useState(false)
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
   useEffect(() => {
     ;(async () => {
       try {
@@ -343,19 +348,95 @@ export function TallerAutomotriz() {
     setVehiculos(vehiculos.map((v) => v.id === id ? { ...v, activo: false } : v))
   }
 
+  function handleAgregarFoto(key: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const foto = reader.result as string
+      setFotosPorCampo((prev) => ({
+        ...prev,
+        [key]: [...(prev[key] ?? []), { foto, comentario: '' }],
+      }))
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function handleEliminarFoto(key: string, idx: number) {
+    setFotosPorCampo((prev) => {
+      const arr = [...(prev[key] ?? [])]
+      arr.splice(idx, 1)
+      return { ...prev, [key]: arr }
+    })
+  }
+
+  function handleComentarioFoto(key: string, idx: number, comentario: string) {
+    setFotosPorCampo((prev) => {
+      const arr = [...(prev[key] ?? [])]
+      arr[idx] = { ...arr[idx], comentario }
+      return { ...prev, [key]: arr }
+    })
+  }
+
   async function guardarInspeccion() {
     if (!vehiculoSeleccionado || !user) return
     setGuardandoInspeccion(true)
+    setGuardandoPDF(true)
     try {
+      const v = vehiculos.find((x) => x.id === vehiculoSeleccionado)!
+      const perfilRes = await supabase.from('perfiles').select('nombre').eq('id', user.id).single()
+      const evaluadorNombre = perfilRes.data?.nombre ?? user.email ?? ''
+
+      const categoriasPDF: {
+        titulo: string
+        campos: { label: string; valor: string; fotos: { foto: string; comentario: string }[] }[]
+      }[] = []
+
+      for (const cat of CATEGORIAS_INSPECCION) {
+        const campos = cat.items
+          .filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
+          .map((item) => ({
+            label: item.label,
+            valor: formInspeccion[item.key],
+            fotos: fotosPorCampo[item.key] ?? [],
+          }))
+        categoriasPDF.push({ titulo: cat.titulo, campos })
+      }
+
+      const docs = DOCS_POR_TIPO[vehiculoTipo].map((d) => ({
+        label: d.label,
+        presente: formDocs[d.key],
+      }))
+
+      const pdfDataUrl = await generarPDFTaller({
+        placa: v.placa,
+        marca: v.marca,
+        modelo: v.modelo,
+        anio: v.anio,
+        color: v.color,
+        tipo: v.tipo,
+        fechaInicio: new Date().toLocaleDateString('es-VE', {
+          year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        }),
+        evaluadorNombre,
+        categorias: categoriasPDF,
+        docs,
+        observaciones: formInspeccion.observaciones,
+        firma,
+      })
+
       const payload: Record<string, any> = {
         vehiculo_id: vehiculoSeleccionado, evaluador_id: user.id,
-        ...formInspeccion, ...formDocs, firma: firma,
+        ...formInspeccion, ...formDocs, firma, pdf_base64: pdfDataUrl,
       }
       const { error } = await supabase.from('taller_inspecciones').insert(payload)
       if (error) throw error
+
       setFormInspeccion({ ...INIT_INSPECCION })
       setFormDocs({ ...DOC_INIT })
       setFirma(null)
+      setFotosPorCampo({})
       const { data } = await supabase.from('taller_inspecciones').select('*')
         .eq('vehiculo_id', vehiculoSeleccionado)
         .order('created_at', { ascending: false })
@@ -364,6 +445,7 @@ export function TallerAutomotriz() {
       setError(e.message)
     } finally {
       setGuardandoInspeccion(false)
+      setGuardandoPDF(false)
     }
   }
 
@@ -538,33 +620,84 @@ export function TallerAutomotriz() {
                 <h3 className="mb-4 text-lg font-semibold text-slate-800">
                   Nueva inspección — <span className={vehiculoTipo === 'Carga' ? 'text-amber-600' : 'text-blue-600'}>{vehiculoTipo}</span>
                 </h3>
-                {CATEGORIAS_INSPECCION.map((cat) => (
-                  <details key={cat.id} className="mt-4 rounded-lg border border-slate-200 open:border-blue-300">
-                    <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                      {cat.titulo}
-                    </summary>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 md:grid-cols-3 lg:grid-cols-4">
-                      {cat.items.map((item) => (
-                        <SelectEstado key={item.key} label={item.label}
-                          value={formInspeccion[item.key]}
-                          onChange={(v) => setFormInspeccion({ ...formInspeccion, [item.key]: v })} />
-                      ))}
-                    </div>
-                  </details>
-                ))}
+                {CATEGORIAS_INSPECCION.map((cat) => {
+                  const items = cat.items.filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
+                  if (items.length === 0) return null
+                  return (
+                    <details key={cat.id} className="mt-4 rounded-lg border border-slate-200 open:border-blue-300">
+                      <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                        {cat.titulo}
+                      </summary>
+                      <div className="space-y-4 p-4">
+                        {items.map((item) => {
+                          const fotos = fotosPorCampo[item.key] ?? []
+                          return (
+                            <div key={item.key} className="rounded-lg border border-slate-100 p-3">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1">
+                                  <SelectEstado label={item.label}
+                                    value={formInspeccion[item.key]}
+                                    onChange={(v) => setFormInspeccion({ ...formInspeccion, [item.key]: v })} />
+                                </div>
+                                <button type="button" onClick={() => fileInputRefs.current[item.key]?.click()}
+                                  className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                                  title="Agregar foto"
+                                >
+                                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                </button>
+                                <input ref={(el) => { fileInputRefs.current[item.key] = el }}
+                                  type="file" accept="image/*" className="hidden"
+                                  onChange={(e) => handleAgregarFoto(item.key, e)} />
+                              </div>
+                              {fotos.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                  {fotos.map((foto, idx) => (
+                                    <div key={idx} className="relative w-40">
+                                      <img src={foto.foto} alt={`Foto ${idx + 1}`}
+                                        className="h-32 w-full rounded-lg border border-slate-200 object-cover" />
+                                      <button type="button" onClick={() => handleEliminarFoto(item.key, idx)}
+                                        className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white hover:bg-red-600"
+                                      >
+                                        ✕
+                                      </button>
+                                      <input type="text" value={foto.comentario}
+                                        onChange={(e) => handleComentarioFoto(item.key, idx, e.target.value)}
+                                        placeholder="Comentario de la foto..."
+                                        className="mt-1 w-full rounded border border-slate-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </details>
+                  )
+                })}
 
-                <h4 className="mt-6 mb-3 text-sm font-semibold text-slate-700">Documentación</h4>
-                <div className="space-y-2">
-                  {DOCS_POR_TIPO[vehiculoTipo].map((doc) => (
-                    <label key={doc.key} className="flex items-start gap-2 cursor-pointer">
-                      <input type="checkbox" checked={formDocs[doc.key]}
-                        onChange={(e) => setFormDocs({ ...formDocs, [doc.key]: e.target.checked })}
-                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-slate-700">{doc.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <details className="mt-6 rounded-lg border border-slate-200 open:border-blue-300">
+                  <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                    Documentación
+                  </summary>
+                  <div className="space-y-2 p-4">
+                    {DOCS_POR_TIPO[vehiculoTipo].map((doc) => (
+                      <label key={doc.key} className="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" checked={formDocs[doc.key]}
+                          onChange={(e) => setFormDocs({ ...formDocs, [doc.key]: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-slate-700">{doc.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
 
                 <div className="mt-4">
                   <label className="mb-1 block text-sm font-medium text-slate-700">Observaciones</label>
@@ -582,7 +715,7 @@ export function TallerAutomotriz() {
                   <button onClick={guardarInspeccion} disabled={guardandoInspeccion || !firma}
                     className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {guardandoInspeccion ? 'Guardando...' : 'Guardar inspección'}
+                    {guardandoInspeccion ? 'Guardando...' : guardandoPDF ? 'Generando PDF...' : 'Guardar inspección'}
                   </button>
                 </div>
               </div>
@@ -597,11 +730,18 @@ export function TallerAutomotriz() {
                           <span>{new Date(ins.created_at).toLocaleDateString('es-VE', {
                             year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
                           })}</span>
+                            {ins.pdf_base64 && (
+                            <button onClick={() => window.open(ins.pdf_base64!, '_blank')}
+                              className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100"
+                            >
+                              Ver PDF
+                            </button>
+                          )}
                         </div>
                         {CATEGORIAS_INSPECCION.map((cat) => {
-                          const vals = cat.items.map((item) => ({
-                            key: item.key, label: item.label, val: ins[item.key],
-                          }))
+                          const vals = cat.items
+                            .filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
+                            .map((item) => ({ key: item.key, label: item.label, val: ins[item.key] }))
                           if (!vals.some((v) => v.val)) return null
                           return (
                             <div key={cat.id} className="col-span-full">
