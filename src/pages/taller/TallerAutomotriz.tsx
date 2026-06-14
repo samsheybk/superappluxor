@@ -6,6 +6,7 @@ import { IconAgregar, IconEditar, IconEliminar } from '../../components/Icons'
 import { SignaturePad } from '../../components/SignaturePad'
 import { LoadingScreen } from '../../components/LoadingScreen'
 import { generarPDFTaller } from '../../utils/generarPDFTaller'
+import { generarPDFResumenTaller } from '../../utils/generarPDFResumenTaller'
 
 type Tab = 'vehiculos' | 'inspeccion' | 'mantenimiento'
 
@@ -29,7 +30,7 @@ interface TallerInspeccion {
   [campo: string]: any
   observaciones: string
   firma: string | null
-  pdf_base64: string | null
+  pdf_base64?: string | null
   created_at: string
 }
 
@@ -269,6 +270,7 @@ export function TallerAutomotriz() {
   const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState<string>('')
   const [vehiculoTipo, setVehiculoTipo] = useState<'Particular' | 'Carga'>('Particular')
   const [inspecciones, setInspecciones] = useState<TallerInspeccion[]>([])
+  const [cargandoInspecciones, setCargandoInspecciones] = useState(false)
   const [formInspeccion, setFormInspeccion] = useState<Record<string, string>>({ ...INIT_INSPECCION })
   const [formDocs, setFormDocs] = useState<FormDocs>({ ...DOC_INIT })
   const [firma, setFirma] = useState<string | null>(null)
@@ -284,6 +286,11 @@ export function TallerAutomotriz() {
   const [guardandoPDF, setGuardandoPDF] = useState(false)
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false)
   const [inspeccionExpandida, setInspeccionExpandida] = useState<string | null>(null)
+
+  const hoy = new Date()
+  const [fechaDesde, setFechaDesde] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth()).padStart(2, '0')}-01`)
+  const [fechaHasta, setFechaHasta] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`)
+  const [generandoResumen, setGenerandoResumen] = useState(false)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -308,10 +315,11 @@ export function TallerAutomotriz() {
     }
     const v = vehiculos.find((x) => x.id === vehiculoSeleccionado)
     setVehiculoTipo(v?.tipo ?? 'Particular')
+    setCargandoInspecciones(true)
     ;(async () => {
       try {
         const [insRes, mantRes] = await Promise.all([
-          supabase.from('taller_inspecciones').select('*')
+          supabase.from('taller_inspecciones').select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, limp_cabina_interna, limp_carroceria_externa, limp_area_carga, limp_parabrisas_ventanas, elec_luces_principales, elec_luces_senalizacion, elec_luces_freno_retroceso, elec_tablero_instrumentos, elec_limpia_parabrisas, elec_bateria, mec_fluidos, mec_fugas, mec_frenos, mec_neumaticos, mec_correas, mec_suspension_direccion, est_carroceria, est_parabrisas, est_tapiceria_asientos, est_retrovisores_parachoques, est_cerraduras_manillas, aux_caucho_repuesto, aux_herramientas, aux_triangulos, aux_extintor, aux_tacos, doc_titulo_propiedad, doc_poliza_seguro, doc_impuestos, doc_carta_autorizacion, doc_licencia, doc_certificado_medico, doc_rotec, doc_guias_movilizacion, doc_permiso_sustancias, doc_guia_sanitaria, doc_certificado_pesos, observaciones, firma, created_at')
             .eq('vehiculo_id', vehiculoSeleccionado)
             .order('created_at', { ascending: false }),
           supabase.from('taller_mantenimientos').select('*')
@@ -324,6 +332,8 @@ export function TallerAutomotriz() {
         setMantenimientos(mantRes.data ?? [])
       } catch (e: any) {
         setError(e.message)
+      } finally {
+        setCargandoInspecciones(false)
       }
     })()
   }, [vehiculoSeleccionado, vehiculos])
@@ -473,6 +483,50 @@ export function TallerAutomotriz() {
     }
   }
 
+  function abrirPDF(pdfBase64: string) {
+    const raw = atob(pdfBase64.split(',')[1])
+    const bytes = new Uint8Array(raw.length)
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i)
+    const blob = new Blob([bytes], { type: 'application/pdf' })
+    window.open(URL.createObjectURL(blob), '_blank')
+  }
+
+  async function verPDF(id: string) {
+    const { data } = await supabase.from('taller_inspecciones').select('pdf_base64').eq('id', id).single()
+    if (data?.pdf_base64) abrirPDF(data.pdf_base64)
+  }
+
+  function fmtDate(iso: string) {
+    const [y, m, d] = iso.split('-')
+    return `${d}/${m}/${y}`
+  }
+
+  async function generarResumen() {
+    setGenerandoResumen(true)
+    try {
+      const { data: vehiculosData } = await supabase.from('vehiculos').select('id, tipo, placa')
+      const vehMap: Record<string, { tipo: string; placa: string }> = {}
+      for (const v of vehiculosData ?? []) vehMap[v.id] = { tipo: v.tipo, placa: v.placa }
+
+      const { data: insData } = await supabase
+        .from('taller_inspecciones')
+        .select('*')
+        .gte('created_at', `${fechaDesde}T00:00:00`)
+        .lte('created_at', `${fechaHasta}T23:59:59`)
+
+      const todas = insData ?? []
+      const particulares = todas.filter((i) => vehMap[i.vehiculo_id]?.tipo === 'Particular')
+      const cargas = todas.filter((i) => vehMap[i.vehiculo_id]?.tipo === 'Carga')
+
+      const pdf = generarPDFResumenTaller(fmtDate(fechaDesde), fmtDate(fechaHasta), todas, particulares, cargas)
+      abrirPDF(pdf)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setGenerandoResumen(false)
+    }
+  }
+
   if (loading) return <LoadingScreen />
 
   const vehiculosActivos = vehiculos.filter((v) => v.activo)
@@ -510,6 +564,32 @@ export function TallerAutomotriz() {
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
+
+      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Desde</label>
+          <input type="date" value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-600">Hasta</label>
+          <input type="date" value={fechaHasta}
+            onChange={(e) => setFechaHasta(e.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+          />
+        </div>
+        <button onClick={generarResumen} disabled={generandoResumen}
+          className="inline-flex h-[38px] items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          {generandoResumen ? 'Generando...' : 'Generar resumen PDF'}
+        </button>
+      </div>
 
       <div className="mb-6 flex gap-1 border-b border-slate-200">
         {([
@@ -758,7 +838,19 @@ export function TallerAutomotriz() {
             </div>
           )}
 
-          {vehiculoSeleccionado && !mostrandoFormulario && inspecciones.length === 0 && (
+          {vehiculoSeleccionado && !mostrandoFormulario && cargandoInspecciones && (
+            <div className="flex items-center justify-center rounded-xl bg-white py-12 shadow-sm">
+              <div className="flex flex-col items-center gap-3">
+                <svg className="h-8 w-8 animate-spin text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <p className="text-sm text-slate-400">Cargando inspecciones...</p>
+              </div>
+            </div>
+          )}
+
+          {vehiculoSeleccionado && !mostrandoFormulario && !cargandoInspecciones && inspecciones.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-xl bg-white py-12 shadow-sm">
               <svg className="mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -774,7 +866,7 @@ export function TallerAutomotriz() {
             </div>
           )}
 
-          {vehiculoSeleccionado && !mostrandoFormulario && inspecciones.length > 0 && (
+          {vehiculoSeleccionado && !mostrandoFormulario && !cargandoInspecciones && inspecciones.length > 0 && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <h3 className="mb-4 text-lg font-semibold text-slate-800">Historial de inspecciones</h3>
               <div className="space-y-3">
@@ -802,13 +894,11 @@ export function TallerAutomotriz() {
                           >
                             {expandida ? 'Ocultar detalles' : 'Ver detalles'}
                           </button>
-                          {ins.pdf_base64 && (
-                            <button onClick={() => window.open(ins.pdf_base64!, '_blank')}
-                              className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100"
-                            >
-                              Ver PDF
-                            </button>
-                          )}
+                          <button onClick={() => verPDF(ins.id)}
+                            className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100"
+                          >
+                            Ver PDF
+                          </button>
                         </div>
                       </div>
                       {expandida && (
