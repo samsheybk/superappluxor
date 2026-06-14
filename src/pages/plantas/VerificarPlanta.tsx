@@ -32,7 +32,7 @@ interface PlantaMantenimiento {
 }
 
 const TIPOS_MANTENIMIENTO = ['Cambio de aceite', 'Cambio de filtros', 'Revision general', 'Otro'] as const
-type Accion = 'encender' | 'cargar' | 'mantenimiento' | null
+type Accion = 'encender' | 'cargar' | 'mantenimiento' | 'reportar' | null
 
 function calcularHoras(inicial: number | null, final: number | null) {
   if (inicial == null || final == null) return 0
@@ -72,9 +72,17 @@ function IconHistory() {
   )
 }
 
+function IconAlert() {
+  return (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  )
+}
+
 export function VerificarPlanta() {
   const { id } = useParams<{ id: string }>()
-  const { user } = useAuth()
+  const { user, perfil } = useAuth()
   const [planta, setPlanta] = useState<Planta | null>(null)
   const [supermercado, setSupermercado] = useState('')
   const [loading, setLoading] = useState(true)
@@ -96,6 +104,7 @@ export function VerificarPlanta() {
   const [formMantenimiento, setFormMantenimiento] = useState({ tipo: 'Cambio de aceite', descripcion: '', costo: 0, observaciones: '' })
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
   const [historialAbierto, setHistorialAbierto] = useState(false)
+  const [reporteDetalle, setReporteDetalle] = useState('')
 
   useEffect(() => {
     if (!id) return
@@ -168,6 +177,33 @@ export function VerificarPlanta() {
     } catch (e: any) { setError(e.message) } finally { setGuardandoMantenimiento(false) }
   }
 
+  const WA_NUMBER = '584128445726'
+
+  function enviarReporteWhatsApp() {
+    if (!reporteDetalle.trim() || !planta) return
+    const ahora = new Date().toLocaleString('es-VE', {
+      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    })
+    const usuario = perfil?.username ?? user?.email ?? '—'
+    const texto = [
+      '⚠️ *REPORTE DE FALLA*',
+      '',
+      `🏪 *Supermercado:* ${supermercado}`,
+      `⚡ *Planta:* ${planta.marca} ${planta.modelo}`,
+      `👤 *Usuario:* ${usuario}`,
+      `🕐 *Hora:* ${ahora}`,
+      '',
+      `📝 *Detalle:*`,
+      reporteDetalle.trim(),
+      '',
+      '📸 *Fotos:* (adjuntar manualmente)',
+    ].join('\n')
+
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(texto)}`, '_blank')
+    setReporteDetalle('')
+    setAccion(null)
+  }
+
   if (loading) return <LoadingScreen />
   if (error || !planta) return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
@@ -222,7 +258,7 @@ export function VerificarPlanta() {
         </div>
 
         {/* Action buttons */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <button onClick={() => setAccion(accion === 'encender' ? null : 'encender')}
             className={`flex flex-col items-center gap-1.5 rounded-xl p-4 text-sm font-medium transition-all ${
               accion === 'encender' ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500' : 'bg-white text-slate-600 shadow-sm hover:bg-slate-50'
@@ -246,6 +282,14 @@ export function VerificarPlanta() {
           >
             <IconWrench />
             Mantenimiento
+          </button>
+          <button onClick={() => setAccion(accion === 'reportar' ? null : 'reportar')}
+            className={`flex flex-col items-center gap-1.5 rounded-xl p-4 text-sm font-medium transition-all ${
+              accion === 'reportar' ? 'bg-red-100 text-red-700 ring-2 ring-red-500' : 'bg-white text-slate-600 shadow-sm hover:bg-slate-50'
+            }`}
+          >
+            <IconAlert />
+            Reportar
           </button>
         </div>
 
@@ -374,6 +418,33 @@ export function VerificarPlanta() {
                 className="rounded-lg bg-purple-600 px-6 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
               >
                 {guardandoMantenimiento ? 'Guardando...' : 'Registrar mantenimiento'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Reportar falla form */}
+        {accion === 'reportar' && (
+          <div className="rounded-xl bg-white p-4 shadow-sm space-y-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Detalle de la falla</label>
+              <textarea value={reporteDetalle}
+                onChange={(e) => setReporteDetalle(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                rows={4} placeholder="Describa la falla..."
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setAccion(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button onClick={enviarReporteWhatsApp} disabled={!reporteDetalle.trim()}
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                Enviar por WhatsApp
               </button>
             </div>
           </div>
