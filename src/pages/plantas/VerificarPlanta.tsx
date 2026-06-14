@@ -105,6 +105,7 @@ export function VerificarPlanta() {
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
   const [historialAbierto, setHistorialAbierto] = useState(false)
   const [reporteDetalle, setReporteDetalle] = useState('')
+  const [fotosReporte, setFotosReporte] = useState<{ base64: string; comentario: string }[]>([])
   type FiltroHistorial = 'todo' | 'sesiones' | 'mantenimientos' | 'cargas'
   const [filtroHistorial, setFiltroHistorial] = useState<FiltroHistorial>('todo')
 
@@ -211,12 +212,49 @@ export function VerificarPlanta() {
 
   const WA_NUMBER = '584128445726'
 
-  function enviarReporteWhatsApp() {
-    if (!reporteDetalle.trim() || !planta) return
+  function agregarFotoReporte(files: FileList | null) {
+    if (!files) return
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string
+        setFotosReporte((prev) => [...prev, { base64, comentario: '' }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function eliminarFotoReporte(idx: number) {
+    setFotosReporte((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  function actualizarComentarioFoto(idx: number, comentario: string) {
+    setFotosReporte((prev) => prev.map((f, i) => i === idx ? { ...f, comentario } : f))
+  }
+
+  async function enviarReporteWhatsApp() {
+    if (!reporteDetalle.trim() || !planta || !id) return
     const ahora = new Date().toLocaleString('es-VE', {
       day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     })
     const usuario = perfil?.username ?? user?.email ?? '—'
+
+    // Save report to DB
+    const { data: reporte, error } = await supabase.from('reportes_falla').insert({
+      planta_id: id,
+      supermercado,
+      planta_nombre: `${planta.marca} ${planta.modelo}`,
+      usuario,
+      detalle: reporteDetalle.trim(),
+      fotos: JSON.stringify(fotosReporte),
+    }).select('id').single()
+
+    if (error || !reporte) {
+      setError('Error al guardar el reporte')
+      return
+    }
+
+    const link = `${window.location.origin}/reporte/${reporte.id}`
     const texto = [
       '⚠️ *REPORTE DE FALLA*',
       '',
@@ -228,11 +266,12 @@ export function VerificarPlanta() {
       `📝 *Detalle:*`,
       reporteDetalle.trim(),
       '',
-      '📸 *Fotos:* (adjuntar manualmente)',
+      `📄 *Descargar PDF:* ${link}`,
     ].join('\n')
 
     window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(texto)}`, '_blank')
     setReporteDetalle('')
+    setFotosReporte([])
     setAccion(null)
   }
 
@@ -291,37 +330,53 @@ export function VerificarPlanta() {
 
         {/* Fuel balance */}
         <div className="grid grid-cols-4 gap-2">
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className="text-xs text-slate-500">Gasoil inicial</p>
-            <p className="text-lg font-bold text-slate-700">{saldoInicial.toFixed(1)} <span className="text-xs font-normal">L</span></p>
+          <div className="rounded-xl bg-white p-4 text-center shadow-sm">
+            <p className="text-sm text-slate-500">Gasoil inicial</p>
+            <p className="text-2xl font-bold text-slate-700">{saldoInicial.toFixed(1)} <span className="text-sm font-normal">L</span></p>
           </div>
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className="text-xs text-slate-500">Próximo cambio de aceite</p>
-            <p className={`text-lg font-bold ${horasRestantesAceite <= 0 ? 'text-red-600' : horasRestantesAceite <= 20 ? 'text-amber-600' : 'text-green-600'}`}>
-              {horasRestantesAceite <= 0 ? '0' : horasRestantesAceite.toFixed(0)} <span className="text-xs font-normal">h</span>
+          <div className="rounded-xl bg-white p-4 text-center shadow-sm">
+            <p className="text-sm text-slate-500">Próximo cambio de aceite</p>
+            <p className={`text-2xl font-bold ${horasRestantesAceite <= 0 ? 'text-red-600' : horasRestantesAceite <= 20 ? 'text-amber-600' : 'text-green-600'}`}>
+              {horasRestantesAceite <= 0 ? '0' : horasRestantesAceite.toFixed(0)} <span className="text-sm font-normal">h</span>
             </p>
           </div>
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className="text-xs text-slate-500">Consumido</p>
-            <p className="text-lg font-bold text-red-600">-{totalConsumido.toFixed(1)} <span className="text-xs font-normal">L</span></p>
+          <div className="rounded-xl bg-white p-4 text-center shadow-sm">
+            <p className="text-sm text-slate-500">Consumido</p>
+            <p className="text-2xl font-bold text-red-600">-{totalConsumido.toFixed(1)} <span className="text-sm font-normal">L</span></p>
           </div>
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-200 flex flex-col items-center gap-1">
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-3xl font-extrabold leading-none tracking-tight"
-                style={{
-                  background: capacidadTanque > 0
-                    ? `linear-gradient(to top, #059669 ${Math.max(0, Math.min(100, (saldoActual / capacidadTanque) * 100))}%, #cbd5e1 ${Math.max(0, Math.min(100, (saldoActual / capacidadTanque) * 100))}%)`
-                    : '#cbd5e1',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                {saldoActual.toFixed(1)}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">L</span>
+          <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 flex flex-col items-center">
+            <p className="text-[10px] text-slate-500 mb-1">Gasoil actual</p>
+            <div className="relative w-full max-w-[130px] aspect-[2/1]">
+              <svg viewBox="0 0 100 50" className="w-full h-full">
+                {(() => {
+                  const pct = capacidadTanque > 0 ? Math.max(0, Math.min(1, saldoActual / capacidadTanque)) : 0
+                  const arcLen = Math.PI * 40
+                  const angle = Math.PI * (1 - pct)
+                  const nx = 50 + 32 * Math.cos(angle)
+                  const ny = 45 - 32 * Math.sin(angle)
+                  return (
+                    <>
+                      <defs>
+                        <linearGradient id="fuelGrad" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#dc2626"/>
+                          <stop offset="50%" stopColor="#eab308"/>
+                          <stop offset="100%" stopColor="#059669"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M10 45 A 40 40 0 0 1 90 45" fill="none" stroke="#e2e8f0" strokeWidth="8" strokeLinecap="round"/>
+                      <path d="M10 45 A 40 40 0 0 1 90 45" fill="none" stroke="url(#fuelGrad)" strokeWidth="8" strokeLinecap="round"
+                        strokeDasharray={arcLen} strokeDashoffset={arcLen * (1 - pct)}
+                      />
+                      <line x1="50" y1="45" x2={nx} y2={ny} stroke="#1e293b" strokeWidth="1.5" strokeLinecap="round"/>
+                      <circle cx="50" cy="45" r="3" fill="#1e293b"/>
+                      <text x="18" y="42" fontSize="7" fill="#94a3b8" fontWeight="bold">E</text>
+                      <text x="79" y="42" fontSize="7" fill="#94a3b8" fontWeight="bold">F</text>
+                    </>
+                  )
+                })()}
+              </svg>
             </div>
-            <p className="text-[10px] text-slate-400">/{capacidadTanque}L</p>
+            <span className="text-xs font-bold text-slate-700 mt-0.5">{saldoActual.toFixed(1)} <span className="text-[10px] font-normal text-slate-400">/ {capacidadTanque}L</span></span>
           </div>
         </div>
 
@@ -512,8 +567,43 @@ export function VerificarPlanta() {
                 autoFocus
               />
             </div>
+
+            {/* Photos */}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Fotos</label>
+              <div className="flex flex-wrap gap-2">
+                {fotosReporte.map((foto, i) => (
+                  <div key={i} className="group relative w-28">
+                    <img src={foto.base64} alt={`Foto ${i + 1}`}
+                      className="h-20 w-full rounded-lg object-cover"
+                    />
+                    <button onClick={() => eliminarFotoReporte(i)}
+                      className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      &times;
+                    </button>
+                    <input type="text" value={foto.comentario}
+                      onChange={(e) => actualizarComentarioFoto(i, e.target.value)}
+                      placeholder="Comentario..."
+                      className="mt-0.5 w-full rounded border border-slate-200 px-1.5 py-0.5 text-[10px] focus:border-blue-400 focus:outline-none"
+                    />
+                  </div>
+                ))}
+                {fotosReporte.length < 5 && (
+                  <label className="flex h-20 w-28 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-slate-300 text-slate-400 transition-colors hover:border-blue-400 hover:text-blue-500">
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={(e) => agregarFotoReporte(e.target.files)}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
             <div className="flex justify-end gap-2">
-              <button onClick={() => setAccion(null)}
+              <button onClick={() => { setAccion(null); setFotosReporte([]) }}
                 className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
                 Cancelar
