@@ -233,7 +233,7 @@ function PlantQRModal({ planta, supNombre, onClose }: {
 
 function calcularHoras(inicial: number | null, final: number | null) {
   if (inicial == null || final == null) return 0
-  return Math.max(0, final - inicial)
+  return Math.max(0, final - inicial) / 60
 }
 
 export function PlantasElectricas() {

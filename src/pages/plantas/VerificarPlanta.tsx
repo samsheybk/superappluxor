@@ -36,7 +36,7 @@ type Accion = 'encender' | 'cargar' | 'mantenimiento' | null
 
 function calcularHoras(inicial: number | null, final: number | null) {
   if (inicial == null || final == null) return 0
-  return Math.round(Math.max(0, final - inicial) * 100) / 100
+  return Math.round(Math.max(0, final - inicial) / 60 * 100) / 100
 }
 
 function IconPower() {
