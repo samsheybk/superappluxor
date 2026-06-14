@@ -14,6 +14,7 @@ import { EvaluarSupermercado } from './pages/supermercados/EvaluarSupermercado'
 import { GestionConceptos } from './pages/supermercados/GestionConceptos'
 import { HistorialEvaluaciones } from './pages/supermercados/HistorialEvaluaciones'
 import { DetalleEvaluacion } from './pages/supermercados/DetalleEvaluacion'
+import { Documentacion } from './pages/Documentacion'
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route path="/operaciones/supermercados/:id/evaluar" element={<EvaluarSupermercado />} />
             <Route path="/operaciones/supermercados/:id/evaluacion/:evaluacionId" element={<DetalleEvaluacion />} />
             <Route path="/operaciones/supermercados/:id" element={<HistorialEvaluaciones />} />
+            <Route path="/documentacion" element={<Documentacion />} />
           </Route>
           <Route path="/plantas/:id" element={<ProtectedRoute><VerificarPlanta /></ProtectedRoute>} />
           <Route path="/reporte/:id" element={<ReporteFalla />} />
