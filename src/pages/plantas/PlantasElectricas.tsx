@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { IconAgregar, IconEditar, IconEliminar } from '../../components/Icons'
 import { LoadingScreen } from '../../components/LoadingScreen'
 
-type Tab = 'plantas' | 'mantenimiento'
+type Tab = 'plantas' | 'mantenimiento' | 'operacion'
 
 interface Planta {
   id: string
@@ -14,6 +14,8 @@ interface Planta {
   modelo: string
   capacidad_electrica: string
   capacidad_combustible: string
+  combustible_por_hora: number
+  horas_para_cambio_aceite: number
   activo: boolean
   created_at: string
 }
@@ -34,6 +36,23 @@ interface PlantaMantenimiento {
   created_at: string
 }
 
+interface PlantaRegistro {
+  id: string
+  planta_id: string
+  encendido_en: string
+  apagado_en: string | null
+  combustible_inicial: number
+  combustible_final: number | null
+  created_at: string
+}
+
+interface PlantaCarga {
+  id: string
+  planta_id: string
+  cantidad: number
+  created_at: string
+}
+
 const TIPOS_MANTENIMIENTO = ['Cambio de aceite', 'Cambio de filtros', 'Revision general', 'Otro'] as const
 
 function PlantaModal({ planta, supermercados, onClose, onSave }: {
@@ -48,6 +67,8 @@ function PlantaModal({ planta, supermercados, onClose, onSave }: {
     modelo: planta?.modelo ?? '',
     capacidad_electrica: planta?.capacidad_electrica ?? '',
     capacidad_combustible: planta?.capacidad_combustible ?? '',
+    combustible_por_hora: planta?.combustible_por_hora ?? 0,
+    horas_para_cambio_aceite: planta?.horas_para_cambio_aceite ?? 250,
   })
   const [guardando, setGuardando] = useState(false)
 
@@ -112,6 +133,24 @@ function PlantaModal({ planta, supermercados, onClose, onSave }: {
               placeholder="Ej: 100 L"
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Consumo (L/hora)</label>
+              <input type="number" min={0} step={0.1} value={form.combustible_por_hora}
+                onChange={(e) => setForm({ ...form, combustible_por_hora: parseFloat(e.target.value) || 0 })}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Cambio aceite (horas)</label>
+              <input type="number" min={1} step={1} value={form.horas_para_cambio_aceite}
+                onChange={(e) => setForm({ ...form, horas_para_cambio_aceite: parseFloat(e.target.value) || 250 })}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                placeholder="250"
+              />
+            </div>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
@@ -130,6 +169,12 @@ function PlantaModal({ planta, supermercados, onClose, onSave }: {
   )
 }
 
+function calcularHoras(encendido: string, apagado: string | null) {
+  if (!apagado) return 0
+  const diffMs = new Date(apagado).getTime() - new Date(encendido).getTime()
+  return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100
+}
+
 export function PlantasElectricas() {
   const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('plantas')
@@ -146,6 +191,15 @@ export function PlantasElectricas() {
     tipo: 'Cambio de aceite', descripcion: '', costo: 0, observaciones: '',
   })
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
+
+  const [registros, setRegistros] = useState<PlantaRegistro[]>([])
+  const [cargas, setCargas] = useState<PlantaCarga[]>([])
+  const [encendiendo, setEncendiendo] = useState(false)
+  const [apagando, setApagando] = useState(false)
+  const [combustibleInicial, setCombustibleInicial] = useState(0)
+  const [combustibleFinal, setCombustibleFinal] = useState(0)
+  const [cargandoCombustible, setCargandoCombustible] = useState(false)
+  const [cantidadCarga, setCantidadCarga] = useState(0)
 
   useEffect(() => {
     ;(async () => {
@@ -169,23 +223,52 @@ export function PlantasElectricas() {
   useEffect(() => {
     if (!plantaSeleccionada) {
       setMantenimientos([])
+      setRegistros([])
+      setCargas([])
       return
     }
     ;(async () => {
-      const { data } = await supabase.from('planta_mantenimientos').select('*')
-        .eq('planta_id', plantaSeleccionada)
-        .order('created_at', { ascending: false })
-      if (data) setMantenimientos(data)
+      const [manRes, regRes, carRes] = await Promise.all([
+        supabase.from('planta_mantenimientos').select('*')
+          .eq('planta_id', plantaSeleccionada)
+          .order('created_at', { ascending: false }),
+        supabase.from('planta_registros').select('*')
+          .eq('planta_id', plantaSeleccionada)
+          .order('encendido_en', { ascending: false }),
+        supabase.from('planta_cargas_combustible').select('*')
+          .eq('planta_id', plantaSeleccionada)
+          .order('created_at', { ascending: false }),
+      ])
+      if (manRes.data) setMantenimientos(manRes.data)
+      if (regRes.data) setRegistros(regRes.data)
+      if (carRes.data) setCargas(carRes.data)
     })()
   }, [plantaSeleccionada])
 
   const supMap: Record<string, string> = {}
   for (const s of supermercados) supMap[s.id] = s.nombre
 
+  const registroActivo = registros.find((r) => !r.apagado_en)
+  const plantaSel = plantas.find((p) => p.id === plantaSeleccionada)
+
+  const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.encendido_en, r.apagado_en), 0)
+
+  const ultCambioAceite = (() => {
+    for (const m of mantenimientos) if (m.tipo === 'Cambio de aceite') return m
+    return null
+  })()
+  const horasDesdeUltCambio = ultCambioAceite
+    ? registros
+        .filter((r) => r.apagado_en && new Date(r.apagado_en) > new Date(ultCambioAceite.created_at))
+        .reduce((sum, r) => sum + calcularHoras(r.encendido_en, r.apagado_en), 0)
+    : horasTotales
+  const alertaAceite = plantaSel ? horasDesdeUltCambio >= plantaSel.horas_para_cambio_aceite : false
+
   async function guardarPlanta(p: Partial<Planta>) {
     const payload: Record<string, any> = {
       supermercado_id: p.supermercado_id, marca: p.marca, modelo: p.modelo,
       capacidad_electrica: p.capacidad_electrica, capacidad_combustible: p.capacidad_combustible,
+      combustible_por_hora: p.combustible_por_hora, horas_para_cambio_aceite: p.horas_para_cambio_aceite,
     }
     if (p.id) {
       const { error } = await supabase.from('plantas_electricas').update(payload).eq('id', p.id)
@@ -202,6 +285,70 @@ export function PlantasElectricas() {
   async function desactivarPlanta(id: string) {
     await supabase.from('plantas_electricas').update({ activo: false }).eq('id', id)
     setPlantas(plantas.map((p) => p.id === id ? { ...p, activo: false } : p))
+  }
+
+  async function encender() {
+    if (!plantaSeleccionada || !user) return
+    setEncendiendo(true)
+    try {
+      const { error } = await supabase.from('planta_registros').insert({
+        planta_id: plantaSeleccionada,
+        encendido_en: new Date().toISOString(),
+        combustible_inicial: combustibleInicial,
+      })
+      if (error) throw error
+      setCombustibleInicial(0)
+      const { data } = await supabase.from('planta_registros').select('*')
+        .eq('planta_id', plantaSeleccionada)
+        .order('encendido_en', { ascending: false })
+      if (data) setRegistros(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setEncendiendo(false)
+    }
+  }
+
+  async function apagar() {
+    if (!registroActivo || !user) return
+    setApagando(true)
+    try {
+      const { error } = await supabase.from('planta_registros').update({
+        apagado_en: new Date().toISOString(),
+        combustible_final: combustibleFinal,
+      }).eq('id', registroActivo.id)
+      if (error) throw error
+      setCombustibleFinal(0)
+      const { data } = await supabase.from('planta_registros').select('*')
+        .eq('planta_id', plantaSeleccionada)
+        .order('encendido_en', { ascending: false })
+      if (data) setRegistros(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setApagando(false)
+    }
+  }
+
+  async function guardarCargaCombustible() {
+    if (!plantaSeleccionada || cantidadCarga <= 0) return
+    setCargandoCombustible(true)
+    try {
+      const { error } = await supabase.from('planta_cargas_combustible').insert({
+        planta_id: plantaSeleccionada,
+        cantidad: cantidadCarga,
+      })
+      if (error) throw error
+      setCantidadCarga(0)
+      const { data } = await supabase.from('planta_cargas_combustible').select('*')
+        .eq('planta_id', plantaSeleccionada)
+        .order('created_at', { ascending: false })
+      if (data) setCargas(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setCargandoCombustible(false)
+    }
   }
 
   async function guardarMantenimiento() {
@@ -237,7 +384,7 @@ export function PlantasElectricas() {
               d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Plantas eléctricas</h1>
+            <h1 className="text-2xl font-bold text-slate-800">Plantas electricas</h1>
             <p className="text-slate-500">Operaciones</p>
           </div>
         </div>
@@ -250,6 +397,7 @@ export function PlantasElectricas() {
       <div className="mb-6 flex gap-1 border-b border-slate-200">
         {([
           { key: 'plantas', label: 'Plantas' },
+          { key: 'operacion', label: 'Operación' },
           { key: 'mantenimiento', label: 'Mantenimiento' },
         ] as const).map((t) => (
           <button key={t.key}
@@ -286,6 +434,7 @@ export function PlantasElectricas() {
                   <th className="p-3 font-medium">Modelo</th>
                   <th className="p-3 font-medium">Cap. Eléctrica</th>
                   <th className="p-3 font-medium">Cap. Combustible</th>
+                  <th className="p-3 font-medium">Consumo (L/h)</th>
                   <th className="p-3 font-medium">Estado</th>
                   <th className="p-3 font-medium">Acciones</th>
                 </tr>
@@ -293,7 +442,7 @@ export function PlantasElectricas() {
               <tbody>
                 {plantas.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-400">
+                    <td colSpan={8} className="p-8 text-center text-slate-400">
                       No hay plantas registradas
                     </td>
                   </tr>
@@ -304,6 +453,7 @@ export function PlantasElectricas() {
                     <td className="p-3 text-slate-600">{p.modelo}</td>
                     <td className="p-3 text-slate-600">{p.capacidad_electrica}</td>
                     <td className="p-3 text-slate-600">{p.capacidad_combustible}</td>
+                    <td className="p-3 text-slate-600">{p.combustible_por_hora}</td>
                     <td className="p-3">
                       {p.activo
                         ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">Activo</span>
@@ -340,6 +490,183 @@ export function PlantasElectricas() {
               onClose={() => setPlantaModal(null)}
               onSave={guardarPlanta}
             />
+          )}
+        </div>
+      )}
+
+      {/* TAB: OPERACION */}
+      {tab === 'operacion' && (
+        <div className="space-y-6">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Seleccionar planta</label>
+            <select value={plantaSeleccionada} onChange={(e) => setPlantaSeleccionada(e.target.value)}
+              className="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+            >
+              <option value="">-- Seleccione --</option>
+              {plantas.filter((p) => p.activo).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {supMap[p.supermercado_id]} — {p.marca} {p.modelo}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {plantaSeleccionada && plantaSel && (
+            <>
+              {/* Estado actual */}
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800">Estado actual</h3>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
+                        registroActivo
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        <span className={`h-2.5 w-2.5 rounded-full ${registroActivo ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
+                        {registroActivo ? 'ENCENDIDA' : 'APAGADA'}
+                      </span>
+                      <span className="text-sm text-slate-500">
+                        {horasTotales.toFixed(1)} horas totales
+                      </span>
+                      {alertaAceite && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                          Cambio de aceite ({horasDesdeUltCambio.toFixed(1)}h / {plantaSel.horas_para_cambio_aceite}h)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {!registroActivo ? (
+                      <div className="flex items-end gap-2">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Combustible inicial (L)</label>
+                          <input type="number" min={0} step={0.1} value={combustibleInicial}
+                            onChange={(e) => setCombustibleInicial(parseFloat(e.target.value) || 0)}
+                            className="w-28 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                          />
+                        </div>
+                        <button onClick={encender} disabled={encendiendo}
+                          className="h-[38px] rounded-lg bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {encendiendo ? '...' : 'Encender'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-end gap-2">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Combustible final (L)</label>
+                          <input type="number" min={0} step={0.1} value={combustibleFinal}
+                            onChange={(e) => setCombustibleFinal(parseFloat(e.target.value) || 0)}
+                            className="w-28 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                          />
+                        </div>
+                        <button onClick={apagar} disabled={apagando}
+                          className="h-[38px] rounded-lg bg-red-600 px-4 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {apagando ? '...' : 'Apagar'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cargar combustible */}
+              <div className="rounded-xl bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-semibold text-slate-800">Cargar combustible</h3>
+                <div className="flex items-end gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-600">Cantidad (L)</label>
+                    <input type="number" min={0.1} step={0.1} value={cantidadCarga || ''}
+                      onChange={(e) => setCantidadCarga(parseFloat(e.target.value) || 0)}
+                      className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                    />
+                  </div>
+                  <button onClick={guardarCargaCombustible} disabled={cargandoCombustible || cantidadCarga <= 0}
+                    className="h-[38px] rounded-lg bg-amber-600 px-4 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {cargandoCombustible ? '...' : 'Registrar carga'}
+                  </button>
+                </div>
+                {cargas.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-2 text-sm font-medium text-slate-600">Últimas cargas</p>
+                    <div className="flex flex-wrap gap-2">
+                      {cargas.slice(0, 5).map((c) => (
+                        <span key={c.id} className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                          +{c.cantidad}L · {new Date(c.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Historial de sesiones */}
+              {registros.length > 0 && (
+                <div className="rounded-xl bg-white p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-semibold text-slate-800">Historial de operación</h3>
+                  <div className="space-y-2">
+                    {registros.map((r) => {
+                      const horas = calcularHoras(r.encendido_en, r.apagado_en)
+                      const consumo = horas > 0 && r.combustible_inicial != null && r.combustible_final != null
+                        ? (r.combustible_inicial - r.combustible_final)
+                        : null
+                      return (
+                        <div key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-100 p-3 text-sm">
+                          <span className="text-slate-500">
+                            {new Date(r.encendido_en).toLocaleDateString('es-VE', {
+                              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+                          <span className="text-slate-300">→</span>
+                          <span className="text-slate-500">
+                            {r.apagado_en
+                              ? new Date(r.apagado_en).toLocaleDateString('es-VE', { hour: '2-digit', minute: '2-digit' })
+                              : <span className="text-green-600 font-medium">En curso</span>
+                            }
+                          </span>
+                          {r.apagado_en && (
+                            <>
+                              <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                {horas.toFixed(1)}h
+                              </span>
+                              <span className="text-slate-400">
+                                Comb: {r.combustible_inicial}L → {r.combustible_final}L
+                                {consumo !== null && ` (${consumo.toFixed(1)}L)`}
+                              </span>
+                            </>
+                          )}
+                          {!r.apagado_en && (
+                            <span className="text-slate-400">
+                              Comb. inicial: {r.combustible_inicial}L
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {registros.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-xl bg-white py-12 shadow-sm">
+                  <p className="text-sm text-slate-400">No hay registros de operación para esta planta</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!plantaSeleccionada && (
+            <div className="flex items-center justify-center rounded-xl bg-white py-12 shadow-sm">
+              <p className="text-sm text-slate-400">Seleccione una planta para ver su operación</p>
+            </div>
           )}
         </div>
       )}
