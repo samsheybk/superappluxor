@@ -139,6 +139,7 @@ export function VerificarPlanta() {
     ? (registros.length > 0 ? Math.max(0, (registros[0].horometro_inicial - ultCambioAceite.horometro!) / 60) : 0)
     : horasTotales
   const alertaAceite = planta ? horasDesdeUltCambio >= ACEITE_ALERTA_HORAS : false
+  const horasRestantesAceite = Math.max(0, ACEITE_ALERTA_HORAS - horasDesdeUltCambio)
 
   const registrosAsc = [...registros].reverse()
   const saldoInicial = registrosAsc.length > 0 ? registrosAsc[0].combustible_inicial : 0
@@ -286,8 +287,10 @@ export function VerificarPlanta() {
             <p className="text-lg font-bold text-slate-700">{saldoInicial.toFixed(1)} <span className="text-xs font-normal">L</span></p>
           </div>
           <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className="text-xs text-slate-500">+ Gasoil</p>
-            <p className="text-lg font-bold text-amber-600">+{totalCargasGas.toFixed(1)} <span className="text-xs font-normal">L</span></p>
+            <p className="text-xs text-slate-500">Próximo cambio de aceite</p>
+            <p className={`text-lg font-bold ${horasRestantesAceite <= 0 ? 'text-red-600' : horasRestantesAceite <= 20 ? 'text-amber-600' : 'text-green-600'}`}>
+              {horasRestantesAceite <= 0 ? '0' : horasRestantesAceite.toFixed(0)} <span className="text-xs font-normal">h</span>
+            </p>
           </div>
           <div className="rounded-xl bg-white p-3 text-center shadow-sm">
             <p className="text-xs text-slate-500">Consumido</p>
