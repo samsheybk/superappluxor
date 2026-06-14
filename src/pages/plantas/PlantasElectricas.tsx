@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { IconAgregar, IconEditar, IconEliminar } from '../../components/Icons'
 import { LoadingScreen } from '../../components/LoadingScreen'
+import QRCode from 'qrcode'
 
 type Tab = 'plantas' | 'mantenimiento' | 'operacion'
 
@@ -169,6 +170,49 @@ function PlantaModal({ planta, supermercados, onClose, onSave }: {
   )
 }
 
+function PlantQRModal({ planta, supNombre, onClose }: {
+  planta: Planta
+  supNombre: string
+  onClose: () => void
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const url = `${window.location.origin}/plantas/${planta.id}`
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, url, { width: 250, margin: 2 }, (err) => {
+        if (err) console.error(err)
+      })
+    }
+  }, [url])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-800">QR de planta</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <canvas ref={canvasRef} />
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-800">{supNombre}</p>
+            <p className="text-sm text-slate-500">{planta.marca} {planta.modelo}</p>
+            <p className="text-xs text-slate-400 mt-2 break-all">{url}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <button onClick={onClose}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function calcularHoras(encendido: string, apagado: string | null) {
   if (!apagado) return 0
   const diffMs = new Date(apagado).getTime() - new Date(encendido).getTime()
@@ -200,6 +244,7 @@ export function PlantasElectricas() {
   const [combustibleFinal, setCombustibleFinal] = useState(0)
   const [cargandoCombustible, setCargandoCombustible] = useState(false)
   const [cantidadCarga, setCantidadCarga] = useState(0)
+  const [qrPlanta, setQrPlanta] = useState<Planta | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -462,6 +507,15 @@ export function PlantasElectricas() {
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2">
+                        <button onClick={() => setQrPlanta(p)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-purple-600"
+                          title="Ver QR"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                          </svg>
+                        </button>
                         <button onClick={() => setPlantaModal(p)}
                           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
                           title="Editar"
@@ -489,6 +543,13 @@ export function PlantasElectricas() {
               supermercados={supermercados}
               onClose={() => setPlantaModal(null)}
               onSave={guardarPlanta}
+            />
+          )}
+          {qrPlanta && (
+            <PlantQRModal
+              planta={qrPlanta}
+              supNombre={supMap[qrPlanta.supermercado_id] ?? '—'}
+              onClose={() => setQrPlanta(null)}
             />
           )}
         </div>

@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Departamento } from './pages/Departamento'
 import { TallerAutomotriz } from './pages/taller/TallerAutomotriz'
 import { PlantasElectricas } from './pages/plantas/PlantasElectricas'
+import { VerificarPlanta } from './pages/plantas/VerificarPlanta'
 import { ListaSupermercados } from './pages/supermercados/ListaSupermercados'
 import { EvaluarSupermercado } from './pages/supermercados/EvaluarSupermercado'
 import { GestionConceptos } from './pages/supermercados/GestionConceptos'
@@ -37,6 +38,7 @@ function App() {
             <Route path="/operaciones/supermercados/:id/evaluacion/:evaluacionId" element={<DetalleEvaluacion />} />
             <Route path="/operaciones/supermercados/:id" element={<HistorialEvaluaciones />} />
           </Route>
+          <Route path="/plantas/:id" element={<ProtectedRoute><VerificarPlanta /></ProtectedRoute>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
