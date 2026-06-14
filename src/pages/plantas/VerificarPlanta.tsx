@@ -28,7 +28,7 @@ interface PlantaCarga {
 
 interface PlantaMantenimiento {
   id: string; planta_id: string; realizado_por: string
-  tipo: string; descripcion: string; costo: number; observaciones: string; created_at: string
+  tipo: string; descripcion: string; costo: number; observaciones: string; horometro: number | null; created_at: string
 }
 
 const TIPOS_MANTENIMIENTO = ['Cambio de aceite', 'Cambio de filtros', 'Revision general', 'Otro'] as const
@@ -101,7 +101,7 @@ export function VerificarPlanta() {
   const [apagando, setApagando] = useState(false)
   const [cantidadCarga, setCantidadCarga] = useState(0)
   const [cargandoCombustible, setCargandoCombustible] = useState(false)
-  const [formMantenimiento, setFormMantenimiento] = useState({ tipo: 'Cambio de aceite', descripcion: '', costo: 0, observaciones: '' })
+  const [formMantenimiento, setFormMantenimiento] = useState({ tipo: 'Cambio de aceite', descripcion: '', costo: 0, observaciones: '', horometro: 0 })
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
   const [historialAbierto, setHistorialAbierto] = useState(false)
   const [reporteDetalle, setReporteDetalle] = useState('')
@@ -132,11 +132,13 @@ export function VerificarPlanta() {
 
   const registroActivo = registros.find((r) => !r.apagado_en)
   const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
-  const ultCambioAceite = (() => { for (const m of mantenimientos) if (m.tipo === 'Cambio de aceite') return m; return null })()
+  const ACEITE_ALERTA_HORAS = 100
+  const aceiteConHoras = mantenimientos.filter((m) => m.tipo === 'Cambio de aceite' && m.horometro != null)
+  const ultCambioAceite = aceiteConHoras[0]
   const horasDesdeUltCambio = ultCambioAceite
-    ? registros.filter((r) => r.apagado_en && new Date(r.apagado_en) > new Date(ultCambioAceite.created_at)).reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
+    ? (registros.length > 0 ? Math.max(0, (registros[0].horometro_inicial - ultCambioAceite.horometro!) / 60) : 0)
     : horasTotales
-  const alertaAceite = planta ? horasDesdeUltCambio >= planta.horas_para_cambio_aceite : false
+  const alertaAceite = planta ? horasDesdeUltCambio >= ACEITE_ALERTA_HORAS : false
 
   const registrosAsc = [...registros].reverse()
   const saldoInicial = registrosAsc.length > 0 ? registrosAsc[0].combustible_inicial : 0
@@ -179,8 +181,18 @@ export function VerificarPlanta() {
   async function guardarMantenimiento() {
     if (!id || !user) return; setGuardandoMantenimiento(true)
     try {
-      await supabase.from('planta_mantenimientos').insert({ planta_id: id, realizado_por: user.id, ...formMantenimiento })
-      setFormMantenimiento({ tipo: 'Cambio de aceite', descripcion: '', costo: 0, observaciones: '' })
+      const payload: Record<string, any> = {
+        planta_id: id, realizado_por: user.id,
+        tipo: formMantenimiento.tipo,
+        descripcion: formMantenimiento.descripcion,
+        costo: formMantenimiento.costo,
+        observaciones: formMantenimiento.observaciones,
+      }
+      if (formMantenimiento.tipo === 'Cambio de aceite' && formMantenimiento.horometro > 0) {
+        payload.horometro = formMantenimiento.horometro
+      }
+      await supabase.from('planta_mantenimientos').insert(payload)
+      setFormMantenimiento({ tipo: 'Cambio de aceite', descripcion: '', costo: 0, observaciones: '', horometro: 0 })
       setAccion(null)
       const { data } = await supabase.from('planta_mantenimientos').select('*').eq('planta_id', id).order('created_at', { ascending: false })
       if (data) setMantenimientos(data)
@@ -441,6 +453,15 @@ export function VerificarPlanta() {
                 />
               </div>
             </div>
+            {formMantenimiento.tipo === 'Cambio de aceite' && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro (min)</label>
+                <input type="number" min={0} step={1} value={formMantenimiento.horometro}
+                  onChange={(e) => setFormMantenimiento({ ...formMantenimiento, horometro: parseFloat(e.target.value) || 0 })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                />
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Descripcion</label>
               <textarea value={formMantenimiento.descripcion}

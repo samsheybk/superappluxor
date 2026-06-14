@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS planta_mantenimientos (
   descripcion TEXT NOT NULL DEFAULT '',
   costo DECIMAL(10,2) NOT NULL DEFAULT 0,
   observaciones TEXT NOT NULL DEFAULT '',
+  horometro DECIMAL(10,2),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
