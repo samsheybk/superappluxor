@@ -130,6 +130,14 @@ export function VerificarPlanta() {
     })()
   }, [id])
 
+  useEffect(() => {
+    if (accion === 'encender' && !registroActivo) {
+      const ultimo = registros.filter((r) => r.apagado_en != null)[0]
+      setHorometroInicial(ultimo?.horometro_final ?? 0)
+      setCombustibleInicial(ultimo?.combustible_final ?? 0)
+    }
+  }, [accion])
+
   const registroActivo = registros.find((r) => !r.apagado_en)
   const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
   const ACEITE_ALERTA_HORAS = 100

@@ -309,7 +309,15 @@ export function PlantasElectricas() {
           .order('created_at', { ascending: false }),
       ])
       if (manRes.data) setMantenimientos(manRes.data)
-      if (regRes.data) setRegistros(regRes.data)
+      if (regRes.data) {
+        setRegistros(regRes.data)
+        const activo = regRes.data.find((r: any) => !r.apagado_en)
+        if (!activo) {
+          const ultimo = regRes.data.filter((r: any) => r.apagado_en != null)[0]
+          setHorometroInicial(ultimo?.horometro_final ?? 0)
+          setCombustibleInicial(ultimo?.combustible_final ?? 0)
+        }
+      }
       if (carRes.data) setCargas(carRes.data)
     })()
   }, [plantaSeleccionada])
