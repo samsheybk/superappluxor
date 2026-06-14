@@ -270,7 +270,6 @@ export function TallerAutomotriz() {
   const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState<string>('')
   const [vehiculoTipo, setVehiculoTipo] = useState<'Particular' | 'Carga'>('Particular')
   const [inspecciones, setInspecciones] = useState<TallerInspeccion[]>([])
-  const [cargandoInspecciones, setCargandoInspecciones] = useState(false)
   const [formInspeccion, setFormInspeccion] = useState<Record<string, string>>({ ...INIT_INSPECCION })
   const [formDocs, setFormDocs] = useState<FormDocs>({ ...DOC_INIT })
   const [firma, setFirma] = useState<string | null>(null)
@@ -287,18 +286,22 @@ export function TallerAutomotriz() {
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false)
   const [inspeccionExpandida, setInspeccionExpandida] = useState<string | null>(null)
 
-  const hoy = new Date()
-  const [fechaDesde, setFechaDesde] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth()).padStart(2, '0')}-01`)
-  const [fechaHasta, setFechaHasta] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`)
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [generandoResumen, setGenerandoResumen] = useState(false)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
     ;(async () => {
       try {
-        const vehRes = await supabase.from('vehiculos').select('*').order('placa')
+        const [vehRes, insRes] = await Promise.all([
+          supabase.from('vehiculos').select('*').order('placa'),
+          supabase.from('taller_inspecciones').select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, limp_cabina_interna, limp_carroceria_externa, limp_area_carga, limp_parabrisas_ventanas, elec_luces_principales, elec_luces_senalizacion, elec_luces_freno_retroceso, elec_tablero_instrumentos, elec_limpia_parabrisas, elec_bateria, mec_fluidos, mec_fugas, mec_frenos, mec_neumaticos, mec_correas, mec_suspension_direccion, est_carroceria, est_parabrisas, est_tapiceria_asientos, est_retrovisores_parachoques, est_cerraduras_manillas, aux_caucho_repuesto, aux_herramientas, aux_triangulos, aux_extintor, aux_tacos, doc_titulo_propiedad, doc_poliza_seguro, doc_impuestos, doc_carta_autorizacion, doc_licencia, doc_certificado_medico, doc_rotec, doc_guias_movilizacion, doc_permiso_sustancias, doc_guia_sanitaria, doc_certificado_pesos, observaciones, firma, created_at').order('created_at', { ascending: false }),
+        ])
         if (vehRes.error) throw vehRes.error
+        if (insRes.error) throw insRes.error
         setVehiculos(vehRes.data ?? [])
+        setInspecciones(insRes.data ?? [])
       } catch (e: any) {
         setError(e.message)
       } finally {
@@ -309,34 +312,24 @@ export function TallerAutomotriz() {
 
   useEffect(() => {
     if (!vehiculoSeleccionado) {
-      setInspecciones([])
       setMantenimientos([])
       return
     }
-    const v = vehiculos.find((x) => x.id === vehiculoSeleccionado)
-    setVehiculoTipo(v?.tipo ?? 'Particular')
-    setCargandoInspecciones(true)
+    setVehiculoTipo(vehiculos.find((x) => x.id === vehiculoSeleccionado)?.tipo ?? 'Particular')
     ;(async () => {
-      try {
-        const [insRes, mantRes] = await Promise.all([
-          supabase.from('taller_inspecciones').select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, limp_cabina_interna, limp_carroceria_externa, limp_area_carga, limp_parabrisas_ventanas, elec_luces_principales, elec_luces_senalizacion, elec_luces_freno_retroceso, elec_tablero_instrumentos, elec_limpia_parabrisas, elec_bateria, mec_fluidos, mec_fugas, mec_frenos, mec_neumaticos, mec_correas, mec_suspension_direccion, est_carroceria, est_parabrisas, est_tapiceria_asientos, est_retrovisores_parachoques, est_cerraduras_manillas, aux_caucho_repuesto, aux_herramientas, aux_triangulos, aux_extintor, aux_tacos, doc_titulo_propiedad, doc_poliza_seguro, doc_impuestos, doc_carta_autorizacion, doc_licencia, doc_certificado_medico, doc_rotec, doc_guias_movilizacion, doc_permiso_sustancias, doc_guia_sanitaria, doc_certificado_pesos, observaciones, firma, created_at')
-            .eq('vehiculo_id', vehiculoSeleccionado)
-            .order('created_at', { ascending: false }),
-          supabase.from('taller_mantenimientos').select('*')
-            .eq('vehiculo_id', vehiculoSeleccionado)
-            .order('created_at', { ascending: false }),
-        ])
-        if (insRes.error) throw insRes.error
-        if (mantRes.error) throw mantRes.error
-        setInspecciones(insRes.data ?? [])
-        setMantenimientos(mantRes.data ?? [])
-      } catch (e: any) {
-        setError(e.message)
-      } finally {
-        setCargandoInspecciones(false)
-      }
+      const { data } = await supabase.from('taller_mantenimientos').select('*')
+        .eq('vehiculo_id', vehiculoSeleccionado)
+        .order('created_at', { ascending: false })
+      if (data) setMantenimientos(data)
     })()
   }, [vehiculoSeleccionado, vehiculos])
+
+  const insFiltradas = inspecciones.filter((i) => {
+    if (vehiculoSeleccionado && i.vehiculo_id !== vehiculoSeleccionado) return false
+    if (fechaDesde && i.created_at < `${fechaDesde}T00:00:00`) return false
+    if (fechaHasta && i.created_at > `${fechaHasta}T23:59:59`) return false
+    return true
+  })
 
   async function guardarVehiculo(v: Partial<Vehiculo>) {
     const payload: Record<string, any> = {
@@ -450,10 +443,10 @@ export function TallerAutomotriz() {
       setFirma(null)
       setFotosPorCampo({})
       setMostrandoFormulario(false)
-      const { data } = await supabase.from('taller_inspecciones').select('*')
-        .eq('vehiculo_id', vehiculoSeleccionado)
+      const { data: recargadas } = await supabase.from('taller_inspecciones')
+        .select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, limp_cabina_interna, limp_carroceria_externa, limp_area_carga, limp_parabrisas_ventanas, elec_luces_principales, elec_luces_senalizacion, elec_luces_freno_retroceso, elec_tablero_instrumentos, elec_limpia_parabrisas, elec_bateria, mec_fluidos, mec_fugas, mec_frenos, mec_neumaticos, mec_correas, mec_suspension_direccion, est_carroceria, est_parabrisas, est_tapiceria_asientos, est_retrovisores_parachoques, est_cerraduras_manillas, aux_caucho_repuesto, aux_herramientas, aux_triangulos, aux_extintor, aux_tacos, doc_titulo_propiedad, doc_poliza_seguro, doc_impuestos, doc_carta_autorizacion, doc_licencia, doc_certificado_medico, doc_rotec, doc_guias_movilizacion, doc_permiso_sustancias, doc_guia_sanitaria, doc_certificado_pesos, observaciones, firma, created_at')
         .order('created_at', { ascending: false })
-      setInspecciones(data ?? [])
+      if (recargadas) setInspecciones(recargadas)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -504,21 +497,17 @@ export function TallerAutomotriz() {
   async function generarResumen() {
     setGenerandoResumen(true)
     try {
-      const { data: vehiculosData } = await supabase.from('vehiculos').select('id, tipo, placa')
-      const vehMap: Record<string, { tipo: string; placa: string }> = {}
-      for (const v of vehiculosData ?? []) vehMap[v.id] = { tipo: v.tipo, placa: v.placa }
+      const vehMap: Record<string, string> = {}
+      for (const v of vehiculos) vehMap[v.id] = v.tipo
 
-      const { data: insData } = await supabase
-        .from('taller_inspecciones')
-        .select('*')
-        .gte('created_at', `${fechaDesde}T00:00:00`)
-        .lte('created_at', `${fechaHasta}T23:59:59`)
+      const particulares = insFiltradas.filter((i) => vehMap[i.vehiculo_id] === 'Particular')
+      const cargas = insFiltradas.filter((i) => vehMap[i.vehiculo_id] === 'Carga')
 
-      const todas = insData ?? []
-      const particulares = todas.filter((i) => vehMap[i.vehiculo_id]?.tipo === 'Particular')
-      const cargas = todas.filter((i) => vehMap[i.vehiculo_id]?.tipo === 'Carga')
-
-      const pdf = generarPDFResumenTaller(fmtDate(fechaDesde), fmtDate(fechaHasta), todas, particulares, cargas)
+      const pdf = generarPDFResumenTaller(
+        fechaDesde ? fmtDate(fechaDesde) : '(sin filtro)',
+        fechaHasta ? fmtDate(fechaHasta) : '(sin filtro)',
+        insFiltradas, particulares, cargas,
+      )
       abrirPDF(pdf)
     } catch (e: any) {
       setError(e.message)
@@ -564,32 +553,6 @@ export function TallerAutomotriz() {
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
-
-      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">Desde</label>
-          <input type="date" value={fechaDesde}
-            onChange={(e) => setFechaDesde(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">Hasta</label>
-          <input type="date" value={fechaHasta}
-            onChange={(e) => setFechaHasta(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-          />
-        </div>
-        <button onClick={generarResumen} disabled={generandoResumen}
-          className="inline-flex h-[38px] items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          {generandoResumen ? 'Generando...' : 'Generar resumen PDF'}
-        </button>
-      </div>
 
       <div className="mb-6 flex gap-1 border-b border-slate-200">
         {([
@@ -699,6 +662,41 @@ export function TallerAutomotriz() {
       {/* TAB: INSPECCION */}
       {tab === 'inspeccion' && (
         <div className="space-y-6">
+          <div className="flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 shadow-sm">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Desde</label>
+              <input type="date" value={fechaDesde}
+                onChange={(e) => setFechaDesde(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">Hasta</label>
+              <input type="date" value={fechaHasta}
+                onChange={(e) => setFechaHasta(e.target.value)}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+              />
+            </div>
+            <button onClick={() => {
+              setVehiculoSeleccionado('')
+              setFechaDesde('')
+              setFechaHasta('')
+            }}
+              className="h-[38px] rounded-lg border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              Limpiar filtros
+            </button>
+            <button onClick={generarResumen} disabled={generandoResumen}
+              className="inline-flex h-[38px] items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {generandoResumen ? 'Generando...' : 'Generar resumen PDF'}
+            </button>
+          </div>
+
           <div className="flex items-end gap-3">
             <div className="flex-1">
               <label className="mb-1 block text-sm font-medium text-slate-700">Seleccionar vehículo</label>
@@ -709,14 +707,20 @@ export function TallerAutomotriz() {
               }}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               >
-                <option value="">-- Seleccione --</option>
+                <option value="">-- Todos los vehículos --</option>
                 {vehiculosActivos.map((v) => (
                   <option key={v.id} value={v.id}>{v.placa} - {v.marca} {v.modelo} ({v.anio})</option>
                 ))}
               </select>
             </div>
-            {vehiculoSeleccionado && !mostrandoFormulario && (
-              <button onClick={() => setMostrandoFormulario(true)}
+            {!mostrandoFormulario && (
+              <button onClick={() => {
+                if (!vehiculoSeleccionado) {
+                  setError('Seleccione un vehículo antes de crear una inspección')
+                  return
+                }
+                setMostrandoFormulario(true)
+              }}
                 className="inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
               >
                 <IconAgregar className="h-4 w-4" />
@@ -725,7 +729,7 @@ export function TallerAutomotriz() {
             )}
           </div>
 
-          {vehiculoSeleccionado && mostrandoFormulario && (
+          {mostrandoFormulario && vehiculoSeleccionado && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-slate-800">
@@ -838,39 +842,36 @@ export function TallerAutomotriz() {
             </div>
           )}
 
-          {vehiculoSeleccionado && !mostrandoFormulario && cargandoInspecciones && (
+          {mostrandoFormulario && !vehiculoSeleccionado && (
             <div className="flex items-center justify-center rounded-xl bg-white py-12 shadow-sm">
-              <div className="flex flex-col items-center gap-3">
-                <svg className="h-8 w-8 animate-spin text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <p className="text-sm text-slate-400">Cargando inspecciones...</p>
-              </div>
+              <p className="text-sm text-slate-400">Seleccione un vehículo para crear una inspección</p>
             </div>
           )}
 
-          {vehiculoSeleccionado && !mostrandoFormulario && !cargandoInspecciones && inspecciones.length === 0 && (
+          {!mostrandoFormulario && insFiltradas.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-xl bg-white py-12 shadow-sm">
               <svg className="mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-sm text-slate-400">No hay inspecciones registradas para este vehículo</p>
-              <button onClick={() => setMostrandoFormulario(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                <IconAgregar className="h-4 w-4" />
-                Realizar primera inspección
-              </button>
+              <p className="text-sm text-slate-400">
+                {inspecciones.length === 0
+                  ? 'No hay inspecciones registradas'
+                  : 'Ninguna inspección coincide con los filtros seleccionados'}
+              </p>
             </div>
           )}
 
-          {vehiculoSeleccionado && !mostrandoFormulario && !cargandoInspecciones && inspecciones.length > 0 && (
+          {!mostrandoFormulario && insFiltradas.length > 0 && (
             <div className="rounded-xl bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-semibold text-slate-800">Historial de inspecciones</h3>
+              <h3 className="mb-4 text-lg font-semibold text-slate-800">
+                Historial de inspecciones
+                {insFiltradas.length < inspecciones.length && (
+                  <span className="ml-2 text-sm font-normal text-slate-400">({insFiltradas.length} de {inspecciones.length})</span>
+                )}
+              </h3>
               <div className="space-y-3">
-                {inspecciones.map((ins) => {
+                {insFiltradas.map((ins) => {
                   const pts = calcularPuntos(ins)
                   const expandida = inspeccionExpandida === ins.id
                   return (
@@ -880,6 +881,7 @@ export function TallerAutomotriz() {
                           <span className="text-sm text-slate-500">{new Date(ins.created_at).toLocaleDateString('es-VE', {
                             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                           })}</span>
+                          <span className="text-xs text-slate-400">{vehiculos.find((v) => v.id === ins.vehiculo_id)?.placa ?? ''}</span>
                           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             pts.pct >= 80 ? 'bg-green-100 text-green-700' :
                             pts.pct >= 50 ? 'bg-yellow-100 text-yellow-700' :
@@ -904,8 +906,9 @@ export function TallerAutomotriz() {
                       {expandida && (
                         <div className="border-t border-slate-100 p-4 pt-3">
                           {CATEGORIAS_INSPECCION.map((cat) => {
+                            const tipoVeh = vehiculos.find((v) => v.id === ins.vehiculo_id)?.tipo?.toLowerCase() ?? 'particular'
                             const vals = cat.items
-                              .filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
+                              .filter((item) => item.tipo === 'ambos' || item.tipo === tipoVeh)
                               .map((item) => ({ key: item.key, label: item.label, val: ins[item.key] }))
                             if (!vals.some((v) => v.val)) return null
                             return (
