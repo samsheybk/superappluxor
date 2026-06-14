@@ -282,6 +282,8 @@ export function TallerAutomotriz() {
 
   const [fotosPorCampo, setFotosPorCampo] = useState<Record<string, { foto: string; comentario: string }[]>>({})
   const [guardandoPDF, setGuardandoPDF] = useState(false)
+  const [mostrandoFormulario, setMostrandoFormulario] = useState(false)
+  const [inspeccionExpandida, setInspeccionExpandida] = useState<string | null>(null)
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -437,6 +439,7 @@ export function TallerAutomotriz() {
       setFormDocs({ ...DOC_INIT })
       setFirma(null)
       setFotosPorCampo({})
+      setMostrandoFormulario(false)
       const { data } = await supabase.from('taller_inspecciones').select('*')
         .eq('vehiculo_id', vehiculoSeleccionado)
         .order('created_at', { ascending: false })
@@ -473,6 +476,20 @@ export function TallerAutomotriz() {
   if (loading) return <LoadingScreen />
 
   const vehiculosActivos = vehiculos.filter((v) => v.activo)
+
+  function calcularPuntos(ins: TallerInspeccion) {
+    let total = 0
+    let obtenido = 0
+    for (const cat of CATEGORIAS_INSPECCION) {
+      for (const item of cat.items) {
+        total += 2
+        const val = ins[item.key]
+        if (val === 'Bueno') obtenido += 2
+        else if (val === 'Regular') obtenido += 1
+      }
+    }
+    return { obtenido, total, pct: total > 0 ? Math.round((obtenido / total) * 100) : 0 }
+  }
 
   return (
     <div>
@@ -602,135 +619,190 @@ export function TallerAutomotriz() {
       {/* TAB: INSPECCION */}
       {tab === 'inspeccion' && (
         <div className="space-y-6">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Seleccionar vehículo</label>
-            <select value={vehiculoSeleccionado} onChange={(e) => setVehiculoSeleccionado(e.target.value)}
-              className="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-            >
-              <option value="">-- Seleccione --</option>
-              {vehiculosActivos.map((v) => (
-                <option key={v.id} value={v.id}>{v.placa} - {v.marca} {v.modelo} ({v.anio})</option>
-              ))}
-            </select>
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="mb-1 block text-sm font-medium text-slate-700">Seleccionar vehículo</label>
+              <select value={vehiculoSeleccionado} onChange={(e) => {
+                setVehiculoSeleccionado(e.target.value)
+                setMostrandoFormulario(false)
+                setInspeccionExpandida(null)
+              }}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+              >
+                <option value="">-- Seleccione --</option>
+                {vehiculosActivos.map((v) => (
+                  <option key={v.id} value={v.id}>{v.placa} - {v.marca} {v.modelo} ({v.anio})</option>
+                ))}
+              </select>
+            </div>
+            {vehiculoSeleccionado && !mostrandoFormulario && (
+              <button onClick={() => setMostrandoFormulario(true)}
+                className="inline-flex h-[38px] shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <IconAgregar className="h-4 w-4" />
+                Nueva inspección
+              </button>
+            )}
           </div>
 
-          {vehiculoSeleccionado && (
-            <>
-              <div className="rounded-xl bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-lg font-semibold text-slate-800">
+          {vehiculoSeleccionado && mostrandoFormulario && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">
                   Nueva inspección — <span className={vehiculoTipo === 'Carga' ? 'text-amber-600' : 'text-blue-600'}>{vehiculoTipo}</span>
                 </h3>
-                {CATEGORIAS_INSPECCION.map((cat) => {
-                  const items = cat.items.filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
-                  if (items.length === 0) return null
-                  return (
-                    <details key={cat.id} className="mt-4 rounded-lg border border-slate-200 open:border-blue-300">
-                      <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                        {cat.titulo}
-                      </summary>
-                      <div className="space-y-4 p-4">
-                        {items.map((item) => {
-                          const fotos = fotosPorCampo[item.key] ?? []
-                          return (
-                            <div key={item.key} className="rounded-lg border border-slate-100 p-3">
-                              <div className="flex items-start gap-3">
-                                <div className="flex-1">
-                                  <SelectEstado label={item.label}
-                                    value={formInspeccion[item.key]}
-                                    onChange={(v) => setFormInspeccion({ ...formInspeccion, [item.key]: v })} />
-                                </div>
-                                <button type="button" onClick={() => fileInputRefs.current[item.key]?.click()}
-                                  className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-                                  title="Agregar foto"
-                                >
-                                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  </svg>
-                                </button>
-                                <input ref={(el) => { fileInputRefs.current[item.key] = el }}
-                                  type="file" accept="image/*" className="hidden"
-                                  onChange={(e) => handleAgregarFoto(item.key, e)} />
-                              </div>
-                              {fotos.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-3">
-                                  {fotos.map((foto, idx) => (
-                                    <div key={idx} className="relative w-40">
-                                      <img src={foto.foto} alt={`Foto ${idx + 1}`}
-                                        className="h-32 w-full rounded-lg border border-slate-200 object-cover" />
-                                      <button type="button" onClick={() => handleEliminarFoto(item.key, idx)}
-                                        className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white hover:bg-red-600"
-                                      >
-                                        ✕
-                                      </button>
-                                      <input type="text" value={foto.comentario}
-                                        onChange={(e) => handleComentarioFoto(item.key, idx, e.target.value)}
-                                        placeholder="Comentario de la foto..."
-                                        className="mt-1 w-full rounded border border-slate-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
-                                      />
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </details>
-                  )
-                })}
-
-                <details className="mt-6 rounded-lg border border-slate-200 open:border-blue-300">
-                  <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                    Documentación
-                  </summary>
-                  <div className="space-y-2 p-4">
-                    {DOCS_POR_TIPO[vehiculoTipo].map((doc) => (
-                      <label key={doc.key} className="flex items-start gap-2 cursor-pointer">
-                        <input type="checkbox" checked={formDocs[doc.key]}
-                          onChange={(e) => setFormDocs({ ...formDocs, [doc.key]: e.target.checked })}
-                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-slate-700">{doc.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </details>
-
-                <div className="mt-4">
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Observaciones</label>
-                  <textarea value={formInspeccion.observaciones}
-                    onChange={(e) => setFormInspeccion({ ...formInspeccion, observaciones: e.target.value })}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                    rows={3}
-                  />
-                </div>
-                <div className="mt-4">
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Firma del evaluador</label>
-                  <SignaturePad value={firma} onChange={setFirma} />
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button onClick={guardarInspeccion} disabled={guardandoInspeccion || !firma}
-                    className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {guardandoInspeccion ? 'Guardando...' : guardandoPDF ? 'Generando PDF...' : 'Guardar inspección'}
-                  </button>
-                </div>
+                <button onClick={() => setMostrandoFormulario(false)}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  ← Volver al historial
+                </button>
               </div>
+              {CATEGORIAS_INSPECCION.map((cat) => {
+                const items = cat.items.filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
+                if (items.length === 0) return null
+                return (
+                  <details key={cat.id} className="mt-4 rounded-lg border border-slate-200 open:border-blue-300">
+                    <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                      {cat.titulo}
+                    </summary>
+                    <div className="space-y-4 p-4">
+                      {items.map((item) => {
+                        const fotos = fotosPorCampo[item.key] ?? []
+                        return (
+                          <div key={item.key} className="rounded-lg border border-slate-100 p-3">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1">
+                                <SelectEstado label={item.label}
+                                  value={formInspeccion[item.key]}
+                                  onChange={(v) => setFormInspeccion({ ...formInspeccion, [item.key]: v })} />
+                              </div>
+                              <button type="button" onClick={() => fileInputRefs.current[item.key]?.click()}
+                                className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                                title="Agregar foto"
+                              >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                              </button>
+                              <input ref={(el) => { fileInputRefs.current[item.key] = el }}
+                                type="file" accept="image/*" className="hidden"
+                                onChange={(e) => handleAgregarFoto(item.key, e)} />
+                            </div>
+                            {fotos.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-3">
+                                {fotos.map((foto, idx) => (
+                                  <div key={idx} className="relative w-40">
+                                    <img src={foto.foto} alt={`Foto ${idx + 1}`}
+                                      className="h-32 w-full rounded-lg border border-slate-200 object-cover" />
+                                    <button type="button" onClick={() => handleEliminarFoto(item.key, idx)}
+                                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white hover:bg-red-600"
+                                    >
+                                      ✕
+                                    </button>
+                                    <input type="text" value={foto.comentario}
+                                      onChange={(e) => handleComentarioFoto(item.key, idx, e.target.value)}
+                                      placeholder="Comentario de la foto..."
+                                      className="mt-1 w-full rounded border border-slate-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </details>
+                )
+              })}
 
-              {inspecciones.length > 0 && (
-                <div className="rounded-xl bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-semibold text-slate-800">Historial de inspecciones</h3>
-                  <div className="space-y-3">
-                    {inspecciones.map((ins) => (
-                      <div key={ins.id} className="rounded-lg border border-slate-200 p-4">
-                        <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
-                          <span>{new Date(ins.created_at).toLocaleDateString('es-VE', {
-                            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+              <details className="mt-6 rounded-lg border border-slate-200 open:border-blue-300">
+                <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                  Documentación
+                </summary>
+                <div className="space-y-2 p-4">
+                  {DOCS_POR_TIPO[vehiculoTipo].map((doc) => (
+                    <label key={doc.key} className="flex items-start gap-2 cursor-pointer">
+                      <input type="checkbox" checked={formDocs[doc.key]}
+                        onChange={(e) => setFormDocs({ ...formDocs, [doc.key]: e.target.checked })}
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-slate-700">{doc.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+
+              <div className="mt-4">
+                <label className="mb-1 block text-sm font-medium text-slate-700">Observaciones</label>
+                <textarea value={formInspeccion.observaciones}
+                  onChange={(e) => setFormInspeccion({ ...formInspeccion, observaciones: e.target.value })}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                  rows={3}
+                />
+              </div>
+              <div className="mt-4">
+                <label className="mb-1 block text-sm font-medium text-slate-700">Firma del evaluador</label>
+                <SignaturePad value={firma} onChange={setFirma} />
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button onClick={guardarInspeccion} disabled={guardandoInspeccion || !firma}
+                  className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {guardandoInspeccion ? 'Guardando...' : guardandoPDF ? 'Generando PDF...' : 'Guardar inspección'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {vehiculoSeleccionado && !mostrandoFormulario && inspecciones.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-xl bg-white py-12 shadow-sm">
+              <svg className="mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-sm text-slate-400">No hay inspecciones registradas para este vehículo</p>
+              <button onClick={() => setMostrandoFormulario(true)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                <IconAgregar className="h-4 w-4" />
+                Realizar primera inspección
+              </button>
+            </div>
+          )}
+
+          {vehiculoSeleccionado && !mostrandoFormulario && inspecciones.length > 0 && (
+            <div className="rounded-xl bg-white p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-semibold text-slate-800">Historial de inspecciones</h3>
+              <div className="space-y-3">
+                {inspecciones.map((ins) => {
+                  const pts = calcularPuntos(ins)
+                  const expandida = inspeccionExpandida === ins.id
+                  return (
+                    <div key={ins.id} className="rounded-lg border border-slate-200">
+                      <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-slate-500">{new Date(ins.created_at).toLocaleDateString('es-VE', {
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                           })}</span>
-                            {ins.pdf_base64 && (
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            pts.pct >= 80 ? 'bg-green-100 text-green-700' :
+                            pts.pct >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {pts.obtenido}/{pts.total} ({pts.pct}%)
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => setInspeccionExpandida(expandida ? null : ins.id)}
+                            className="rounded px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                          >
+                            {expandida ? 'Ocultar detalles' : 'Ver detalles'}
+                          </button>
+                          {ins.pdf_base64 && (
                             <button onClick={() => window.open(ins.pdf_base64!, '_blank')}
                               className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-100"
                             >
@@ -738,66 +810,70 @@ export function TallerAutomotriz() {
                             </button>
                           )}
                         </div>
-                        {CATEGORIAS_INSPECCION.map((cat) => {
-                          const vals = cat.items
-                            .filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
-                            .map((item) => ({ key: item.key, label: item.label, val: ins[item.key] }))
-                          if (!vals.some((v) => v.val)) return null
-                          return (
-                            <div key={cat.id} className="col-span-full">
-                              <p className="text-xs font-medium text-slate-500 mt-2 mb-1">{cat.titulo}</p>
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                                {vals.map((v) => (
-                                  <span key={v.key}>
-                                    <span className="text-slate-400">{v.label}: </span>
-                                    <span className={colorEstado(v.val)}>{v.val}</span>
+                      </div>
+                      {expandida && (
+                        <div className="border-t border-slate-100 p-4 pt-3">
+                          {CATEGORIAS_INSPECCION.map((cat) => {
+                            const vals = cat.items
+                              .filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
+                              .map((item) => ({ key: item.key, label: item.label, val: ins[item.key] }))
+                            if (!vals.some((v) => v.val)) return null
+                            return (
+                              <div key={cat.id} className="col-span-full">
+                                <p className="text-xs font-medium text-slate-500 mt-2 mb-1">{cat.titulo}</p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                  {vals.map((v) => (
+                                    <span key={v.key}>
+                                      <span className="text-slate-400">{v.label}: </span>
+                                      <span className={colorEstado(v.val)}>{v.val}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                          {(
+                            [
+                              'doc_titulo_propiedad', 'doc_poliza_seguro', 'doc_impuestos',
+                              'doc_carta_autorizacion', 'doc_licencia', 'doc_certificado_medico',
+                              'doc_rotec', 'doc_guias_movilizacion', 'doc_permiso_sustancias',
+                              'doc_guia_sanitaria', 'doc_certificado_pesos',
+                            ] as const
+                          ).filter((k) => (ins as any)[k]).length > 0 && (
+                            <div className="col-span-full mt-2">
+                              <p className="text-xs font-medium text-slate-500 mb-1">Documentos:</p>
+                              <div className="flex flex-wrap gap-1">
+                                {(
+                                  [
+                                    'doc_titulo_propiedad', 'doc_poliza_seguro', 'doc_impuestos',
+                                    'doc_carta_autorizacion', 'doc_licencia', 'doc_certificado_medico',
+                                    'doc_rotec', 'doc_guias_movilizacion', 'doc_permiso_sustancias',
+                                    'doc_guia_sanitaria', 'doc_certificado_pesos',
+                                  ] as const
+                                ).filter((k) => (ins as any)[k]).map((k) => (
+                                  <span key={k} className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                                    {DOC_LABELS[k]}
                                   </span>
                                 ))}
                               </div>
                             </div>
-                          )
-                        })}
-                        {(
-                          [
-                            'doc_titulo_propiedad', 'doc_poliza_seguro', 'doc_impuestos',
-                            'doc_carta_autorizacion', 'doc_licencia', 'doc_certificado_medico',
-                            'doc_rotec', 'doc_guias_movilizacion', 'doc_permiso_sustancias',
-                            'doc_guia_sanitaria', 'doc_certificado_pesos',
-                          ] as const
-                        ).filter((k) => (ins as any)[k]).length > 0 && (
-                          <div className="col-span-full mt-2">
-                            <p className="text-xs font-medium text-slate-500 mb-1">Documentos:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {(
-                                [
-                                  'doc_titulo_propiedad', 'doc_poliza_seguro', 'doc_impuestos',
-                                  'doc_carta_autorizacion', 'doc_licencia', 'doc_certificado_medico',
-                                  'doc_rotec', 'doc_guias_movilizacion', 'doc_permiso_sustancias',
-                                  'doc_guia_sanitaria', 'doc_certificado_pesos',
-                                ] as const
-                              ).filter((k) => (ins as any)[k]).map((k) => (
-                                <span key={k} className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-                                  {DOC_LABELS[k]}
-                                </span>
-                              ))}
+                          )}
+                          {ins.observaciones && (
+                            <p className="mt-2 col-span-full text-sm text-slate-600">Observaciones: {ins.observaciones}</p>
+                          )}
+                          {ins.firma && (
+                            <div className="mt-2 col-span-full">
+                              <span className="text-xs text-slate-500">Firma:</span>
+                              <img src={ins.firma} alt="Firma" className="mt-1 h-10 rounded border border-slate-200" />
                             </div>
-                          </div>
-                        )}
-                        {ins.observaciones && (
-                          <p className="mt-2 col-span-full text-sm text-slate-600">Observaciones: {ins.observaciones}</p>
-                        )}
-                        {ins.firma && (
-                          <div className="mt-2 col-span-full">
-                            <span className="text-xs text-slate-500">Firma:</span>
-                            <img src={ins.firma} alt="Firma" className="mt-1 h-10 rounded border border-slate-200" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
