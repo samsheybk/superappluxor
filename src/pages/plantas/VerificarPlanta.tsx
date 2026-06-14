@@ -18,6 +18,7 @@ interface Planta {
 
 interface PlantaRegistro {
   id: string; planta_id: string; encendido_en: string; apagado_en: string | null
+  horometro_inicial: number; horometro_final: number | null
   combustible_inicial: number; combustible_final: number | null; created_at: string
 }
 
@@ -33,9 +34,9 @@ interface PlantaMantenimiento {
 const TIPOS_MANTENIMIENTO = ['Cambio de aceite', 'Cambio de filtros', 'Revision general', 'Otro'] as const
 type Accion = 'encender' | 'cargar' | 'mantenimiento' | null
 
-function calcularHoras(encendido: string, apagado: string | null) {
-  if (!apagado) return 0
-  return Math.round(((new Date(apagado).getTime() - new Date(encendido).getTime()) / (1000 * 60 * 60)) * 100) / 100
+function calcularHoras(inicial: number | null, final: number | null) {
+  if (inicial == null || final == null) return 0
+  return Math.round(Math.max(0, final - inicial) * 100) / 100
 }
 
 function IconPower() {
@@ -86,6 +87,8 @@ export function VerificarPlanta() {
 
   const [combustibleInicial, setCombustibleInicial] = useState(0)
   const [combustibleFinal, setCombustibleFinal] = useState(0)
+  const [horometroInicial, setHorometroInicial] = useState(0)
+  const [horometroFinal, setHorometroFinal] = useState(0)
   const [encendiendo, setEncendiendo] = useState(false)
   const [apagando, setApagando] = useState(false)
   const [cantidadCarga, setCantidadCarga] = useState(0)
@@ -117,18 +120,18 @@ export function VerificarPlanta() {
   }, [id])
 
   const registroActivo = registros.find((r) => !r.apagado_en)
-  const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.encendido_en, r.apagado_en), 0)
+  const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
   const ultCambioAceite = (() => { for (const m of mantenimientos) if (m.tipo === 'Cambio de aceite') return m; return null })()
   const horasDesdeUltCambio = ultCambioAceite
-    ? registros.filter((r) => r.apagado_en && new Date(r.apagado_en) > new Date(ultCambioAceite.created_at)).reduce((sum, r) => sum + calcularHoras(r.encendido_en, r.apagado_en), 0)
+    ? registros.filter((r) => r.apagado_en && new Date(r.apagado_en) > new Date(ultCambioAceite.created_at)).reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
     : horasTotales
   const alertaAceite = planta ? horasDesdeUltCambio >= planta.horas_para_cambio_aceite : false
 
   async function encender() {
     if (!id || !user) return; setEncendiendo(true)
     try {
-      await supabase.from('planta_registros').insert({ planta_id: id, encendido_en: new Date().toISOString(), combustible_inicial: combustibleInicial })
-      setCombustibleInicial(0); setAccion(null)
+      await supabase.from('planta_registros').insert({ planta_id: id, encendido_en: new Date().toISOString(), horometro_inicial: horometroInicial, combustible_inicial: combustibleInicial })
+      setHorometroInicial(0); setCombustibleInicial(0); setAccion(null)
       const { data } = await supabase.from('planta_registros').select('*').eq('planta_id', id).order('encendido_en', { ascending: false })
       if (data) setRegistros(data)
     } catch (e: any) { setError(e.message) } finally { setEncendiendo(false) }
@@ -137,8 +140,8 @@ export function VerificarPlanta() {
   async function apagar() {
     if (!registroActivo || !user) return; setApagando(true)
     try {
-      await supabase.from('planta_registros').update({ apagado_en: new Date().toISOString(), combustible_final: combustibleFinal }).eq('id', registroActivo.id)
-      setCombustibleFinal(0); setAccion(null)
+      await supabase.from('planta_registros').update({ apagado_en: new Date().toISOString(), horometro_final: horometroFinal, combustible_final: combustibleFinal }).eq('id', registroActivo.id)
+      setHorometroFinal(0); setCombustibleFinal(0); setAccion(null)
       const { data } = await supabase.from('planta_registros').select('*').eq('planta_id', id).order('encendido_en', { ascending: false })
       if (data) setRegistros(data)
     } catch (e: any) { setError(e.message) } finally { setApagando(false) }
@@ -252,11 +255,18 @@ export function VerificarPlanta() {
             {!registroActivo ? (
               <div className="flex items-end gap-3">
                 <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                  <input type="number" min={0} step={0.1} value={horometroInicial}
+                    onChange={(e) => setHorometroInicial(parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex-1">
                   <label className="mb-1 block text-xs font-medium text-slate-600">Combustible inicial (L)</label>
                   <input type="number" min={0} step={0.1} value={combustibleInicial}
                     onChange={(e) => setCombustibleInicial(parseFloat(e.target.value) || 0)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                    autoFocus
                   />
                 </div>
                 <button onClick={encender} disabled={encendiendo}
@@ -268,11 +278,18 @@ export function VerificarPlanta() {
             ) : (
               <div className="flex items-end gap-3">
                 <div className="flex-1">
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                  <input type="number" min={0} step={0.1} value={horometroFinal}
+                    onChange={(e) => setHorometroFinal(parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex-1">
                   <label className="mb-1 block text-xs font-medium text-slate-600">Combustible final (L)</label>
                   <input type="number" min={0} step={0.1} value={combustibleFinal}
                     onChange={(e) => setCombustibleFinal(parseFloat(e.target.value) || 0)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-                    autoFocus
                   />
                 </div>
                 <button onClick={apagar} disabled={apagando}
@@ -378,19 +395,17 @@ export function VerificarPlanta() {
             {historialAbierto && (
               <div className="border-t border-slate-100 px-4 py-3 space-y-4 max-h-80 overflow-y-auto">
                 {registros.map((r) => {
-                  const horas = calcularHoras(r.encendido_en, r.apagado_en)
+                  const horas = calcularHoras(r.horometro_inicial, r.horometro_final)
                   return (
                     <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                       <span className="text-slate-500">{new Date(r.encendido_en).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       <span className="text-slate-300">→</span>
                       <span className="text-slate-500">{r.apagado_en ? new Date(r.apagado_en).toLocaleDateString('es-VE', { hour: '2-digit', minute: '2-digit' }) : '...'}</span>
                       {r.apagado_en && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{horas.toFixed(1)}h</span>}
-                      <span className="text-slate-400">
-                        {r.apagado_en
-                          ? `${r.combustible_inicial}→${r.combustible_final}L${r.combustible_final != null ? ` (${(r.combustible_inicial - r.combustible_final).toFixed(1)}L)` : ''}`
-                          : `Inicial: ${r.combustible_inicial}L`
-                        }
-                      </span>
+                      {r.apagado_en
+                        ? <span className="text-slate-400">H: {r.horometro_inicial}→{r.horometro_final} · {r.combustible_inicial}→{r.combustible_final}L{r.combustible_final != null ? ` (${(r.combustible_inicial - r.combustible_final).toFixed(1)}L)` : ''}</span>
+                        : <span className="text-slate-400">H: {r.horometro_inicial}h · Inicial: {r.combustible_inicial}L</span>
+                      }
                     </div>
                   )
                 })}

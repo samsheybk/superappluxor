@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS planta_registros (
   planta_id UUID NOT NULL REFERENCES plantas_electricas(id) ON DELETE CASCADE,
   encendido_en TIMESTAMPTZ NOT NULL DEFAULT now(),
   apagado_en TIMESTAMPTZ,
+  horometro_inicial DECIMAL(10,2) NOT NULL DEFAULT 0,
+  horometro_final DECIMAL(10,2),
   combustible_inicial DECIMAL(10,2) NOT NULL DEFAULT 0,
   combustible_final DECIMAL(10,2),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()

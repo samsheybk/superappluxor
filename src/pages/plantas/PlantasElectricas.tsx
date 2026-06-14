@@ -42,6 +42,8 @@ interface PlantaRegistro {
   planta_id: string
   encendido_en: string
   apagado_en: string | null
+  horometro_inicial: number
+  horometro_final: number | null
   combustible_inicial: number
   combustible_final: number | null
   created_at: string
@@ -177,6 +179,7 @@ function PlantQRModal({ planta, supNombre, onClose }: {
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const url = `${window.location.origin}/plantas/${planta.id}`
+  const [copiado, setCopiado] = useState(false)
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -185,6 +188,14 @@ function PlantQRModal({ planta, supNombre, onClose }: {
       })
     }
   }, [url])
+
+  async function copiarUrl() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {}
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -198,7 +209,14 @@ function PlantQRModal({ planta, supNombre, onClose }: {
           <div className="text-center">
             <p className="text-sm font-medium text-slate-800">{supNombre}</p>
             <p className="text-sm text-slate-500">{planta.marca} {planta.modelo}</p>
-            <p className="text-xs text-slate-400 mt-2 break-all">{url}</p>
+            <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
+              <span className="flex-1 break-all text-xs text-slate-500">{url}</span>
+              <button onClick={copiarUrl}
+                className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+              >
+                {copiado ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
           </div>
         </div>
         <div className="mt-4 flex justify-center">
@@ -213,10 +231,9 @@ function PlantQRModal({ planta, supNombre, onClose }: {
   )
 }
 
-function calcularHoras(encendido: string, apagado: string | null) {
-  if (!apagado) return 0
-  const diffMs = new Date(apagado).getTime() - new Date(encendido).getTime()
-  return Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100
+function calcularHoras(inicial: number | null, final: number | null) {
+  if (inicial == null || final == null) return 0
+  return Math.max(0, final - inicial)
 }
 
 export function PlantasElectricas() {
@@ -240,6 +257,8 @@ export function PlantasElectricas() {
   const [cargas, setCargas] = useState<PlantaCarga[]>([])
   const [encendiendo, setEncendiendo] = useState(false)
   const [apagando, setApagando] = useState(false)
+  const [horometroInicial, setHorometroInicial] = useState(0)
+  const [horometroFinal, setHorometroFinal] = useState(0)
   const [combustibleInicial, setCombustibleInicial] = useState(0)
   const [combustibleFinal, setCombustibleFinal] = useState(0)
   const [cargandoCombustible, setCargandoCombustible] = useState(false)
@@ -272,6 +291,10 @@ export function PlantasElectricas() {
       setCargas([])
       return
     }
+    setHorometroInicial(0)
+    setHorometroFinal(0)
+    setCombustibleInicial(0)
+    setCombustibleFinal(0)
     ;(async () => {
       const [manRes, regRes, carRes] = await Promise.all([
         supabase.from('planta_mantenimientos').select('*')
@@ -296,7 +319,7 @@ export function PlantasElectricas() {
   const registroActivo = registros.find((r) => !r.apagado_en)
   const plantaSel = plantas.find((p) => p.id === plantaSeleccionada)
 
-  const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.encendido_en, r.apagado_en), 0)
+  const horasTotales = registros.reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
 
   const ultCambioAceite = (() => {
     for (const m of mantenimientos) if (m.tipo === 'Cambio de aceite') return m
@@ -305,7 +328,7 @@ export function PlantasElectricas() {
   const horasDesdeUltCambio = ultCambioAceite
     ? registros
         .filter((r) => r.apagado_en && new Date(r.apagado_en) > new Date(ultCambioAceite.created_at))
-        .reduce((sum, r) => sum + calcularHoras(r.encendido_en, r.apagado_en), 0)
+        .reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
     : horasTotales
   const alertaAceite = plantaSel ? horasDesdeUltCambio >= plantaSel.horas_para_cambio_aceite : false
 
@@ -339,9 +362,11 @@ export function PlantasElectricas() {
       const { error } = await supabase.from('planta_registros').insert({
         planta_id: plantaSeleccionada,
         encendido_en: new Date().toISOString(),
+        horometro_inicial: horometroInicial,
         combustible_inicial: combustibleInicial,
       })
       if (error) throw error
+      setHorometroInicial(0)
       setCombustibleInicial(0)
       const { data } = await supabase.from('planta_registros').select('*')
         .eq('planta_id', plantaSeleccionada)
@@ -360,9 +385,11 @@ export function PlantasElectricas() {
     try {
       const { error } = await supabase.from('planta_registros').update({
         apagado_en: new Date().toISOString(),
+        horometro_final: horometroFinal,
         combustible_final: combustibleFinal,
       }).eq('id', registroActivo.id)
       if (error) throw error
+      setHorometroFinal(0)
       setCombustibleFinal(0)
       const { data } = await supabase.from('planta_registros').select('*')
         .eq('planta_id', plantaSeleccionada)
@@ -606,6 +633,13 @@ export function PlantasElectricas() {
                     {!registroActivo ? (
                       <div className="flex items-end gap-2">
                         <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                          <input type="number" min={0} step={0.1} value={horometroInicial}
+                            onChange={(e) => setHorometroInicial(parseFloat(e.target.value) || 0)}
+                            className="w-28 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                          />
+                        </div>
+                        <div>
                           <label className="mb-1 block text-xs font-medium text-slate-600">Combustible inicial (L)</label>
                           <input type="number" min={0} step={0.1} value={combustibleInicial}
                             onChange={(e) => setCombustibleInicial(parseFloat(e.target.value) || 0)}
@@ -620,6 +654,13 @@ export function PlantasElectricas() {
                       </div>
                     ) : (
                       <div className="flex items-end gap-2">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                          <input type="number" min={0} step={0.1} value={horometroFinal}
+                            onChange={(e) => setHorometroFinal(parseFloat(e.target.value) || 0)}
+                            className="w-28 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
+                          />
+                        </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-slate-600">Combustible final (L)</label>
                           <input type="number" min={0} step={0.1} value={combustibleFinal}
@@ -675,7 +716,7 @@ export function PlantasElectricas() {
                   <h3 className="mb-4 text-lg font-semibold text-slate-800">Historial de operación</h3>
                   <div className="space-y-2">
                     {registros.map((r) => {
-                      const horas = calcularHoras(r.encendido_en, r.apagado_en)
+                      const horas = calcularHoras(r.horometro_inicial, r.horometro_final)
                       const consumo = horas > 0 && r.combustible_inicial != null && r.combustible_final != null
                         ? (r.combustible_inicial - r.combustible_final)
                         : null
@@ -699,6 +740,9 @@ export function PlantasElectricas() {
                                 {horas.toFixed(1)}h
                               </span>
                               <span className="text-slate-400">
+                                H: {r.horometro_inicial} → {r.horometro_final}
+                              </span>
+                              <span className="text-slate-400">
                                 Comb: {r.combustible_inicial}L → {r.combustible_final}L
                                 {consumo !== null && ` (${consumo.toFixed(1)}L)`}
                               </span>
@@ -706,7 +750,7 @@ export function PlantasElectricas() {
                           )}
                           {!r.apagado_en && (
                             <span className="text-slate-400">
-                              Comb. inicial: {r.combustible_inicial}L
+                              H: {r.horometro_inicial}h · Comb: {r.combustible_inicial}L
                             </span>
                           )}
                         </div>
