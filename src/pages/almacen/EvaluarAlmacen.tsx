@@ -235,12 +235,6 @@ export function EvaluarAlmacen() {
     const fechaISO = fechaInicioRef.current
     const fechaCierreISO = new Date().toISOString()
 
-    setMensajeProgreso('Guardando comentarios...')
-    const { error: err } = await supabase.from('almacen_evaluacion_comentarios').insert(
-      registros.map((r) => ({ ...r, evaluacion_id: evaluacionId }))
-    )
-    if (err) { setError(err.message); setGuardando(false); setMensajeProgreso(null); return }
-
     setMensajeProgreso('Guardando evaluacion...')
     const { error: headerErr } = await supabase.from('almacen_evaluaciones').insert({
       id: evaluacionId,
@@ -251,6 +245,12 @@ export function EvaluarAlmacen() {
       creado_por: user.id,
     })
     if (headerErr) { setError(headerErr.message); setGuardando(false); setMensajeProgreso(null); return }
+
+    setMensajeProgreso('Guardando comentarios...')
+    const { error: err } = await supabase.from('almacen_evaluacion_comentarios').insert(
+      registros.map((r) => ({ ...r, evaluacion_id: evaluacionId }))
+    )
+    if (err) { setError(err.message); setGuardando(false); setMensajeProgreso(null); return }
 
     setMensajeProgreso('Generando PDF...')
     await new Promise((r) => setTimeout(r, 100))

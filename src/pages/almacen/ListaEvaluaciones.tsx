@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { Modal } from '../../components/Modal'
 import { LoadingScreen } from '../../components/LoadingScreen'
+import { generarPDF } from '../../utils/generarPDF'
 
 interface EvalResumen {
   id: string
@@ -12,6 +13,7 @@ interface EvalResumen {
   total_penalizacion: number
   puntaje: number
   areas: number
+  pdf_base64: string | null
 }
 
 export function ListaEvaluaciones() {
@@ -61,6 +63,7 @@ export function ListaEvaluaciones() {
           total_penalizacion: p?.totalPen ?? 0,
           puntaje: Math.max(0, totalPeso - (p?.totalPen ?? 0)),
           areas: p?.areaIds.size ?? 0,
+          pdf_base64: ev.pdf_base64 ?? null,
         }
       })
 
@@ -81,6 +84,64 @@ export function ListaEvaluaciones() {
     await supabase.from('almacen_evaluaciones').delete().eq('id', eliminarId)
     setEliminando(null)
     cargarDatos()
+  }
+
+  async function descargarPDF(ev: EvalResumen) {
+    if (ev.pdf_base64) {
+      const a = document.createElement('a')
+      a.href = ev.pdf_base64
+      a.download = `evaluacion-almacen-${ev.id}.pdf`
+      a.click()
+      return
+    }
+
+    const [evRes, cmRes, arRes, concRes, ccRes] = await Promise.all([
+      supabase.from('almacen_evaluaciones').select('*').eq('id', ev.id).single(),
+      supabase.from('almacen_evaluacion_comentarios').select('area_id, concepto_id, criticidad_id, comentario, fotos').eq('evaluacion_id', ev.id),
+      supabase.from('almacen_areas').select('*'),
+      supabase.from('almacen_conceptos').select('*'),
+      supabase.from('almacen_concepto_criticidades').select('*'),
+    ])
+    if (!evRes.data || !cmRes.data) return
+
+    const { data: perfil } = await supabase.from('perfiles').select('nombre').eq('id', evRes.data.creado_por).maybeSingle()
+
+    const areaMap = Object.fromEntries((arRes.data ?? []).map((a: any) => [a.id, a]))
+    const concMap = Object.fromEntries((concRes.data ?? []).map((c: any) => [c.id, c]))
+    const ccMap = Object.fromEntries((ccRes.data ?? []).map((c: any) => [c.id, c]))
+
+    const areaIds = [...new Set(cmRes.data.map((r: any) => r.area_id))]
+    const areas = areaIds.map((aid: string) => {
+      const a = areaMap[aid] ?? { nombre: '?', peso: 0 }
+      const comentarios = cmRes.data
+        .filter((r: any) => r.area_id === aid)
+        .map((r: any) => {
+          const c = concMap[r.concepto_id] ?? { nombre: '?' }
+          const cr = ccMap[r.criticidad_id] ?? { nivel: '', penalizacion: 0 }
+          return {
+            concepto: c.nombre,
+            criticidad: cr.nivel,
+            penalizacion: cr.penalizacion,
+            texto: r.comentario ?? '',
+            fotos: r.fotos ?? [],
+          }
+        })
+      return { nombre: a.nombre, peso: a.peso, comentarios }
+    })
+
+    const dataUrl = await generarPDF({
+      supermercadoNombre: 'Almacen y Distribucion',
+      fechaInicio: new Date(evRes.data.fecha_inicio).toLocaleString('es-VE'),
+      fechaCierre: evRes.data.fecha_cierre ? new Date(evRes.data.fecha_cierre).toLocaleString('es-VE') : null,
+      evaluadorNombre: perfil?.nombre ?? evRes.data.inspector ?? 'Evaluador',
+      firma: evRes.data.firma,
+      areas,
+    })
+
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = `evaluacion-almacen-${ev.id}.pdf`
+    a.click()
   }
 
   if (loading) return <LoadingScreen />
@@ -158,6 +219,14 @@ export function ListaEvaluaciones() {
                   </div>
                 </div>
               </Link>
+              <button onClick={() => descargarPDF(ev)}
+                className="ml-4 flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                PDF
+              </button>
               <button onClick={() => setEliminarId(ev.id)}
                 disabled={eliminando === ev.id}
                 className="ml-4 flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
