@@ -6,6 +6,7 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Departamento } from './pages/Departamento'
 import { TallerAutomotriz } from './pages/taller/TallerAutomotriz'
+import { PlantasElectricas } from './pages/plantas/PlantasElectricas'
 import { ListaSupermercados } from './pages/supermercados/ListaSupermercados'
 import { EvaluarSupermercado } from './pages/supermercados/EvaluarSupermercado'
 import { GestionConceptos } from './pages/supermercados/GestionConceptos'
@@ -28,6 +29,7 @@ function App() {
           >
             <Route path="/" element={<Dashboard />} />
             <Route path="/departamento/taller-automotriz" element={<TallerAutomotriz />} />
+            <Route path="/departamento/plantas-electricas" element={<PlantasElectricas />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />
