@@ -154,10 +154,11 @@ export function VerificarPlanta() {
     ? registroActivo.combustible_inicial
     : (registros.filter((r) => r.apagado_en != null)[0]?.combustible_final ?? 0)
   const capacidadTanque = parseFloat(planta?.capacidad_combustible ?? '0')
-  const registrosAsc = [...registros].reverse()
-  const saldoInicial = registrosAsc.length > 0 ? registrosAsc[0].combustible_inicial : 0
-  const totalConsumido = registros.filter((r) => r.apagado_en != null && r.combustible_final != null)
-    .reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
+  const sesionesCompletas = registros.filter((r) => r.apagado_en != null && r.combustible_final != null && r.horometro_inicial != null && r.horometro_final != null)
+  const consumoTotal = sesionesCompletas.reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
+  const horasSesiones = sesionesCompletas.reduce((sum, r) => sum + calcularHoras(r.horometro_inicial, r.horometro_final), 0)
+  const consumoPromedio = horasSesiones > 0 ? consumoTotal / horasSesiones : 0
+  const totalConsumido = sesionesCompletas.reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
 
   async function encender() {
     if (!id || !user) return; setEncendiendo(true)
@@ -329,10 +330,10 @@ export function VerificarPlanta() {
         </div>
 
         {/* Fuel balance */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="rounded-xl bg-white p-4 text-center shadow-sm">
-            <p className="text-sm text-slate-500">Gasoil inicial</p>
-            <p className="text-2xl font-bold text-slate-700">{saldoInicial.toFixed(1)} <span className="text-sm font-normal">L</span></p>
+            <p className="text-sm text-slate-500">Consumo promedio por hora</p>
+            <p className="text-2xl font-bold text-slate-700">{consumoPromedio.toFixed(1)} <span className="text-sm font-normal">L/h</span></p>
           </div>
           <div className="rounded-xl bg-white p-4 text-center shadow-sm">
             <p className="text-sm text-slate-500">Próximo cambio de aceite</p>
@@ -383,42 +384,39 @@ export function VerificarPlanta() {
         {/* Action buttons */}
         <div className="grid grid-cols-4 gap-3">
           <button onClick={() => setAccion(accion === 'encender' ? null : 'encender')}
-            className={`flex flex-col items-center gap-1.5 rounded-xl p-4 text-sm font-medium transition-all ${
+            className={`flex flex-col items-center gap-1 rounded-xl p-4 transition-all ${
               accion === 'encender' ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500' : 'bg-white text-slate-600 shadow-sm hover:bg-slate-50'
             }`}
           >
             <IconPower />
-            {registroActivo ? 'Apagar' : 'Encender'}
           </button>
           <button onClick={() => setAccion(accion === 'cargar' ? null : 'cargar')}
-            className={`flex flex-col items-center gap-1.5 rounded-xl p-4 text-sm font-medium transition-all ${
+            className={`flex flex-col items-center gap-1 rounded-xl p-4 transition-all ${
               accion === 'cargar' ? 'bg-amber-100 text-amber-700 ring-2 ring-amber-500' : 'bg-white text-slate-600 shadow-sm hover:bg-slate-50'
             }`}
           >
             <IconFuel />
-            Cargar comb.
           </button>
           <button onClick={() => setAccion(accion === 'mantenimiento' ? null : 'mantenimiento')}
-            className={`flex flex-col items-center gap-1.5 rounded-xl p-4 text-sm font-medium transition-all ${
+            className={`flex flex-col items-center gap-1 rounded-xl p-4 transition-all ${
               accion === 'mantenimiento' ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-500' : 'bg-white text-slate-600 shadow-sm hover:bg-slate-50'
             }`}
           >
             <IconWrench />
-            Mantenimiento
           </button>
           <button onClick={() => setAccion(accion === 'reportar' ? null : 'reportar')}
-            className={`flex flex-col items-center gap-1.5 rounded-xl p-4 text-sm font-medium transition-all ${
+            className={`flex flex-col items-center gap-1 rounded-xl p-4 transition-all ${
               accion === 'reportar' ? 'bg-red-100 text-red-700 ring-2 ring-red-500' : 'bg-white text-slate-600 shadow-sm hover:bg-slate-50'
             }`}
           >
             <IconAlert />
-            Reportar
           </button>
         </div>
 
         {/* Encender / Apagar form */}
         {accion === 'encender' && (
-          <div className="rounded-xl bg-white p-4 shadow-sm">
+          <div className="rounded-xl bg-white p-4 shadow-sm space-y-3">
+            <h3 className="text-sm font-semibold text-slate-700">{registroActivo ? 'Apagar planta' : 'Encender planta'}</h3>
             {!registroActivo ? (
               <div className="flex items-end gap-3">
                 <div className="flex-1">
@@ -471,7 +469,8 @@ export function VerificarPlanta() {
 
         {/* Cargar combustible form */}
         {accion === 'cargar' && (
-          <div className="rounded-xl bg-white p-4 shadow-sm">
+          <div className="rounded-xl bg-white p-4 shadow-sm space-y-3">
+            <h3 className="text-sm font-semibold text-slate-700">Cargar combustible</h3>
             <div className="flex items-end gap-3">
               <div className="flex-1">
                 <label className="mb-1 block text-xs font-medium text-slate-600">Cantidad (L)</label>
@@ -502,6 +501,7 @@ export function VerificarPlanta() {
         {/* Mantenimiento form */}
         {accion === 'mantenimiento' && (
           <div className="rounded-xl bg-white p-4 shadow-sm space-y-3">
+            <h3 className="text-sm font-semibold text-slate-700">Registrar mantenimiento</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Tipo</label>
@@ -558,6 +558,7 @@ export function VerificarPlanta() {
         {/* Reportar falla form */}
         {accion === 'reportar' && (
           <div className="rounded-xl bg-white p-4 shadow-sm space-y-3">
+            <h3 className="text-sm font-semibold text-slate-700">Reportar falla</h3>
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">Detalle de la falla</label>
               <textarea value={reporteDetalle}
