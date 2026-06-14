@@ -646,7 +646,7 @@ export function PlantasElectricas() {
                     {!registroActivo ? (
                       <div className="flex items-end gap-2">
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (min)</label>
                           <input type="number" min={0} step={0.1} value={horometroInicial}
                             onChange={(e) => setHorometroInicial(parseFloat(e.target.value) || 0)}
                             className="w-28 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -668,7 +668,7 @@ export function PlantasElectricas() {
                     ) : (
                       <div className="flex items-end gap-2">
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (min)</label>
                           <input type="number" min={0} step={0.1} value={horometroFinal}
                             onChange={(e) => setHorometroFinal(parseFloat(e.target.value) || 0)}
                             className="w-28 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -763,7 +763,7 @@ export function PlantasElectricas() {
                           )}
                           {!r.apagado_en && (
                             <span className="text-slate-400">
-                              H: {r.horometro_inicial}h · Comb: {r.combustible_inicial}L
+                              H: {r.horometro_inicial} min · Comb: {r.combustible_inicial}L
                             </span>
                           )}
                         </div>

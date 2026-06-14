@@ -149,13 +149,14 @@ export function VerificarPlanta() {
   const alertaAceite = planta ? horasDesdeUltCambio >= ACEITE_ALERTA_HORAS : false
   const horasRestantesAceite = Math.max(0, ACEITE_ALERTA_HORAS - horasDesdeUltCambio)
 
+  const saldoActual = registroActivo
+    ? registroActivo.combustible_inicial
+    : (registros.filter((r) => r.apagado_en != null)[0]?.combustible_final ?? 0)
+  const capacidadTanque = parseFloat(planta?.capacidad_combustible ?? '0')
   const registrosAsc = [...registros].reverse()
   const saldoInicial = registrosAsc.length > 0 ? registrosAsc[0].combustible_inicial : 0
-  const totalCargasGas = cargas.reduce((sum, c) => sum + c.cantidad, 0)
   const totalConsumido = registros.filter((r) => r.apagado_en != null && r.combustible_final != null)
     .reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
-  const saldoActual = saldoInicial + totalCargasGas - totalConsumido
-  const capacidadTanque = parseFloat(planta?.capacidad_combustible ?? '0')
 
   async function encender() {
     if (!id || !user) return; setEncendiendo(true)
@@ -366,7 +367,7 @@ export function VerificarPlanta() {
             {!registroActivo ? (
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (min)</label>
                   <input type="number" min={0} step={0.1} value={horometroInicial}
                     onChange={(e) => setHorometroInicial(parseFloat(e.target.value) || 0)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -389,7 +390,7 @@ export function VerificarPlanta() {
             ) : (
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (h)</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">Horómetro actual (min)</label>
                   <input type="number" min={0} step={0.1} value={horometroFinal}
                     onChange={(e) => setHorometroFinal(parseFloat(e.target.value) || 0)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -568,7 +569,7 @@ export function VerificarPlanta() {
                         {r.apagado_en && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">{horas.toFixed(1)}h</span>}
                         {r.apagado_en
                           ? <span className="text-slate-400">H: {r.horometro_inicial}→{r.horometro_final} · {r.combustible_inicial}→{r.combustible_final}L{r.combustible_final != null ? ` (${(r.combustible_inicial - r.combustible_final).toFixed(1)}L)` : ''}</span>
-                          : <span className="text-slate-400">H: {r.horometro_inicial}h · Inicial: {r.combustible_inicial}L</span>
+                          : <span className="text-slate-400">H: {r.horometro_inicial} min · Inicial: {r.combustible_inicial}L</span>
                         }
                       </div>
                     )
