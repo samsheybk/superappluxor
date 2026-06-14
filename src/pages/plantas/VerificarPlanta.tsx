@@ -138,6 +138,13 @@ export function VerificarPlanta() {
     : horasTotales
   const alertaAceite = planta ? horasDesdeUltCambio >= planta.horas_para_cambio_aceite : false
 
+  const registrosAsc = [...registros].reverse()
+  const saldoInicial = registrosAsc.length > 0 ? registrosAsc[0].combustible_inicial : 0
+  const totalCargasGas = cargas.reduce((sum, c) => sum + c.cantidad, 0)
+  const totalConsumido = registros.filter((r) => r.apagado_en != null && r.combustible_final != null)
+    .reduce((sum, r) => sum + Math.max(0, r.combustible_inicial - r.combustible_final!), 0)
+  const saldoActual = saldoInicial + totalCargasGas - totalConsumido
+
   async function encender() {
     if (!id || !user) return; setEncendiendo(true)
     try {
@@ -257,6 +264,28 @@ export function VerificarPlanta() {
             </span>
           )}
           <span className="ml-auto text-xs text-slate-400">{horasTotales.toFixed(1)}h</span>
+        </div>
+
+        {/* Fuel balance */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
+            <p className="text-xs text-slate-500">Saldo inicial</p>
+            <p className="text-lg font-bold text-slate-700">{saldoInicial.toFixed(1)} <span className="text-xs font-normal">L</span></p>
+          </div>
+          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
+            <p className="text-xs text-slate-500">+ Gasoil</p>
+            <p className="text-lg font-bold text-amber-600">+{totalCargasGas.toFixed(1)} <span className="text-xs font-normal">L</span></p>
+          </div>
+          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
+            <p className="text-xs text-slate-500">- Consumido</p>
+            <p className="text-lg font-bold text-red-600">-{totalConsumido.toFixed(1)} <span className="text-xs font-normal">L</span></p>
+          </div>
+          <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-200">
+            <p className="text-xs text-slate-500">Saldo actual</p>
+            <p className={`text-lg font-bold ${saldoActual < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {saldoActual.toFixed(1)} <span className="text-xs font-normal">L</span>
+            </p>
+          </div>
         </div>
 
         {/* Action buttons */}
