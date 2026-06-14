@@ -460,7 +460,7 @@ export function VerificarPlanta() {
             >
               <IconHistory />
               Historial
-              <span className="ml-auto text-xs text-slate-400">{registros.length} sesiones · {mantenimientos.length} mantenimientos · {cargas.length} cargas</span>
+              <span className="ml-auto text-xs text-slate-400">{registros.length} encendidos · {mantenimientos.length} mantenimientos · {cargas.length} gasoil</span>
               <svg className={`h-4 w-4 transition-transform ${historialAbierto ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -477,7 +477,7 @@ export function VerificarPlanta() {
                           : 'text-slate-500 hover:bg-slate-100'
                       }`}
                     >
-                      {f === 'todo' ? 'Todo' : f.charAt(0).toUpperCase() + f.slice(1)}
+                      {({ todo: 'Todo', sesiones: 'Encendidos', mantenimientos: 'Mantenimientos', cargas: 'Gasoil' } as Record<FiltroHistorial, string>)[f]}
                     </button>
                   ))}
                 </div>
@@ -486,7 +486,7 @@ export function VerificarPlanta() {
                     const horas = calcularHoras(r.horometro_inicial, r.horometro_final)
                     return (
                       <div key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                        {r.apagado_en && <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">Sesión</span>}
+                        {r.apagado_en && <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">Encendido</span>}
                         {!r.apagado_en && <span className="shrink-0 rounded bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-600">En curso</span>}
                         <span className="text-slate-500">{new Date(r.encendido_en).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                         <span className="text-slate-300">→</span>
@@ -509,7 +509,7 @@ export function VerificarPlanta() {
                   ))}
                   {filtroHistorial !== 'sesiones' && filtroHistorial !== 'mantenimientos' && cargas.map((c) => (
                     <div key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-600">Carga</span>
+                      <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-600">Gasoil</span>
                       <span className="text-slate-500">{new Date(c.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       <span className="text-slate-600 font-medium">+{c.cantidad}L</span>
                     </div>
