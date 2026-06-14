@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS documentacion_indicadores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   titulo TEXT NOT NULL,
+  tipo TEXT NOT NULL DEFAULT '',
   introduccion TEXT NOT NULL,
   objetivo_principal TEXT NOT NULL,
   objetivos_secundarios JSONB NOT NULL DEFAULT '[]',
