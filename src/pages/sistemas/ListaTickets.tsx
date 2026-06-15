@@ -17,10 +17,17 @@ interface Ticket {
 }
 
 const COLOR_ESTADO: Record<string, string> = {
-  Abierto: 'bg-yellow-100 text-yellow-800',
-  'En Proceso': 'bg-blue-100 text-blue-800',
-  Resuelto: 'bg-green-100 text-green-800',
-  Cerrado: 'bg-slate-100 text-slate-500',
+  Abierto: 'bg-red-100 text-red-700',
+  'En Proceso': 'bg-yellow-100 text-yellow-800',
+  Resuelto: 'bg-green-100 text-green-700',
+  Cerrado: 'bg-blue-100 text-blue-700',
+}
+
+const DESCRIPCION_ESTADO: Record<string, string> = {
+  Abierto: 'Ticket creado, pendiente de revision por el equipo de Sistemas',
+  'En Proceso': 'El equipo de Sistemas esta trabajando en la solucion',
+  Resuelto: 'El problema ha sido solucionado, pendiente de confirmacion',
+  Cerrado: 'Ticket cerrado, ya no requiere ninguna accion adicional',
 }
 
 export function ListaTickets() {
@@ -85,6 +92,24 @@ export function ListaTickets() {
         <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">{mensaje}</div>
       )}
 
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(['Abierto', 'En Proceso', 'Resuelto', 'Cerrado'] as const).map((est) => {
+          const count = tickets.filter((t) => t.estado === est).length
+          const colorMap: Record<string, string> = {
+            Abierto: 'bg-red-50 text-red-700',
+            'En Proceso': 'bg-yellow-50 text-yellow-700',
+            Resuelto: 'bg-green-50 text-green-700',
+            Cerrado: 'bg-blue-50 text-blue-700',
+          }
+          return (
+            <div key={est} className={`rounded-xl p-4 shadow-sm ${colorMap[est]}`}>
+              <p className="text-2xl font-bold">{count}</p>
+              <p className="mt-1 text-xs">{est}</p>
+            </div>
+          )
+        })}
+      </div>
+
       <div className="flex gap-2">
         {['', 'Abierto', 'En Proceso', 'Resuelto', 'Cerrado'].map((f) => (
           <button key={f} onClick={() => setFiltro(f)}
@@ -113,8 +138,13 @@ export function ListaTickets() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-slate-800">{t.titulo}</h3>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COLOR_ESTADO[t.estado] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {t.estado}
+                  <span className="group relative">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COLOR_ESTADO[t.estado] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {t.estado}
+                    </span>
+                    <span className="absolute bottom-full left-1/2 z-10 mb-1 hidden w-56 -translate-x-1/2 rounded-lg bg-slate-800 p-2 text-xs text-white shadow-lg group-hover:block">
+                      {DESCRIPCION_ESTADO[t.estado] ?? ''}
+                    </span>
                   </span>
                 </div>
                 {t.descripcion && (

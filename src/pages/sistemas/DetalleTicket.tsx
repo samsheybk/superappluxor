@@ -15,10 +15,17 @@ interface Comentario {
 
 const ESTADOS = ['Abierto', 'En Proceso', 'Resuelto', 'Cerrado']
 const COLOR_ESTADO: Record<string, string> = {
-  Abierto: 'bg-yellow-100 text-yellow-800',
-  'En Proceso': 'bg-blue-100 text-blue-800',
-  Resuelto: 'bg-green-100 text-green-800',
-  Cerrado: 'bg-slate-100 text-slate-500',
+  Abierto: 'bg-red-100 text-red-700',
+  'En Proceso': 'bg-yellow-100 text-yellow-800',
+  Resuelto: 'bg-green-100 text-green-700',
+  Cerrado: 'bg-blue-100 text-blue-700',
+}
+
+const DESCRIPCION_ESTADO: Record<string, string> = {
+  Abierto: 'Ticket creado, pendiente de revision por el equipo de Sistemas',
+  'En Proceso': 'El equipo de Sistemas esta trabajando en la solucion',
+  Resuelto: 'El problema ha sido solucionado, pendiente de confirmacion',
+  Cerrado: 'Ticket cerrado, ya no requiere ninguna accion adicional',
 }
 
 export function DetalleTicket() {
@@ -126,8 +133,13 @@ export function DetalleTicket() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-slate-800">{ticket.titulo}</h1>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COLOR_ESTADO[ticket.estado] ?? 'bg-slate-100 text-slate-600'}`}>
-                {ticket.estado}
+              <span className="group relative">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${COLOR_ESTADO[ticket.estado] ?? 'bg-slate-100 text-slate-600'}`}>
+                  {ticket.estado}
+                </span>
+                <span className="absolute bottom-full left-1/2 z-10 mb-1 hidden w-56 -translate-x-1/2 rounded-lg bg-slate-800 p-2 text-xs text-white shadow-lg group-hover:block">
+                  {DESCRIPCION_ESTADO[ticket.estado] ?? ''}
+                </span>
               </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-400">
@@ -162,11 +174,16 @@ export function DetalleTicket() {
             <span className="text-xs font-medium text-slate-500">Cambiar estado:</span>
             <div className="flex gap-1">
               {ESTADOS.map((est) => (
-                <button key={est} onClick={() => cambiarEstado(est)} disabled={guardando || est === ticket.estado}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${est === (nuevoEstado || ticket.estado) ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'} disabled:opacity-50`}
-                >
-                  {est}
-                </button>
+                <span key={est} className="group relative">
+                  <button onClick={() => cambiarEstado(est)} disabled={guardando || est === ticket.estado}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${est === (nuevoEstado || ticket.estado) ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'} disabled:opacity-50`}
+                  >
+                    {est}
+                  </button>
+                  <span className="absolute bottom-full left-1/2 z-10 mb-1 hidden w-56 -translate-x-1/2 rounded-lg bg-slate-800 p-2 text-xs text-white shadow-lg group-hover:block">
+                    {DESCRIPCION_ESTADO[est]}
+                  </span>
+                </span>
               ))}
             </div>
           </div>
