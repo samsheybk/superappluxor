@@ -6,6 +6,7 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Departamento } from './pages/Departamento'
 import { TallerAutomotriz } from './pages/taller/TallerAutomotriz'
+import { DetalleVehiculo } from './pages/taller/DetalleVehiculo'
 import { PlantasElectricas } from './pages/plantas/PlantasElectricas'
 import { EvaluarAlmacen } from './pages/almacen/EvaluarAlmacen'
 import { DetalleEvaluacion as DetalleEvaluacionAlmacen } from './pages/almacen/DetalleEvaluacion'
@@ -63,6 +64,7 @@ function App() {
           </Route>
           <Route path="/plantas/:id" element={<ProtectedRoute><VerificarPlanta /></ProtectedRoute>} />
           <Route path="/reporte/:id" element={<ReporteFalla />} />
+          <Route path="/taller/vehiculo/:id" element={<DetalleVehiculo />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

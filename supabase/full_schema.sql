@@ -416,13 +416,8 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Creador puede actualizar taller_inspecciones') THEN
     CREATE POLICY "Creador puede actualizar taller_inspecciones" ON taller_inspecciones FOR UPDATE USING (evaluador_id = auth.uid()) WITH CHECK (evaluador_id = auth.uid());
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer taller_mantenimientos') THEN
-    CREATE POLICY "Autenticado puede leer taller_mantenimientos" ON taller_mantenimientos FOR SELECT USING (auth.role() = 'authenticated');
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Evaluadores pueden insertar taller_mantenimientos') THEN
-    CREATE POLICY "Evaluadores pueden insertar taller_mantenimientos" ON taller_mantenimientos FOR INSERT WITH CHECK (
-      EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol IN ('admin', 'evaluador'))
-    );
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admin puede eliminar taller_inspecciones') THEN
+    CREATE POLICY "Admin puede eliminar taller_inspecciones" ON taller_inspecciones FOR DELETE USING (es_admin());
   END IF;
 END $$;
 

@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { IconAgregar, IconEditar, IconEliminar } from '../../components/Icons'
 import { SignaturePad } from '../../components/SignaturePad'
+import QRCode from 'qrcode'
 import { LoadingScreen } from '../../components/LoadingScreen'
 import { generarPDFTaller } from '../../utils/generarPDFTaller'
 import { generarPDFResumenTaller } from '../../utils/generarPDFResumenTaller'
@@ -259,15 +260,17 @@ const DOC_INIT: FormDocs = {}
 for (const d of DOCS_CARGA) DOC_INIT[d.key] = false
 
 export function TallerAutomotriz() {
-  const { user } = useAuth()
-  const [tab, setTab] = useState<Tab>('vehiculos')
+  const { user, perfil } = useAuth()
+  const location = useLocation()
+  const stateInicial = (location.state as { tab?: Tab; vehiculoId?: string }) ?? {}
+  const [tab, setTab] = useState<Tab>(stateInicial.tab ?? 'vehiculos')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
   const [vehiculoModal, setVehiculoModal] = useState<Partial<Vehiculo> | null>(null)
 
-  const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState<string>('')
+  const [vehiculoSeleccionado, setVehiculoSeleccionado] = useState<string>(stateInicial.vehiculoId ?? '')
   const [vehiculoTipo, setVehiculoTipo] = useState<'Particular' | 'Carga'>('Particular')
   const [inspecciones, setInspecciones] = useState<TallerInspeccion[]>([])
   const [formInspeccion, setFormInspeccion] = useState<Record<string, string>>({ ...INIT_INSPECCION })
@@ -285,6 +288,7 @@ export function TallerAutomotriz() {
   const [guardandoPDF, setGuardandoPDF] = useState(false)
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false)
   const [inspeccionExpandida, setInspeccionExpandida] = useState<string | null>(null)
+  const [qrVehiculo, setQrVehiculo] = useState<Vehiculo | null>(null)
 
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
@@ -351,6 +355,15 @@ export function TallerAutomotriz() {
   async function desactivarVehiculo(id: string) {
     await supabase.from('vehiculos').update({ activo: false }).eq('id', id)
     setVehiculos(vehiculos.map((v) => v.id === id ? { ...v, activo: false } : v))
+  }
+
+  const [eliminandoInspeccion, setEliminandoInspeccion] = useState<string | null>(null)
+
+  async function eliminarInspeccion(id: string) {
+    setEliminandoInspeccion(null)
+    const { error } = await supabase.from('taller_inspecciones').delete().eq('id', id)
+    if (error) { setError(error.message); return }
+    setInspecciones(inspecciones.filter((i) => i.id !== id))
   }
 
   function handleAgregarFoto(key: string, e: React.ChangeEvent<HTMLInputElement>) {
@@ -628,6 +641,14 @@ export function TallerAutomotriz() {
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2">
+                        <button onClick={() => setQrVehiculo(v)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
+                          title="Codigo QR"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                          </svg>
+                        </button>
                         <button onClick={() => setVehiculoModal(v)}
                           className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
                           title="Editar"
@@ -901,6 +922,13 @@ export function TallerAutomotriz() {
                           >
                             Ver PDF
                           </button>
+                          {perfil?.rol === 'admin' && (
+                            <button onClick={() => setEliminandoInspeccion(ins.id)}
+                              className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Eliminar
+                            </button>
+                          )}
                         </div>
                       </div>
                       {expandida && (
@@ -1064,6 +1092,84 @@ export function TallerAutomotriz() {
           )}
         </div>
       )}
+
+      {eliminandoInspeccion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setEliminandoInspeccion(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-lg font-bold text-slate-800">Eliminar inspeccion</h2>
+            <p className="mb-4 text-sm text-slate-600">Esta accion elimina la inspeccion permanentemente. No se puede deshacer.</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => eliminarInspeccion(eliminandoInspeccion)}
+                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+              <button type="button" onClick={() => setEliminandoInspeccion(null)}
+                className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {qrVehiculo && <VehicleQRModal vehiculo={qrVehiculo} onClose={() => setQrVehiculo(null)} />}
+    </div>
+  )
+}
+
+function VehicleQRModal({ vehiculo, onClose }: { vehiculo: Vehiculo; onClose: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const url = `${window.location.origin}/taller/vehiculo/${vehiculo.id}`
+  const [copiado, setCopiado] = useState(false)
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, url, { width: 250, margin: 2 }, (err) => {
+        if (err) console.error(err)
+      })
+    }
+  }, [url])
+
+  async function copiarUrl() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {}
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-800">QR de vehiculo</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <canvas ref={canvasRef} />
+          <div className="text-center">
+            <p className="font-mono text-lg font-bold text-slate-800">{vehiculo.placa}</p>
+            <p className="text-sm text-slate-500">{vehiculo.marca} {vehiculo.modelo} {vehiculo.anio} · {vehiculo.color}</p>
+            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1">
+              <span className="block break-all text-xs text-slate-500">{url}</span>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-center gap-2">
+            <button onClick={onClose}
+              className="rounded-lg bg-slate-500 px-4 py-2 text-sm font-medium text-white hover:bg-slate-600"
+            >
+              Cerrar
+            </button>
+            <button onClick={copiarUrl}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              {copiado ? 'Copiado' : 'Copiar URL'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
