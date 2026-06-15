@@ -24,6 +24,7 @@ import { CrearTicket } from './pages/sistemas/CrearTicket'
 import { DetalleTicket } from './pages/sistemas/DetalleTicket'
 import { ControlGaritas } from './pages/seguridad/ControlGaritas'
 import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
+import { GestionUsuarios } from './pages/admin/GestionUsuarios'
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
             <Route path="/operaciones/supermercados/:id/evaluacion/:evaluacionId" element={<DetalleEvaluacion />} />
             <Route path="/operaciones/supermercados/:id" element={<HistorialEvaluaciones />} />
             <Route path="/documentacion" element={<Documentacion />} />
+            <Route path="/admin/usuarios" element={<GestionUsuarios />} />
           </Route>
           <Route path="/plantas/:id" element={<ProtectedRoute><VerificarPlanta /></ProtectedRoute>} />
           <Route path="/reporte/:id" element={<ReporteFalla />} />

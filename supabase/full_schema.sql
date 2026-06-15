@@ -880,5 +880,69 @@ DO $$ BEGIN
 END $$;
 
 -- ============================================================
+-- Administracion de usuarios (solo admin)
+-- ============================================================
+
+DROP POLICY IF EXISTS "Admin puede actualizar perfiles" ON perfiles;
+CREATE POLICY "Admin puede actualizar perfiles" ON perfiles
+  FOR UPDATE USING (es_admin()) WITH CHECK (es_admin());
+
+DROP POLICY IF EXISTS "Admin puede eliminar perfiles" ON perfiles;
+CREATE POLICY "Admin puede eliminar perfiles" ON perfiles
+  FOR DELETE USING (es_admin());
+
+CREATE OR REPLACE FUNCTION admin_crear_usuario(
+  p_email TEXT, p_password TEXT, p_nombre TEXT, p_username TEXT, p_rol TEXT DEFAULT 'evaluador'
+) RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_user_id UUID;
+  v_result JSONB;
+BEGIN
+  IF NOT public.es_admin() THEN RAISE EXCEPTION 'Solo administradores pueden crear usuarios'; END IF;
+
+  v_user_id := gen_random_uuid();
+
+  INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, confirmation_sent_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at, instance_id, aud, role)
+  VALUES (v_user_id, p_email, crypt(p_password, gen_salt('bf')), now(), now(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object('nombre', p_nombre),
+    now(), now(), '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated');
+
+  INSERT INTO auth.identities (id, provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+  VALUES (gen_random_uuid(), p_email, v_user_id,
+    jsonb_build_object('sub', v_user_id, 'email', p_email),
+    'email', now(), now(), now());
+
+  UPDATE public.perfiles SET nombre = p_nombre, username = p_username, rol = p_rol WHERE id = v_user_id;
+
+  SELECT jsonb_build_object('id', v_user_id, 'nombre', p_nombre, 'username', p_username, 'rol', p_rol) INTO v_result;
+  RETURN v_result;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION admin_eliminar_usuario(p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF NOT public.es_admin() THEN RAISE EXCEPTION 'Solo administradores pueden eliminar usuarios'; END IF;
+
+  DELETE FROM auth.identities WHERE user_id = p_user_id;
+  DELETE FROM public.perfiles WHERE id = p_user_id;
+  DELETE FROM auth.users WHERE id = p_user_id;
+
+  RETURN TRUE;
+END;
+$$;
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================
