@@ -831,5 +831,54 @@ DO $$ BEGIN
 END $$;
 
 -- ============================================================
+-- Seguridad / Control de Garitas
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS seguridad_vehiculos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  placa TEXT NOT NULL UNIQUE,
+  marca TEXT NOT NULL DEFAULT '',
+  modelo TEXT NOT NULL DEFAULT '',
+  color TEXT NOT NULL DEFAULT '',
+  tipo TEXT NOT NULL DEFAULT 'Particular' CHECK (tipo IN ('Particular', 'Carga')),
+  origen TEXT NOT NULL DEFAULT 'Visitante' CHECK (origen IN ('Luxor', 'Visitante')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE seguridad_vehiculos ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS seguridad_registros (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  garita INTEGER NOT NULL CHECK (garita IN (1, 2)),
+  placa TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('entrada', 'salida')),
+  observacion TEXT NOT NULL DEFAULT '',
+  chofer TEXT NOT NULL DEFAULT '',
+  tipo_carga TEXT NOT NULL DEFAULT '',
+  destino_origen TEXT NOT NULL DEFAULT '',
+  nivel_combustible INTEGER,
+  combustible_defectuoso BOOLEAN NOT NULL DEFAULT false,
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE seguridad_registros ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer seguridad_vehiculos') THEN
+    CREATE POLICY "Autenticado puede leer seguridad_vehiculos" ON seguridad_vehiculos FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede insertar seguridad_vehiculos') THEN
+    CREATE POLICY "Autenticado puede insertar seguridad_vehiculos" ON seguridad_vehiculos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer seguridad_registros') THEN
+    CREATE POLICY "Autenticado puede leer seguridad_registros" ON seguridad_registros FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede insertar seguridad_registros') THEN
+    CREATE POLICY "Autenticado puede insertar seguridad_registros" ON seguridad_registros FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+END $$;
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================

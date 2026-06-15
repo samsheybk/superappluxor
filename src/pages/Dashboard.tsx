@@ -299,7 +299,6 @@ export function Dashboard() {
   if (loading) return <LoadingScreen mensaje="Preparando los indicadores..." />
 
   const totalSuperEvals = totalesEval.reduce((s, t) => s + t.total, 0)
-  const COL_TICKETS: Record<string, string> = { Abierto: '#EF4444', 'En Proceso': '#EAB308', Resuelto: '#22C55E', Cerrado: '#3B82F6' }
 
   return (
     <div className="space-y-6 p-3">
@@ -428,9 +427,11 @@ export function Dashboard() {
           <h2 className="mb-3 text-lg font-semibold text-slate-800">Taller Automotriz</h2>
           <div className="grid gap-6 lg:grid-cols-2">
             {tallerPromedio !== null && (
-              <div className="rounded-xl bg-white p-5 shadow-sm">
+              <div className="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm">
                 <h3 className="mb-2 text-sm font-semibold text-slate-600">Promedio de inspecciones</h3>
-                <p className="text-4xl font-bold text-amber-600">{tallerPromedio}%</p>
+                <div className="flex flex-1 items-center">
+                  <p className="text-4xl font-bold text-amber-600">{tallerPromedio}%</p>
+                </div>
                 <p className="mt-1 text-xs text-slate-400">sobre 3 categorias (Bueno=3, Regular=2, Malo=1)</p>
               </div>
             )}
@@ -458,7 +459,7 @@ export function Dashboard() {
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-800">Plantas Electricas</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">Horas de aceite excedidas</p>
@@ -466,9 +467,11 @@ export function Dashboard() {
               </div>
               <span className="rounded-full bg-orange-100 px-2 py-1 text-xs font-medium text-orange-700">plantas</span>
             </div>
-            <p className="mt-2 text-xs text-slate-400">Plantas que han superado las horas recomendadas para cambio de aceite</p>
+            <div className="flex flex-1 items-end">
+              <p className="text-xs text-slate-400">Plantas que han superado las horas recomendadas para cambio de aceite</p>
+            </div>
           </div>
-          <div className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">Combustible bajo (&lt;15%)</p>
@@ -476,7 +479,9 @@ export function Dashboard() {
               </div>
               <span className="rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700">veces</span>
             </div>
-            <p className="mt-2 text-xs text-slate-400">Veces que las plantas quedaron con menos del 15% de combustible</p>
+            <div className="flex flex-1 items-end">
+              <p className="text-xs text-slate-400">Veces que las plantas quedaron con menos del 15% de combustible</p>
+            </div>
           </div>
         </div>
       </div>
@@ -487,9 +492,11 @@ export function Dashboard() {
           <h2 className="mb-3 text-lg font-semibold text-slate-800">Almacen y Distribucion</h2>
           <div className="grid gap-6 lg:grid-cols-2">
             {almacenPromedio !== null && (
-              <div className="rounded-xl bg-white p-5 shadow-sm">
+              <div className="flex h-full flex-col rounded-xl bg-white p-5 shadow-sm">
                 <h3 className="mb-2 text-sm font-semibold text-slate-600">Promedio de evaluaciones</h3>
-                <p className="text-4xl font-bold text-emerald-600">{almacenPromedio}%</p>
+                <div className="flex flex-1 items-center">
+                  <p className="text-4xl font-bold text-emerald-600">{almacenPromedio}%</p>
+                </div>
               </div>
             )}
             {almacenAreasNegativas.length > 0 && (
@@ -513,26 +520,10 @@ export function Dashboard() {
       {ticketsPorEstado.length > 0 && (
         <div>
           <h2 className="mb-3 text-lg font-semibold text-slate-800">Mesa de Ayuda - Sistemas</h2>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl bg-white p-5 shadow-sm">
-              <h3 className="mb-2 text-sm font-semibold text-slate-600">Tickets no resueltos</h3>
-              <p className="text-4xl font-bold text-red-600">{ticketsNoResueltos}</p>
-              <p className="mt-1 text-xs text-slate-400">de {(ticketsPorEstado.reduce((s, t) => s + t.cantidad, 0))} totales</p>
-            </div>
-            <div className="rounded-xl bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-sm font-semibold text-slate-600">Tickets por estado</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={ticketsPorEstado} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="nombre" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="cantidad" radius={[4, 4, 0, 0]}>
-                    {ticketsPorEstado.map((t, i) => <Cell key={i} fill={COL_TICKETS[t.nombre] ?? '#94a3b8'} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="rounded-xl bg-white p-5 shadow-sm">
+            <h3 className="mb-2 text-sm font-semibold text-slate-600">Tickets no resueltos</h3>
+            <p className="text-4xl font-bold text-red-600">{ticketsNoResueltos}</p>
+            <p className="mt-1 text-xs text-slate-400">de {(ticketsPorEstado.reduce((s, t) => s + t.cantidad, 0))} totales</p>
           </div>
         </div>
       )}

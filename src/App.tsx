@@ -22,6 +22,8 @@ import { Documentacion } from './pages/Documentacion'
 import { ListaTickets } from './pages/sistemas/ListaTickets'
 import { CrearTicket } from './pages/sistemas/CrearTicket'
 import { DetalleTicket } from './pages/sistemas/DetalleTicket'
+import { ControlGaritas } from './pages/seguridad/ControlGaritas'
+import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
 
 function App() {
   return (
@@ -47,6 +49,8 @@ function App() {
             <Route path="/departamento/sistemas" element={<ListaTickets />} />
             <Route path="/departamento/sistemas/crear" element={<CrearTicket />} />
             <Route path="/departamento/sistemas/ticket/:ticketId" element={<DetalleTicket />} />
+            <Route path="/departamento/seguridad" element={<ControlGaritas />} />
+            <Route path="/departamento/seguridad/historial" element={<HistorialGaritas />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />
