@@ -19,6 +19,9 @@ import { GestionConceptos } from './pages/supermercados/GestionConceptos'
 import { HistorialEvaluaciones } from './pages/supermercados/HistorialEvaluaciones'
 import { DetalleEvaluacion } from './pages/supermercados/DetalleEvaluacion'
 import { Documentacion } from './pages/Documentacion'
+import { ListaTickets } from './pages/sistemas/ListaTickets'
+import { CrearTicket } from './pages/sistemas/CrearTicket'
+import { DetalleTicket } from './pages/sistemas/DetalleTicket'
 
 function App() {
   return (
@@ -41,6 +44,9 @@ function App() {
             <Route path="/departamento/almacen-y-distribucion/conceptos" element={<GestionConceptosAlmacen />} />
             <Route path="/departamento/almacen-y-distribucion/evaluar" element={<EvaluarAlmacen />} />
             <Route path="/departamento/almacen-y-distribucion/evaluacion/:evaluacionId" element={<DetalleEvaluacionAlmacen />} />
+            <Route path="/departamento/sistemas" element={<ListaTickets />} />
+            <Route path="/departamento/sistemas/crear" element={<CrearTicket />} />
+            <Route path="/departamento/sistemas/ticket/:ticketId" element={<DetalleTicket />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />

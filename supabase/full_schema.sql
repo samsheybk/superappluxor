@@ -785,5 +785,51 @@ VALUES (
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
+-- Helpdesk / Mesa de Ayuda de Sistemas
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS sistemas_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo TEXT NOT NULL,
+  descripcion TEXT NOT NULL DEFAULT '',
+  ubicacion TEXT NOT NULL DEFAULT '',
+  estado TEXT NOT NULL DEFAULT 'Abierto',
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE sistemas_tickets ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS sistemas_ticket_comentarios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES sistemas_tickets(id) ON DELETE CASCADE,
+  comentario TEXT NOT NULL,
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE sistemas_ticket_comentarios ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer sistemas_tickets') THEN
+    CREATE POLICY "Autenticado puede leer sistemas_tickets" ON sistemas_tickets FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede insertar sistemas_tickets') THEN
+    CREATE POLICY "Autenticado puede insertar sistemas_tickets" ON sistemas_tickets FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admin puede actualizar sistemas_tickets') THEN
+    CREATE POLICY "Admin puede actualizar sistemas_tickets" ON sistemas_tickets FOR UPDATE USING (es_admin());
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer sistemas_ticket_comentarios') THEN
+    CREATE POLICY "Autenticado puede leer sistemas_ticket_comentarios" ON sistemas_ticket_comentarios FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede insertar sistemas_ticket_comentarios') THEN
+    CREATE POLICY "Autenticado puede insertar sistemas_ticket_comentarios" ON sistemas_ticket_comentarios FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+END $$;
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================
