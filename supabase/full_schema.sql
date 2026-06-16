@@ -380,6 +380,7 @@ CREATE TABLE IF NOT EXISTS taller_inspecciones (
   observaciones TEXT NOT NULL DEFAULT '',
   firma TEXT,
   pdf_base64 TEXT,
+  danos JSONB NOT NULL DEFAULT '[]',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -424,24 +425,63 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_taller_inspecciones_vehiculo ON taller_inspecciones(vehiculo_id);
 CREATE INDEX IF NOT EXISTS idx_taller_mantenimientos_vehiculo ON taller_mantenimientos(vehiculo_id);
 
--- Funcion para obtener email por username (login con usuario)
-CREATE OR REPLACE FUNCTION obtener_email_por_username(p_username TEXT)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_email TEXT;
-BEGIN
-  SELECT au.email INTO v_email
-  FROM auth.users au
-  INNER JOIN public.perfiles p ON p.id = au.id
-  WHERE p.username = p_username;
+ALTER TABLE taller_inspecciones ADD COLUMN IF NOT EXISTS danos JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE taller_inspecciones ADD COLUMN IF NOT EXISTS checklist_interior JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE taller_inspecciones ADD COLUMN IF NOT EXISTS checklist_luces JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE taller_inspecciones ADD COLUMN IF NOT EXISTS checklist_lavado JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE taller_inspecciones ADD COLUMN IF NOT EXISTS checklist_mecanico JSONB NOT NULL DEFAULT '[]';
 
-  RETURN v_email;
-END;
-$$;
+CREATE TABLE IF NOT EXISTS vehiculo_documentos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  vehiculo_id UUID NOT NULL REFERENCES vehiculos(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL,
+  archivo_base64 TEXT,
+  fecha_vencimiento DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(vehiculo_id, tipo)
+);
+
+ALTER TABLE vehiculo_documentos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Vehiculo documentos public read" ON vehiculo_documentos FOR SELECT USING (true);
+CREATE POLICY "Vehiculo documentos auth insert" ON vehiculo_documentos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Vehiculo documentos auth update" ON vehiculo_documentos FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Vehiculo documentos auth delete" ON vehiculo_documentos FOR DELETE USING (auth.role() = 'authenticated');
+
+-- ============================================================
+-- Contabilidad
+-- ============================================================
+CREATE TABLE IF NOT EXISTS contabilidad_presupuestos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  departamento TEXT NOT NULL,
+  mes INTEGER NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  anio INTEGER NOT NULL,
+  presupuesto DECIMAL(12,2) NOT NULL,
+  gasto DECIMAL(12,2) NOT NULL,
+  observaciones TEXT DEFAULT '',
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE contabilidad_presupuestos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Contabilidad presupuestos read" ON contabilidad_presupuestos FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Contabilidad presupuestos insert" ON contabilidad_presupuestos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Contabilidad presupuestos delete" ON contabilidad_presupuestos FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS contabilidad_permisos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entidad TEXT NOT NULL,
+  categoria TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  vigencia DATE NOT NULL,
+  archivo_base64 TEXT,
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE contabilidad_permisos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Contabilidad permisos read" ON contabilidad_permisos FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Contabilidad permisos insert" ON contabilidad_permisos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Contabilidad permisos delete" ON contabilidad_permisos FOR DELETE USING (es_admin());
 
 -- ============================================================
 -- Plantas Eléctricas

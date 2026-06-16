@@ -46,82 +46,18 @@ interface TallerMantenimiento {
   created_at: string
 }
 
-const ESTADOS = ['Bueno', 'Regular', 'Malo'] as const
 const TIPOS_MANTENIMIENTO = ['Cambio de aceite', 'Reparacion', 'Revision general', 'Otro'] as const
-
-const CATEGORIAS_INSPECCION = [
-  {
-    id: 'limp', titulo: 'Limpieza (Aspecto y Sanidad)',
-    items: [
-      { key: 'limp_cabina_interna', label: 'Cabina interna', tipo: 'ambos' },
-      { key: 'limp_carroceria_externa', label: 'Carrocería externa', tipo: 'ambos' },
-      { key: 'limp_area_carga', label: 'Área de carga (Furgón/Plataforma)', tipo: 'carga' },
-      { key: 'limp_parabrisas_ventanas', label: 'Parabrisas y ventanas', tipo: 'ambos' },
-    ],
-  },
-  {
-    id: 'elec', titulo: 'Eléctrico (Iluminación y Componentes)',
-    items: [
-      { key: 'elec_luces_principales', label: 'Luces principales (altas y bajas)', tipo: 'ambos' },
-      { key: 'elec_luces_senalizacion', label: 'Luces de señalización (direccionales / emergencia)', tipo: 'ambos' },
-      { key: 'elec_luces_freno_retroceso', label: 'Luces de freno y marcha atrás', tipo: 'ambos' },
-      { key: 'elec_tablero_instrumentos', label: 'Tablero de instrumentos', tipo: 'ambos' },
-      { key: 'elec_limpia_parabrisas', label: 'Limpia parabrisas', tipo: 'ambos' },
-      { key: 'elec_bateria', label: 'Batería (bornes y cables)', tipo: 'ambos' },
-    ],
-  },
-  {
-    id: 'mec', titulo: 'Mecánico (Funcionamiento y Fluidos)',
-    items: [
-      { key: 'mec_fluidos', label: 'Niveles de fluidos', tipo: 'ambos' },
-      { key: 'mec_fugas', label: 'Fugas visibles', tipo: 'ambos' },
-      { key: 'mec_frenos', label: 'Sistema de frenos', tipo: 'ambos' },
-      { key: 'mec_neumaticos', label: 'Neumáticos (presión y dibujo)', tipo: 'ambos' },
-      { key: 'mec_correas', label: 'Correas del motor', tipo: 'ambos' },
-      { key: 'mec_suspension_direccion', label: 'Suspensión y dirección', tipo: 'ambos' },
-    ],
-  },
-  {
-    id: 'est', titulo: 'Estética (Estructura e Imagen)',
-    items: [
-      { key: 'est_carroceria', label: 'Carrocería general (abolladuras / rayones)', tipo: 'ambos' },
-      { key: 'est_parabrisas', label: 'Parabrisas (rajaduras / grietas)', tipo: 'ambos' },
-      { key: 'est_tapiceria_asientos', label: 'Tapicería y asientos', tipo: 'ambos' },
-      { key: 'est_retrovisores_parachoques', label: 'Retrovisores y parachoques', tipo: 'ambos' },
-      { key: 'est_cerraduras_manillas', label: 'Cerraduras y manillas', tipo: 'ambos' },
-    ],
-  },
-  {
-    id: 'aux', titulo: 'Auxilio Vial (Herramientas y Emergencia)',
-    items: [
-      { key: 'aux_caucho_repuesto', label: 'Caucho (llanta) de repuesto', tipo: 'ambos' },
-      { key: 'aux_herramientas', label: 'Herramientas de cambio (gato / llave)', tipo: 'ambos' },
-      { key: 'aux_triangulos', label: 'Triángulos de seguridad o conos', tipo: 'ambos' },
-      { key: 'aux_extintor', label: 'Extintor de incendios', tipo: 'ambos' },
-      { key: 'aux_tacos', label: 'Tacos de bloqueo (Chock blocks)', tipo: 'carga' },
-    ],
-  },
-] as const
-
-const CAMPOS_INSPECCION: string[] = []
-for (const cat of CATEGORIAS_INSPECCION) for (const item of cat.items) CAMPOS_INSPECCION.push(item.key)
 
 const DOCS_PARTICULAR = [
   { key: 'doc_titulo_propiedad', label: 'Título de Propiedad / Carnet de Circulación' },
   { key: 'doc_poliza_seguro', label: 'Póliza de Seguro R.C.V. vigente' },
   { key: 'doc_impuestos', label: 'Impuestos vehiculares al día' },
   { key: 'doc_carta_autorizacion', label: 'Carta de Autorización de la Empresa' },
-  { key: 'doc_licencia', label: 'Licencia de conducir del conductor' },
-  { key: 'doc_certificado_medico', label: 'Certificado Médico Vial del conductor' },
 ] as const
 
 const DOCS_CARGA = [
   ...DOCS_PARTICULAR,
   { key: 'doc_rotec', label: 'ROTC / Permiso de transporte de carga' },
-  { key: 'doc_guias_movilizacion', label: 'Guías de Movilización / Facturas' },
-  { key: 'doc_permiso_sustancias', label: 'Permiso de Sustancias Peligrosas' },
-  { key: 'doc_guia_sanitaria', label: 'Guía Sanitaria' },
-  { key: 'doc_certificado_pesos', label: 'Certificado de Pesos y Medidas' },
 ] as const
 
 const DOC_LABELS: Record<string, string> = {}
@@ -132,10 +68,35 @@ const DOCS_POR_TIPO: Record<string, readonly { key: string; label: string }[]> =
   Carga: DOCS_CARGA,
 }
 
+const CHECKLIST_INTERIOR = [
+  'ALFOMBRAS', 'RADIO', 'CORNETAS', 'TAPASOL', 'RETROBISOR',
+  'CIGARRERA', 'CENICERO', 'MANILLAS', 'RELOJ DIGITAL', 'AIRE ACONDICIONADO',
+  'AJUSTES DE ASIENTOS', 'TAPICERIA', 'BATERIA', 'TRANCA PALANCA',
+  'TRIANGULO', 'CAUCHO DE REPUESTO', 'GATO MECANICO', 'EXTINTOR',
+  'TAPA DE COMBUSTIBLE', 'LIMPIA PARABRISAS', 'ODOMETRO', 'MEDIDOR DE COMBUSTIBLE',
+]
+
+const CHECKLIST_LUCES = [
+  'FARO IZQUIERDO', 'FARO DERECHO', 'LUZ DE CRUCE IZQ', 'LUZ DE CRUCE DER',
+  'LUZ DE PARACHOQUE IZQ', 'LUZ DE PARACHOQUE DER', 'STOP IZQ', 'STOP DER',
+  'LUZ DE RETROCESO', 'LUCES DE TECHO', 'LUCES DEL TABLERO',
+  'LUZ INTERMITENTE', 'LUZ AUXILIAR IZQ', 'LUZ AUXILIAR DER',
+]
+
+const CHECKLIST_LAVADO = [
+  'LIMPIEZA INTERIOR', 'LIMPIEZA EXTERIOR', 'LIMPIEZA MOTOR',
+]
+
+const CHECKLIST_MECANICO = [
+  'BATERIA', 'REFRIGERANTE', 'MAGUERAS SIN FUGAS', 'ACEIOTE DE MOTOR',
+  'ACEITE DE TRANSMISION', 'LIGA DE FRENOS', 'CORREA',
+  'DISCOS O PASTILLAS', 'AMORTIGUADORES',
+]
+
 function VehiculoModal({ vehiculo, onClose, onSave }: {
   vehiculo: Partial<Vehiculo> | null
   onClose: () => void
-  onSave: (v: Partial<Vehiculo>) => Promise<void>
+  onSave: (v: Partial<Vehiculo>) => Promise<string | undefined>
 }) {
   const [form, setForm] = useState({
     placa: vehiculo?.placa ?? '',
@@ -145,13 +106,59 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
     color: vehiculo?.color ?? '',
     tipo: vehiculo?.tipo ?? 'Particular',
   })
+  const [docs, setDocs] = useState<Record<string, File | null>>({})
+  const [fechasVenc, setFechasVenc] = useState<Record<string, string>>({})
   const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const docsRequeridos = form.tipo === 'Carga' ? DOCS_CARGA : DOCS_PARTICULAR
+  const esNuevo = !vehiculo?.id
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setError(null)
+
+    if (esNuevo) {
+      for (const doc of docsRequeridos) {
+        if (!docs[doc.key]) {
+          setError(`Debe cargar: ${doc.label}`)
+          return
+        }
+        if (doc.key !== 'doc_titulo_propiedad' && !fechasVenc[doc.key]) {
+          setError(`Debe indicar la fecha de vencimiento de: ${doc.label}`)
+          return
+        }
+      }
+    }
+
     setGuardando(true)
     try {
-      await onSave({ ...form, id: vehiculo?.id })
+      const vehicleId = await onSave({ ...form, id: vehiculo?.id })
+      if (!vehicleId) return
+
+      if (esNuevo) {
+        for (const doc of docsRequeridos) {
+          const file = docs[doc.key]
+          if (!file) continue
+          const b64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+          const { error: err } = await supabase.from('vehiculo_documentos').insert({
+            vehiculo_id: vehicleId,
+            tipo: doc.key,
+            archivo_base64: b64,
+            fecha_vencimiento: fechasVenc[doc.key] ?? null,
+          })
+          if (err) throw err
+        }
+      }
+
+      onClose()
+    } catch (e: any) {
+      setError(e.message)
     } finally {
       setGuardando(false)
     }
@@ -159,13 +166,16 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         <h3 className="mb-4 text-lg font-semibold text-slate-800">
           {vehiculo?.id ? 'Editar vehículo' : 'Agregar vehículo'}
         </h3>
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Placa</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Placa *</label>
             <input type="text" required value={form.placa}
               onChange={(e) => setForm({ ...form, placa: e.target.value.toUpperCase() })}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -174,14 +184,14 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Marca</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Marca *</label>
               <input type="text" required value={form.marca}
                 onChange={(e) => setForm({ ...form, marca: e.target.value })}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Modelo</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Modelo *</label>
               <input type="text" required value={form.modelo}
                 onChange={(e) => setForm({ ...form, modelo: e.target.value })}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -190,7 +200,7 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Año</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Año *</label>
               <input type="number" required value={form.anio}
                 onChange={(e) => setForm({ ...form, anio: parseInt(e.target.value) || 0 })}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -198,7 +208,7 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Color</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Color *</label>
               <input type="text" required value={form.color}
                 onChange={(e) => setForm({ ...form, color: e.target.value })}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
@@ -206,15 +216,58 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Tipo</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Tipo *</label>
             <select value={form.tipo}
-              onChange={(e) => setForm({ ...form, tipo: e.target.value as 'Particular' | 'Carga' })}
+              onChange={(e) => { setForm({ ...form, tipo: e.target.value as 'Particular' | 'Carga' }); setDocs({}) }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
             >
               <option value="Particular">Particular (Uso Administrativo / Gerencial)</option>
               <option value="Carga">Carga (Operativo / Distribución)</option>
             </select>
           </div>
+
+          <div className="border-t border-slate-200 pt-4">
+            <h4 className="mb-3 text-sm font-bold text-slate-600">
+              {esNuevo ? 'Documentos obligatorios' : 'Documentos'}
+            </h4>
+            <div className="space-y-3">
+              {docsRequeridos.map((doc) => (
+                <div key={doc.key}>
+                  <label className="mb-1 block text-sm text-slate-700">
+                    {doc.label} {esNuevo && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-500 hover:border-blue-400">
+                      {docs[doc.key] ? docs[doc.key]!.name : 'Seleccionar archivo'}
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null
+                          setDocs({ ...docs, [doc.key]: file })
+                        }}
+                      />
+                    </label>
+                    {docs[doc.key] && (
+                      <button type="button" onClick={() => {
+                        const copy = { ...docs }; delete copy[doc.key]; setDocs(copy)
+                      }}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                  {doc.key !== 'doc_titulo_propiedad' && (
+                    <input type="date" required={esNuevo}
+                      value={fechasVenc[doc.key] ?? ''}
+                      onChange={(e) => setFechasVenc({ ...fechasVenc, [doc.key]: e.target.value })}
+                      className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-blue-500 focus:outline-none"
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
@@ -224,7 +277,12 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
             <button type="submit" disabled={guardando}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {guardando ? 'Guardando...' : vehiculo?.id ? 'Guardar cambios' : 'Agregar'}
+              {guardando
+                ? 'Guardando...'
+                : esNuevo
+                  ? 'Agregar vehículo'
+                  : 'Guardar cambios'
+              }
             </button>
           </div>
         </form>
@@ -233,31 +291,31 @@ function VehiculoModal({ vehiculo, onClose, onSave }: {
   )
 }
 
-function SelectEstado({ value, onChange, label }: {
-  value: string
-  onChange: (v: string) => void
-  label: string
-}) {
-  return (
-    <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
-      <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
-      >
-        {ESTADOS.map((e) => (
-          <option key={e} value={e}>{e}</option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
 type FormDocs = Record<string, boolean>
 const INIT_INSPECCION: Record<string, string> = { observaciones: '' }
-for (const k of CAMPOS_INSPECCION) INIT_INSPECCION[k] = 'Bueno'
 
 const DOC_INIT: FormDocs = {}
 for (const d of DOCS_CARGA) DOC_INIT[d.key] = false
+
+type FormChecklist = Record<string, boolean>
+
+const CHECKLIST_GROUPS: { id: string; titulo: string; items: readonly string[]; columna: string }[] = [
+  { id: 'interior', titulo: 'Interior y accesorios', items: CHECKLIST_INTERIOR, columna: 'checklist_interior' },
+  { id: 'luces', titulo: 'Luces', items: CHECKLIST_LUCES, columna: 'checklist_luces' },
+  { id: 'lavado', titulo: 'Lavado', items: CHECKLIST_LAVADO, columna: 'checklist_lavado' },
+  { id: 'mecanico', titulo: 'Mecanico / Otros', items: CHECKLIST_MECANICO, columna: 'checklist_mecanico' },
+]
+
+function makeChecklistInit(items: readonly string[]): Record<string, boolean> {
+  const obj: Record<string, boolean> = {}
+  for (const item of items) obj[item] = false
+  return obj
+}
+
+const INIT_CHECKLIST_INTERIOR = makeChecklistInit(CHECKLIST_INTERIOR)
+const INIT_CHECKLIST_LUCES = makeChecklistInit(CHECKLIST_LUCES)
+const INIT_CHECKLIST_LAVADO = makeChecklistInit(CHECKLIST_LAVADO)
+const INIT_CHECKLIST_MECANICO = makeChecklistInit(CHECKLIST_MECANICO)
 
 export function TallerAutomotriz() {
   const { user, perfil } = useAuth()
@@ -275,6 +333,7 @@ export function TallerAutomotriz() {
   const [inspecciones, setInspecciones] = useState<TallerInspeccion[]>([])
   const [formInspeccion, setFormInspeccion] = useState<Record<string, string>>({ ...INIT_INSPECCION })
   const [formDocs, setFormDocs] = useState<FormDocs>({ ...DOC_INIT })
+  const [formChecklist, setFormChecklist] = useState<FormChecklist>({ ...INIT_CHECKLIST_INTERIOR, ...INIT_CHECKLIST_LUCES, ...INIT_CHECKLIST_LAVADO, ...INIT_CHECKLIST_MECANICO })
   const [firma, setFirma] = useState<string | null>(null)
   const [guardandoInspeccion, setGuardandoInspeccion] = useState(false)
 
@@ -284,7 +343,6 @@ export function TallerAutomotriz() {
   })
   const [guardandoMantenimiento, setGuardandoMantenimiento] = useState(false)
 
-  const [fotosPorCampo, setFotosPorCampo] = useState<Record<string, { foto: string; comentario: string }[]>>({})
   const [guardandoPDF, setGuardandoPDF] = useState(false)
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false)
   const [inspeccionExpandida, setInspeccionExpandida] = useState<string | null>(null)
@@ -293,14 +351,13 @@ export function TallerAutomotriz() {
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [generandoResumen, setGenerandoResumen] = useState(false)
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
     ;(async () => {
       try {
         const [vehRes, insRes] = await Promise.all([
           supabase.from('vehiculos').select('*').order('placa'),
-          supabase.from('taller_inspecciones').select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, limp_cabina_interna, limp_carroceria_externa, limp_area_carga, limp_parabrisas_ventanas, elec_luces_principales, elec_luces_senalizacion, elec_luces_freno_retroceso, elec_tablero_instrumentos, elec_limpia_parabrisas, elec_bateria, mec_fluidos, mec_fugas, mec_frenos, mec_neumaticos, mec_correas, mec_suspension_direccion, est_carroceria, est_parabrisas, est_tapiceria_asientos, est_retrovisores_parachoques, est_cerraduras_manillas, aux_caucho_repuesto, aux_herramientas, aux_triangulos, aux_extintor, aux_tacos, doc_titulo_propiedad, doc_poliza_seguro, doc_impuestos, doc_carta_autorizacion, doc_licencia, doc_certificado_medico, doc_rotec, doc_guias_movilizacion, doc_permiso_sustancias, doc_guia_sanitaria, doc_certificado_pesos, observaciones, firma, created_at').order('created_at', { ascending: false }),
+          supabase.from('taller_inspecciones').select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, observaciones, firma, danos, checklist_interior, checklist_luces, checklist_lavado, checklist_mecanico, created_at').order('created_at', { ascending: false }),
         ])
         if (vehRes.error) throw vehRes.error
         if (insRes.error) throw insRes.error
@@ -335,21 +392,23 @@ export function TallerAutomotriz() {
     return true
   })
 
-  async function guardarVehiculo(v: Partial<Vehiculo>) {
+  async function guardarVehiculo(v: Partial<Vehiculo>): Promise<string | undefined> {
     const payload: Record<string, any> = {
       placa: v.placa, marca: v.marca, modelo: v.modelo,
       anio: v.anio, color: v.color, tipo: v.tipo,
     }
+    let id = v.id
     if (v.id) {
       const { error } = await supabase.from('vehiculos').update(payload).eq('id', v.id)
       if (error) throw error
     } else {
-      const { error } = await supabase.from('vehiculos').insert(payload)
+      const { data, error } = await supabase.from('vehiculos').insert(payload).select('id').single()
       if (error) throw error
+      id = data.id
     }
     const { data } = await supabase.from('vehiculos').select('*').order('placa')
     setVehiculos(data ?? [])
-    setVehiculoModal(null)
+    return id
   }
 
   async function desactivarVehiculo(id: string) {
@@ -366,37 +425,6 @@ export function TallerAutomotriz() {
     setInspecciones(inspecciones.filter((i) => i.id !== id))
   }
 
-  function handleAgregarFoto(key: string, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const foto = reader.result as string
-      setFotosPorCampo((prev) => ({
-        ...prev,
-        [key]: [...(prev[key] ?? []), { foto, comentario: '' }],
-      }))
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }
-
-  function handleEliminarFoto(key: string, idx: number) {
-    setFotosPorCampo((prev) => {
-      const arr = [...(prev[key] ?? [])]
-      arr.splice(idx, 1)
-      return { ...prev, [key]: arr }
-    })
-  }
-
-  function handleComentarioFoto(key: string, idx: number, comentario: string) {
-    setFotosPorCampo((prev) => {
-      const arr = [...(prev[key] ?? [])]
-      arr[idx] = { ...arr[idx], comentario }
-      return { ...prev, [key]: arr }
-    })
-  }
-
   async function guardarInspeccion() {
     if (!vehiculoSeleccionado || !user) return
     setGuardandoInspeccion(true)
@@ -405,22 +433,6 @@ export function TallerAutomotriz() {
       const v = vehiculos.find((x) => x.id === vehiculoSeleccionado)!
       const perfilRes = await supabase.from('perfiles').select('nombre').eq('id', user.id).single()
       const evaluadorNombre = perfilRes.data?.nombre ?? user.email ?? ''
-
-      const categoriasPDF: {
-        titulo: string
-        campos: { label: string; valor: string; fotos: { foto: string; comentario: string }[] }[]
-      }[] = []
-
-      for (const cat of CATEGORIAS_INSPECCION) {
-        const campos = cat.items
-          .filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
-          .map((item) => ({
-            label: item.label,
-            valor: formInspeccion[item.key],
-            fotos: fotosPorCampo[item.key] ?? [],
-          }))
-        categoriasPDF.push({ titulo: cat.titulo, campos })
-      }
 
       const docs = DOCS_POR_TIPO[vehiculoTipo].map((d) => ({
         label: d.label,
@@ -438,7 +450,7 @@ export function TallerAutomotriz() {
           year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
         }),
         evaluadorNombre,
-        categorias: categoriasPDF,
+        categorias: [],
         docs,
         observaciones: formInspeccion.observaciones,
         firma,
@@ -446,18 +458,22 @@ export function TallerAutomotriz() {
 
       const payload: Record<string, any> = {
         vehiculo_id: vehiculoSeleccionado, evaluador_id: user.id,
-        ...formInspeccion, ...formDocs, firma, pdf_base64: pdfDataUrl,
+        observaciones: formInspeccion.observaciones, ...formDocs, firma, pdf_base64: pdfDataUrl,
+        checklist_interior: CHECKLIST_INTERIOR.filter((k) => formChecklist[k]).sort(),
+        checklist_luces: CHECKLIST_LUCES.filter((k) => formChecklist[k]).sort(),
+        checklist_lavado: CHECKLIST_LAVADO.filter((k) => formChecklist[k]).sort(),
+        checklist_mecanico: CHECKLIST_MECANICO.filter((k) => formChecklist[k]).sort(),
       }
       const { error } = await supabase.from('taller_inspecciones').insert(payload)
       if (error) throw error
 
       setFormInspeccion({ ...INIT_INSPECCION })
       setFormDocs({ ...DOC_INIT })
+      setFormChecklist({ ...INIT_CHECKLIST_INTERIOR, ...INIT_CHECKLIST_LUCES, ...INIT_CHECKLIST_LAVADO, ...INIT_CHECKLIST_MECANICO })
       setFirma(null)
-      setFotosPorCampo({})
       setMostrandoFormulario(false)
       const { data: recargadas } = await supabase.from('taller_inspecciones')
-        .select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, limp_cabina_interna, limp_carroceria_externa, limp_area_carga, limp_parabrisas_ventanas, elec_luces_principales, elec_luces_senalizacion, elec_luces_freno_retroceso, elec_tablero_instrumentos, elec_limpia_parabrisas, elec_bateria, mec_fluidos, mec_fugas, mec_frenos, mec_neumaticos, mec_correas, mec_suspension_direccion, est_carroceria, est_parabrisas, est_tapiceria_asientos, est_retrovisores_parachoques, est_cerraduras_manillas, aux_caucho_repuesto, aux_herramientas, aux_triangulos, aux_extintor, aux_tacos, doc_titulo_propiedad, doc_poliza_seguro, doc_impuestos, doc_carta_autorizacion, doc_licencia, doc_certificado_medico, doc_rotec, doc_guias_movilizacion, doc_permiso_sustancias, doc_guia_sanitaria, doc_certificado_pesos, observaciones, firma, created_at')
+        .select('id, vehiculo_id, evaluador_id, fecha_inicio, fecha_cierre, observaciones, firma, danos, checklist_interior, checklist_luces, checklist_lavado, checklist_mecanico, created_at')
         .order('created_at', { ascending: false })
       if (recargadas) setInspecciones(recargadas)
     } catch (e: any) {
@@ -498,8 +514,41 @@ export function TallerAutomotriz() {
   }
 
   async function verPDF(id: string) {
-    const { data } = await supabase.from('taller_inspecciones').select('pdf_base64').eq('id', id).single()
-    if (data?.pdf_base64) abrirPDF(data.pdf_base64)
+    const { data } = await supabase.from('taller_inspecciones').select('*').eq('id', id).single()
+    if (!data) { setError('Inspeccion no encontrada'); return }
+
+    if (data.pdf_base64) {
+      abrirPDF(data.pdf_base64)
+      return
+    }
+
+    try {
+      const v = vehiculos.find((x) => x.id === data.vehiculo_id)
+      if (!v) { setError('Vehiculo no encontrado'); return }
+
+      const docs = DOCS_POR_TIPO[v.tipo].map((d) => ({
+        label: d.label,
+        presente: !!(data as any)[d.key],
+      }))
+
+      const pdfDataUrl = await generarPDFTaller({
+        placa: v.placa, marca: v.marca, modelo: v.modelo, anio: v.anio,
+        color: v.color, tipo: v.tipo,
+        fechaInicio: new Date(data.created_at).toLocaleDateString('es-VE', {
+          year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        }),
+        evaluadorNombre: '',
+        categorias: [],
+        docs,
+        observaciones: data.observaciones ?? '',
+        firma: data.firma,
+      })
+
+      await supabase.from('taller_inspecciones').update({ pdf_base64: pdfDataUrl }).eq('id', id)
+      abrirPDF(pdfDataUrl)
+    } catch (e: any) {
+      setError('Error al generar PDF: ' + e.message)
+    }
   }
 
   function fmtDate(iso: string) {
@@ -532,20 +581,6 @@ export function TallerAutomotriz() {
   if (loading) return <LoadingScreen />
 
   const vehiculosActivos = vehiculos.filter((v) => v.activo)
-
-  function calcularPuntos(ins: TallerInspeccion) {
-    let total = 0
-    let obtenido = 0
-    for (const cat of CATEGORIAS_INSPECCION) {
-      for (const item of cat.items) {
-        total += 2
-        const val = ins[item.key]
-        if (val === 'Bueno') obtenido += 2
-        else if (val === 'Regular') obtenido += 1
-      }
-    }
-    return { obtenido, total, pct: total > 0 ? Math.round((obtenido / total) * 100) : 0 }
-  }
 
   return (
     <div>
@@ -762,67 +797,24 @@ export function TallerAutomotriz() {
                   ← Volver al historial
                 </button>
               </div>
-              {CATEGORIAS_INSPECCION.map((cat) => {
-                const items = cat.items.filter((item) => item.tipo === 'ambos' || item.tipo === vehiculoTipo.toLowerCase())
-                if (items.length === 0) return null
-                return (
-                  <details key={cat.id} className="mt-4 rounded-lg border border-slate-200 open:border-blue-300">
-                    <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                      {cat.titulo}
-                    </summary>
-                    <div className="space-y-4 p-4">
-                      {items.map((item) => {
-                        const fotos = fotosPorCampo[item.key] ?? []
-                        return (
-                          <div key={item.key} className="rounded-lg border border-slate-100 p-3">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-1">
-                                <SelectEstado label={item.label}
-                                  value={formInspeccion[item.key]}
-                                  onChange={(v) => setFormInspeccion({ ...formInspeccion, [item.key]: v })} />
-                              </div>
-                              <button type="button" onClick={() => fileInputRefs.current[item.key]?.click()}
-                                className="mt-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
-                                title="Agregar foto"
-                              >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                              </button>
-                              <input ref={(el) => { fileInputRefs.current[item.key] = el }}
-                                type="file" accept="image/*" capture="environment" className="hidden"
-                                onChange={(e) => handleAgregarFoto(item.key, e)} />
-                            </div>
-                            {fotos.length > 0 && (
-                              <div className="mt-3 flex flex-wrap gap-3">
-                                {fotos.map((foto, idx) => (
-                                  <div key={idx} className="relative w-40">
-                                    <img src={foto.foto} alt={`Foto ${idx + 1}`}
-                                      className="h-32 w-full rounded-lg border border-slate-200 object-cover" />
-                                    <button type="button" onClick={() => handleEliminarFoto(item.key, idx)}
-                                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white hover:bg-red-600"
-                                    >
-                                      ✕
-                                    </button>
-                                    <input type="text" value={foto.comentario}
-                                      onChange={(e) => handleComentarioFoto(item.key, idx, e.target.value)}
-                                      placeholder="Comentario de la foto..."
-                                      className="mt-1 w-full rounded border border-slate-200 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </details>
-                )
-              })}
+              {CHECKLIST_GROUPS.map((group) => (
+                <details key={group.id} className="mt-4 rounded-lg border border-slate-200 open:border-purple-300">
+                  <summary className="cursor-pointer rounded-lg bg-purple-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-purple-100">
+                    Checklist: {group.titulo}
+                  </summary>
+                  <div className="space-y-1.5 p-4">
+                    {group.items.map((item) => (
+                      <label key={item} className="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" checked={!!formChecklist[item]}
+                          onChange={(e) => setFormChecklist({ ...formChecklist, [item]: e.target.checked })}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-slate-700">{item}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              ))}
 
               <details className="mt-6 rounded-lg border border-slate-200 open:border-blue-300">
                 <summary className="cursor-pointer rounded-lg bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
@@ -893,7 +885,9 @@ export function TallerAutomotriz() {
               </h3>
               <div className="space-y-3">
                 {insFiltradas.map((ins) => {
-                  const pts = calcularPuntos(ins)
+                  const chkCount = [ins.checklist_interior, ins.checklist_luces, ins.checklist_lavado, ins.checklist_mecanico]
+                    .filter((a): a is string[] => Array.isArray(a))
+                    .reduce((sum, a) => sum + a.length, 0)
                   const expandida = inspeccionExpandida === ins.id
                   return (
                     <div key={ins.id} className="rounded-lg border border-slate-200">
@@ -903,12 +897,8 @@ export function TallerAutomotriz() {
                             year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                           })}</span>
                           <span className="text-xs text-slate-400">{vehiculos.find((v) => v.id === ins.vehiculo_id)?.placa ?? ''}</span>
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            pts.pct >= 80 ? 'bg-green-100 text-green-700' :
-                            pts.pct >= 50 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {pts.obtenido}/{pts.total} ({pts.pct}%)
+                          <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700">
+                            {chkCount} items
                           </span>
                         </div>
                         <div className="flex gap-2">
@@ -933,54 +923,45 @@ export function TallerAutomotriz() {
                       </div>
                       {expandida && (
                         <div className="border-t border-slate-100 p-4 pt-3">
-                          {CATEGORIAS_INSPECCION.map((cat) => {
-                            const tipoVeh = vehiculos.find((v) => v.id === ins.vehiculo_id)?.tipo?.toLowerCase() ?? 'particular'
-                            const vals = cat.items
-                              .filter((item) => item.tipo === 'ambos' || item.tipo === tipoVeh)
-                              .map((item) => ({ key: item.key, label: item.label, val: ins[item.key] }))
-                            if (!vals.some((v) => v.val)) return null
+                          {CHECKLIST_GROUPS.map((g) => {
+                            const vals = (ins as any)[g.columna]
+                            if (!vals || !Array.isArray(vals) || vals.length === 0) return null
                             return (
-                              <div key={cat.id} className="col-span-full">
-                                <p className="text-xs font-medium text-slate-500 mt-2 mb-1">{cat.titulo}</p>
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                                  {vals.map((v) => (
-                                    <span key={v.key}>
-                                      <span className="text-slate-400">{v.label}: </span>
-                                      <span className={colorEstado(v.val)}>{v.val}</span>
+                              <div key={g.id} className="col-span-full mt-2">
+                                <p className="text-xs font-medium text-slate-500 mb-1">{g.titulo}:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {(vals as string[]).map((v) => (
+                                    <span key={v} className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
+                                      {v}
                                     </span>
                                   ))}
                                 </div>
                               </div>
                             )
                           })}
-                          {(
-                            [
-                              'doc_titulo_propiedad', 'doc_poliza_seguro', 'doc_impuestos',
-                              'doc_carta_autorizacion', 'doc_licencia', 'doc_certificado_medico',
-                              'doc_rotec', 'doc_guias_movilizacion', 'doc_permiso_sustancias',
-                              'doc_guia_sanitaria', 'doc_certificado_pesos',
-                            ] as const
-                          ).filter((k) => (ins as any)[k]).length > 0 && (
-                            <div className="col-span-full mt-2">
-                              <p className="text-xs font-medium text-slate-500 mb-1">Documentos:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {(
-                                  [
-                                    'doc_titulo_propiedad', 'doc_poliza_seguro', 'doc_impuestos',
-                                    'doc_carta_autorizacion', 'doc_licencia', 'doc_certificado_medico',
-                                    'doc_rotec', 'doc_guias_movilizacion', 'doc_permiso_sustancias',
-                                    'doc_guia_sanitaria', 'doc_certificado_pesos',
-                                  ] as const
-                                ).filter((k) => (ins as any)[k]).map((k) => (
-                                  <span key={k} className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-                                    {DOC_LABELS[k]}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                           {ins.observaciones && (
                             <p className="mt-2 col-span-full text-sm text-slate-600">Observaciones: {ins.observaciones}</p>
+                          )}
+                          {ins.danos && Array.isArray(ins.danos) && ins.danos.length > 0 && (
+                            <div className="relative mt-3 col-span-full inline-block max-w-xs">
+                              <span className="text-xs text-slate-500">Daños marcados:</span>
+                              <img src={vehiculos.find((v) => v.id === ins.vehiculo_id)?.tipo === 'Carga' ? '/camion.webp' : '/vehiculo.webp'} alt="Daños" className="mt-1 w-full rounded border border-slate-200" />
+                              {(ins.danos as { x: number; y: number; comentario: string }[]).map((d: any, i: number) => (
+                                <div key={i}
+                                  className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                                  style={{ left: `${d.x * 100}%`, top: `${d.y * 100}%` }}
+                                >
+                                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow">
+                                    {i + 1}
+                                  </span>
+                                  {d.comentario && (
+                                    <span className="mt-0.5 max-w-[100px] truncate rounded bg-white/90 px-1 py-0.5 text-[9px] text-slate-700 shadow">
+                                      {d.comentario}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           )}
                           {ins.firma && (
                             <div className="mt-2 col-span-full">
@@ -1162,6 +1143,11 @@ function VehicleQRModal({ vehiculo, onClose }: { vehiculo: Vehiculo; onClose: ()
             >
               Cerrar
             </button>
+            <button onClick={() => window.open(url, '_blank')}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              Abrir
+            </button>
             <button onClick={copiarUrl}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
@@ -1172,10 +1158,4 @@ function VehicleQRModal({ vehiculo, onClose }: { vehiculo: Vehiculo; onClose: ()
       </div>
     </div>
   )
-}
-
-function colorEstado(valor: string): string {
-  if (valor === 'Bueno') return 'text-green-600 font-medium'
-  if (valor === 'Regular') return 'text-yellow-600 font-medium'
-  return 'text-red-600 font-medium'
 }

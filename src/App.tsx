@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Departamento } from './pages/Departamento'
 import { TallerAutomotriz } from './pages/taller/TallerAutomotriz'
 import { DetalleVehiculo } from './pages/taller/DetalleVehiculo'
+import { InspeccionVehiculo } from './pages/taller/InspeccionVehiculo'
 import { PlantasElectricas } from './pages/plantas/PlantasElectricas'
 import { EvaluarAlmacen } from './pages/almacen/EvaluarAlmacen'
 import { DetalleEvaluacion as DetalleEvaluacionAlmacen } from './pages/almacen/DetalleEvaluacion'
@@ -25,6 +26,7 @@ import { CrearTicket } from './pages/sistemas/CrearTicket'
 import { DetalleTicket } from './pages/sistemas/DetalleTicket'
 import { ControlGaritas } from './pages/seguridad/ControlGaritas'
 import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
+import { Contabilidad } from './pages/contabilidad/Contabilidad'
 import { GestionUsuarios } from './pages/admin/GestionUsuarios'
 
 function App() {
@@ -51,6 +53,7 @@ function App() {
             <Route path="/departamento/sistemas" element={<ListaTickets />} />
             <Route path="/departamento/sistemas/crear" element={<CrearTicket />} />
             <Route path="/departamento/sistemas/ticket/:ticketId" element={<DetalleTicket />} />
+            <Route path="/departamento/contabilidad" element={<Contabilidad />} />
             <Route path="/departamento/seguridad" element={<ControlGaritas />} />
             <Route path="/departamento/seguridad/historial" element={<HistorialGaritas />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
@@ -61,6 +64,7 @@ function App() {
             <Route path="/operaciones/supermercados/:id" element={<HistorialEvaluaciones />} />
             <Route path="/documentacion" element={<Documentacion />} />
             <Route path="/admin/usuarios" element={<GestionUsuarios />} />
+            <Route path="/taller/inspeccion/:vehiculoId" element={<InspeccionVehiculo />} />
           </Route>
           <Route path="/plantas/:id" element={<ProtectedRoute><VerificarPlanta /></ProtectedRoute>} />
           <Route path="/reporte/:id" element={<ReporteFalla />} />
