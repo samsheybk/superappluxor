@@ -457,6 +457,7 @@ CREATE TABLE IF NOT EXISTS contabilidad_presupuestos (
   anio INTEGER NOT NULL,
   presupuesto DECIMAL(12,2) NOT NULL,
   gasto DECIMAL(12,2) NOT NULL,
+  pagado DECIMAL(12,2) NOT NULL DEFAULT 0,
   observaciones TEXT DEFAULT '',
   creado_por UUID NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -482,6 +483,24 @@ ALTER TABLE contabilidad_permisos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Contabilidad permisos read" ON contabilidad_permisos FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Contabilidad permisos insert" ON contabilidad_permisos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Contabilidad permisos delete" ON contabilidad_permisos FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- Administracion
+-- ============================================================
+CREATE TABLE IF NOT EXISTS administracion_limite_flujo (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mes INTEGER NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  anio INTEGER NOT NULL,
+  limite DECIMAL(12,2) NOT NULL,
+  creado_por UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(mes, anio)
+);
+
+ALTER TABLE administracion_limite_flujo ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Limite flujo read" ON administracion_limite_flujo FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Limite flujo insert" ON administracion_limite_flujo FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Limite flujo update" ON administracion_limite_flujo FOR UPDATE USING (auth.role() = 'authenticated');
 
 -- ============================================================
 -- Plantas Eléctricas
