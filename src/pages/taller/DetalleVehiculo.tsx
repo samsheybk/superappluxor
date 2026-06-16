@@ -139,9 +139,13 @@ export function DetalleVehiculo() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <Link to="/departamento/taller-automotriz" className="mb-4 inline-block text-sm text-blue-600 hover:underline">
-        ← Volver al taller
-      </Link>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Taller automotriz</span>
+      </div>
 
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold text-slate-800">{vehiculo.placa}</h1>

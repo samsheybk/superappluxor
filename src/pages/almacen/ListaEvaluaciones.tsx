@@ -148,33 +148,26 @@ export function ListaEvaluaciones() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to="/" className="mb-1 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Dashboard
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Almacen y distribucion</span>
+      </div>
+      <div className="flex items-center justify-end gap-2">
+        <Link
+          to="/departamento/almacen-y-distribucion/conceptos"
+          className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+        >
+          Gestionar conceptos
         </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Almacen y Distribucion</h1>
-            <p className="text-slate-500">Evaluaciones de inspeccion semanal</p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              to="/departamento/almacen-y-distribucion/conceptos"
-              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
-            >
-              Gestionar conceptos
-            </Link>
-            <Link
-              to="/departamento/almacen-y-distribucion/evaluar"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              + Nueva evaluacion
-            </Link>
-          </div>
-        </div>
+        <Link
+          to="/departamento/almacen-y-distribucion/evaluar"
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+        >
+          + Nueva evaluacion
+        </Link>
       </div>
 
       {mensaje && (

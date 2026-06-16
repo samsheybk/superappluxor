@@ -91,16 +91,14 @@ export function GestionConceptos() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to="/operaciones/supermercados" className="mb-1 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Supermercados
-        </Link>
-        <h1 className="text-2xl font-bold text-slate-800">Gestion de conceptos</h1>
-        <p className="text-slate-500">Conceptos para comentarios en evaluaciones</p>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Supermercados</span>
       </div>
+
 
       {mensaje && (
         <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">

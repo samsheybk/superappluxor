@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import type { Supermercado, Area, SupermercadoArea } from '../../types'
 import { Modal } from '../../components/Modal'
@@ -133,10 +134,14 @@ export function ConfigSupermercados() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Configuración de Supermercados</h1>
-        <p className="text-slate-500">Administra supermercados, áreas, pesos y gerentes</p>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Supermercados</span>
       </div>
+
 
       {mensaje && (
         <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">

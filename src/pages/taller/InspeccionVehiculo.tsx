@@ -167,6 +167,13 @@ export function InspeccionVehiculo() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Taller automotriz</span>
+      </div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">Evaluacion del vehiculo</h1>
         <Link to={`/taller/vehiculo/${vehiculoId}`} className="text-sm text-blue-600 hover:underline">Cancelar</Link>

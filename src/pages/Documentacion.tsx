@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { DEPARTAMENTOS_POR_DIRECCION, type Direcciones } from '../types'
@@ -151,11 +152,12 @@ export function Documentacion() {
 
   return (
     <div className="lg:py-8 lg:pr-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Documentación de Indicadores</h1>
-          <p className="mt-1 text-sm text-slate-500">Ficha técnica completa de cada indicador de gestión por departamento</p>
-        </div>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Documentacion</span>
+      </div>
+      <div className="flex items-center justify-end gap-2">
         {esAdmin && deptoSeleccionado && (
           <button onClick={abrirNuevo}
             className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"

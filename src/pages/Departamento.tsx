@@ -35,10 +35,12 @@ export function Departamento() {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link to="/" className="mb-2 inline-block text-sm text-blue-600 hover:underline">← Volver al panel</Link>
-        <h1 className="text-2xl font-bold text-slate-800">{nombre}</h1>
-        <p className="text-slate-500">{direccion}</p>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">{direccion}</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">{nombre}</span>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">

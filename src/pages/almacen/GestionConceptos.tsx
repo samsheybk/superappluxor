@@ -105,16 +105,14 @@ export function GestionConceptosAlmacen() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="mb-6">
-        <Link to="/departamento/almacen-y-distribucion" className="mb-1 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Evaluaciones del almacen
-        </Link>
-        <h1 className="text-2xl font-bold text-slate-800">Gestionar conceptos</h1>
-        <p className="text-slate-500">Administra los criterios de evaluacion para Almacen y Distribucion</p>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Almacen y distribucion</span>
       </div>
+
 
       <div className="mb-6 flex gap-2">
         <input value={nuevoConcepto} onChange={(e) => setNuevoConcepto(e.target.value)}

@@ -466,18 +466,12 @@ export function PlantasElectricas() {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link to="/" className="mb-2 inline-block text-sm text-blue-600 hover:underline">← Volver al panel</Link>
-        <div className="flex items-center gap-3">
-          <svg className="h-8 w-8 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Plantas electricas</h1>
-            <p className="text-slate-500">Operaciones</p>
-          </div>
-        </div>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Plantas electricas</span>
       </div>
 
       {error && (

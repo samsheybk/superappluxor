@@ -49,11 +49,14 @@ export function HistorialGaritas() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Historial de Garitas</h1>
-          <p className="text-sm text-slate-400">Registro de entradas y salidas</p>
-        </div>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Seguridad</span>
+      </div>
+      <div className="mb-6 flex items-center justify-end gap-2">
         <Link to="/departamento/seguridad"
           className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
         >

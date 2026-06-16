@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { LoadingScreen } from '../../components/LoadingScreen'
@@ -104,11 +104,12 @@ export function GestionUsuarios() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Gestion de Usuarios</h1>
-          <p className="text-sm text-slate-400">{usuarios.length} usuarios registrados</p>
-        </div>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Administracion</span>
+      </div>
+      <div className="mb-6 flex items-center justify-end gap-2">
         <button type="button" onClick={openCreate}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >

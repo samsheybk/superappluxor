@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { SUPERMERCADOS } from '../../types'
@@ -107,7 +107,15 @@ export function ControlGaritas() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[80vh] max-w-lg flex-col items-center justify-center px-4 py-8">
+    <div>
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Seguridad</span>
+      </div>
+      <div className="mx-auto flex min-h-[80vh] max-w-lg flex-col items-center justify-center px-4 py-8">
       <div className="w-full">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-slate-800">Control de Acceso</h1>
@@ -312,6 +320,7 @@ export function ControlGaritas() {
           </div>
         )}
       </div>
+    </div>
     </div>
   )
 }

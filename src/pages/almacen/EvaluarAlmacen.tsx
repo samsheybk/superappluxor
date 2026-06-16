@@ -295,18 +295,15 @@ export function EvaluarAlmacen() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Almacen y distribucion</span>
+      </div>
       <div className="mb-6">
-        <Link to="/departamento/almacen-y-distribucion" className="mb-1 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Evaluaciones del almacen
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Almacen y Distribucion</h1>
-            <p className="text-slate-500">Nueva evaluacion semanal</p>
-          </div>
+        <div className="flex items-center justify-end gap-2">
           <div className="text-right">
             <p className="text-sm text-slate-500">Puntaje total</p>
             <p className="text-3xl font-bold text-blue-600">{puntajeTotal().earned}</p>

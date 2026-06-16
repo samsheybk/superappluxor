@@ -27,6 +27,7 @@ import { DetalleTicket } from './pages/sistemas/DetalleTicket'
 import { ControlGaritas } from './pages/seguridad/ControlGaritas'
 import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
 import { Contabilidad } from './pages/contabilidad/Contabilidad'
+import { Impuestos } from './pages/impuestos/Impuestos'
 import { GestionUsuarios } from './pages/admin/GestionUsuarios'
 
 function App() {
@@ -54,6 +55,7 @@ function App() {
             <Route path="/departamento/sistemas/crear" element={<CrearTicket />} />
             <Route path="/departamento/sistemas/ticket/:ticketId" element={<DetalleTicket />} />
             <Route path="/departamento/contabilidad" element={<Contabilidad />} />
+            <Route path="/departamento/impuestos" element={<Impuestos />} />
             <Route path="/departamento/seguridad" element={<ControlGaritas />} />
             <Route path="/departamento/seguridad/historial" element={<HistorialGaritas />} />
             <Route path="/departamento/:slug" element={<Departamento />} />

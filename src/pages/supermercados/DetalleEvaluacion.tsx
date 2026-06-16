@@ -26,8 +26,6 @@ export function DetalleEvaluacion() {
   const { id, evaluacionId } = useParams<{ id: string; evaluacionId: string }>()
   const navigate = useNavigate()
   const [supermercadoNombre, setSupermercadoNombre] = useState('')
-  const [fechaInicio, setFechaInicio] = useState('')
-  const [fechaCierre, setFechaCierre] = useState('')
   const [firma, setFirma] = useState<string | null>(null)
   const [pdfBase64, setPdfBase64] = useState<string | null>(null)
   const [areas, setAreas] = useState<AreaAgrupada[]>([])
@@ -53,10 +51,7 @@ export function DetalleEvaluacion() {
     ]).then(async ([sRes, evRes, saRes, ecRes, aRes, coRes, ccRes]) => {
       if (sRes.data) setSupermercadoNombre(sRes.data.nombre)
 
-      const fechaInicioHeader = evRes.data?.fecha_inicio ?? null
       if (evRes.data) {
-        setFechaInicio(fechaInicioHeader ?? '')
-        setFechaCierre(evRes.data.fecha_cierre ?? '')
         setFirma(evRes.data.firma ?? null)
         setPdfBase64(evRes.data.pdf_base64 ?? null)
       }
@@ -100,10 +95,6 @@ export function DetalleEvaluacion() {
         }
       })
 
-      if (lista.length > 0 && !fechaInicioHeader && ecRes.data?.[0]?.fecha_inicio) {
-        setFechaInicio(ecRes.data[0].fecha_inicio)
-      }
-
       setAreas(lista)
       setLoading(false)
 
@@ -122,13 +113,6 @@ export function DetalleEvaluacion() {
   const totalPen = areas.reduce((s, a) => s + a.total_pen, 0)
   const puntajeFinal = Math.max(0, totalPeso - totalPen)
 
-  function formatearFecha(fecha: string) {
-    if (!fecha) return '—'
-    return new Date(fecha).toLocaleDateString('es-VE', {
-      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
-    })
-  }
-
   async function confirmarEliminar() {
     if (!id || !evaluacionId) return
     setEliminando(true)
@@ -142,47 +126,39 @@ export function DetalleEvaluacion() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <Link to={`/operaciones/supermercados/${id}`} className="mb-1 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Historial de evaluaciones
-        </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">{supermercadoNombre}</h1>
-            <p className="text-xs text-slate-500">Inicio: {formatearFecha(fechaInicio)}</p>
-            {fechaCierre && <p className="text-xs text-slate-500">Cierre: {formatearFecha(fechaCierre)}</p>}
-          </div>
-          <div className="flex items-center gap-3">
-            {pdfBase64 && (
-              <a
-                href={pdfBase64}
-                download={`evaluacion-${supermercadoNombre.replace(/\s+/g, '-').toLowerCase()}.pdf`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Descargar PDF
-              </a>
-            )}
-            <button
-              onClick={() => setMostrarConfirmacion(true)}
-              disabled={eliminando}
-              className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+      <div className="mb-4 text-xs text-slate-400">
+        <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
+        <span className="mx-1">›</span>
+        <span className="text-slate-500">Operaciones</span>
+        <span className="mx-1">›</span>
+        <span className="text-slate-700 font-medium">Supermercados</span>
+      </div>
+      <div className="flex items-center justify-end gap-3">
+          {pdfBase64 && (
+            <a
+              href={pdfBase64}
+              download={`evaluacion-${supermercadoNombre.replace(/\s+/g, '-').toLowerCase()}.pdf`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
-              {eliminando ? 'Eliminando...' : 'Eliminar'}
-            </button>
-            <div className="text-right">
-              <p className="text-sm text-slate-500">Puntaje final</p>
-              <p className="text-3xl font-bold text-blue-600">{puntajeFinal}</p>
-              <p className="text-xs text-slate-400">de {totalPeso} pts {totalPen > 0 && <span className="text-red-500">(-{totalPen})</span>}</p>
-            </div>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Descargar PDF
+            </a>
+          )}
+          <button
+            onClick={() => setMostrarConfirmacion(true)}
+            disabled={eliminando}
+            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+          >
+            {eliminando ? 'Eliminando...' : 'Eliminar'}
+          </button>
+          <div className="text-right">
+            <p className="text-sm text-slate-500">Puntaje final</p>
+            <p className="text-3xl font-bold text-blue-600">{puntajeFinal}</p>
+            <p className="text-xs text-slate-400">de {totalPeso} pts {totalPen > 0 && <span className="text-red-500">(-{totalPen})</span>}</p>
           </div>
         </div>
-      </div>
 
       {firma && (
         <div className="mb-6 rounded-xl bg-white p-5 shadow-sm">
