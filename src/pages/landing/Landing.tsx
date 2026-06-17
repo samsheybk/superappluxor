@@ -1,3 +1,4 @@
+import { FaGear, FaTrophy, FaHeart } from 'react-icons/fa6'
 import { useState, useEffect, useRef } from 'react'
 
 const NAVY = '#001A4A'
@@ -15,30 +16,79 @@ const TIENDAS = [
 ]
 
 const MARCAS = ['Solera', 'Mary', 'Excelcior', 'Pampero', 'Tio Rico', 'Agua del Norte', 'Polar', 'Empresas Polar']
+const BRAND_COLORS = ['#c41430','#2563eb','#0d5e2e','#f59e0b','#db2777','#7c3aed','#0891b2','#16a34a','#e63950','#1a3a6b','#b8860b','#475569','#be123c','#0369a1','#854d0e','#4f46e5']
 
 export function Landing() {
   const [bgIdx, setBgIdx] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const prodScrollRef = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [modalItem, setModalItem] = useState<{ titulo: string; texto: string; color: string; Icon: React.ComponentType<{ size?: number; color?: string }> } | null>(null)
+  const [rates, setRates] = useState<{ usd: number; eur: number } | null>(null)
+  useEffect(() => {
+    fetch('https://ve.dolarapi.com/v1/dolares/oficial')
+      .then(r => r.json())
+      .then(d => setRates(prev => ({ usd: d.promedio, eur: prev?.eur ?? 0 })))
+      .catch(() => {})
+    fetch('https://ve.dolarapi.com/v1/divisas/eur')
+      .then(r => r.json())
+      .then(d => setRates(prev => ({ usd: prev?.usd ?? 0, eur: d.promedio })))
+      .catch(() => {})
+  }, [])
+  const renderBrand = (m: string, i: number) => (
+    <div key={i} style={{
+      width: 76, height: 76, borderRadius: '50%',
+      background: BRAND_COLORS[i % BRAND_COLORS.length],
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden',
+      transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'default',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.15)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)' }}
+    >
+      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2, padding: 3 }}>{m}</span>
+    </div>
+  )
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-  const HERO_BG = [
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&q=80',
-    'https://images.unsplash.com/photo-1567653418876-5bb0e566e1c2?w=1400&q=80',
-    'https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=1400&q=80',
-    'https://images.unsplash.com/photo-1534723328310-e82abd3f4046?w=1400&q=80',
-    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80',
+  const HERO_SLIDES = [
+    '#c41430',
+    '#001A4A',
+    '#0d5e2e',
+    '#f59e0b',
+    '#7c3aed',
   ]
   useEffect(() => {
-    const t = setInterval(() => setBgIdx(i => (i + 1) % HERO_BG.length), 5000)
+    const t = setInterval(() => setBgIdx(i => (i + 1) % HERO_SLIDES.length), 5000)
     return () => clearInterval(t)
   }, [])
 
   return (
     <div style={{ fontFamily: "'Poppins', 'Segoe UI', system-ui, sans-serif", color: '#1e293b', background: '#FFFFFF', lineHeight: 1.6, minHeight: '100vh' }}>
+
+      {/* ======= TASA BCV — solo desktop ======= */}
+      <div className="hidden md:block" style={{ background: '#c41430', color: '#fff', fontSize: '0.78rem', padding: '6px 0' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 24 }}>
+          {rates ? (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <strong>BCV USD:</strong> Bs.{rates.usd.toFixed(2)}
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+                <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <strong>BCV EUR:</strong> Bs.{rates.eur.toFixed(2)}
+              </span>
+            </>
+          ) : (
+            <span style={{ fontWeight: 500 }}>Cargando tasas BCV...</span>
+          )}
+        </div>
+      </div>
 
       {/* ======= HEADER ======= */}
       <header style={{
@@ -64,8 +114,8 @@ export function Landing() {
             </svg>
           </a>
 
-          {/* Desktop Nav */}
-          <nav style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
+          {/* Nav — oculto en mobile, visible en desktop */}
+          <nav style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }} className="hidden md:flex">
             {['Ubicaciones', 'Ofertas', 'Carreras', 'Sobre Nosotros'].map(item => (
               <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
                 style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, transition: 'color 0.2s', letterSpacing: 0.3, whiteSpace: 'nowrap' }}
@@ -84,7 +134,24 @@ export function Landing() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
+
+          {/* Hamburger — solo mobile */}
+          <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', color: '#1e293b', cursor: 'pointer', alignItems: 'center' }} className="md:hidden flex">
+            <svg width={24} height={24} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} /></svg>
+          </button>
         </div>
+
+        {/* Mobile menu — overlay */}
+        {menuOpen && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, padding: '0 24px 20px', display: 'flex', flexDirection: 'column', gap: 8, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #e2e8f0', boxShadow: '0 8px 30px rgba(0,0,0,0.1)', zIndex: 60 }}>
+            {['Ubicaciones', 'Ofertas', 'Carreras', 'Sobre Nosotros'].map(item => (
+              <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+                style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500, padding: '8px 0' }}
+                onClick={() => setMenuOpen(false)}
+              >{item}</a>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* ======= HERO ======= */}
@@ -92,22 +159,19 @@ export function Landing() {
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      <section id="inicio" style={{ position: 'relative', minHeight: '38.5vh', padding: '16px 0 0', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-        {/* Background images slideshow */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          {HERO_BG.map((url, i) => (
-            <div key={url} style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${url})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              opacity: i === bgIdx ? 1 : 0,
-              transition: 'opacity 1.2s ease-in-out',
-            }} />
-          ))}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 100%)' }} />
-        </div>
-
+      <section id="inicio" style={{ position: 'relative', minHeight: '38.5vh', padding: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {HERO_SLIDES.map((color, i) => (
+          <div key={i} style={{
+            position: 'absolute', inset: 0,
+            background: color,
+            opacity: i === bgIdx ? 1 : 0,
+            transition: 'opacity 1.2s ease-in-out',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column', gap: 8,
+          }}>
+            <span style={{ color: '#fff', fontSize: 'clamp(1.8rem, 4vw, 3rem)', fontWeight: 700, letterSpacing: 2, textAlign: 'center' }}>Tu publicidad va aqui</span>
+          </div>
+        ))}
       </section>
 
       {/* ======= VARIEDAD ======= */}
@@ -125,6 +189,13 @@ export function Landing() {
               { text: 'LICORES', color: '#7c3aed' },
               { text: 'BAZAR', color: '#2563eb' },
               { text: 'DEPORTE', color: '#16a34a' },
+              { text: 'FERRETERIA', color: '#b8860b' },
+              { text: 'AUTOMOTRIZ', color: '#475569' },
+              { text: 'HOGAR', color: '#be123c' },
+              { text: 'PESCADERIA', color: '#0369a1' },
+              { text: 'CAMPING', color: '#854d0e' },
+              { text: 'PASTELERIA', color: '#4f46e5' },
+              { text: 'PANADERIA', color: '#a16207' },
             ].map(cat => (
               <div key={cat.text} style={{
                 background: cat.color, padding: '12px 28px',
@@ -136,6 +207,90 @@ export function Landing() {
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)' }}
               >
                 <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', textAlign: 'center', letterSpacing: 1.5, whiteSpace: 'nowrap' }}>{cat.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======= SUPER OFERTAS ======= */}
+      <section style={{ padding: '40px 0', background: '#f8fafc' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
+            <div>
+              <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, textAlign: 'left' }}>Super Ofertas</h2>
+              <p style={{ textAlign: 'left', color: '#64748b', fontSize: '0.9rem', maxWidth: 500 }}>Productos con descuentos increibles — stock limitado</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => {
+                const el = prodScrollRef.current
+                if (!el) return
+                el.scrollBy({ left: -220, behavior: 'smooth' })
+              }}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'box-shadow 0.2s', color: NAVY }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+              >
+                <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <button onClick={() => {
+                const el = prodScrollRef.current
+                if (!el) return
+                el.scrollBy({ left: 220, behavior: 'smooth' })
+              }}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'box-shadow 0.2s', color: NAVY }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+              >
+                <svg width={16} height={16} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+          <div ref={prodScrollRef} style={{
+            display: 'flex', gap: 20, overflowX: 'auto', scrollBehavior: 'smooth',
+            WebkitOverflowScrolling: 'touch', paddingBottom: 8,
+          }}
+            className="hide-scrollbar"
+          >
+            {[
+              { name: 'Arroz Premium 1kg', img: '🍚', price: 4.50, discount: 3.25, badge: '27% OFF' },
+              { name: 'Aceite de Oliva 500ml', img: '🫒', price: 8.00, discount: 5.99, badge: '25% OFF' },
+              { name: 'Leche Entera 1L', img: '🥛', price: 2.80, discount: 1.99, badge: '29% OFF' },
+              { name: 'Harina de Maiz 1kg', img: '🌽', price: 1.90, discount: 1.35, badge: '29% OFF' },
+              { name: 'Atun en Lata 170g', img: '🐟', price: 2.50, discount: 1.75, badge: '30% OFF' },
+              { name: 'Pasta Larga 500g', img: '🍝', price: 1.60, discount: 1.10, badge: '31% OFF' },
+              { name: 'Cafe Molido 250g', img: '☕', price: 5.00, discount: 3.85, badge: '23% OFF' },
+              { name: 'Jabon de Manos 500ml', img: '🧴', price: 3.20, discount: 2.45, badge: '23% OFF' },
+              { name: 'Papel Higienico 4rollos', img: '🧻', price: 2.50, discount: 1.85, badge: '26% OFF' },
+              { name: 'Galletas Surtidas 200g', img: '🍪', price: 1.80, discount: 1.25, badge: '31% OFF' },
+            ].map((p, i) => (
+              <div key={i} style={{
+                minWidth: 180, maxWidth: 180, background: '#fff', border: '1px solid #e2e8f0',
+                flexShrink: 0, transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+              >
+                <div style={{ background: '#f1f5f9', height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.2rem', position: 'relative' }}>
+                  <span style={{ position: 'absolute', top: 6, left: 6, background: CORAL, color: '#fff', fontSize: '0.6rem', fontWeight: 800, padding: '2px 6px', letterSpacing: 0.5 }}>{p.badge}</span>
+                  {p.img}
+                </div>
+                <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b', lineHeight: 1.2 }}>{p.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: CORAL }}>${p.discount.toFixed(2)}</span>
+                    <span style={{ fontSize: '0.68rem', color: '#94a3b8', textDecoration: 'line-through' }}>${p.price.toFixed(2)}</span>
+                  </div>
+                  <button style={{
+                    marginTop: 'auto', background: NAVY, color: '#fff', border: 'none',
+                    padding: '6px 0', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
+                    transition: 'background 0.2s', width: '100%', letterSpacing: 0.5,
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = GREEN}
+                    onMouseLeave={e => e.currentTarget.style.background = NAVY}
+                  >VER EN LA APP</button>
+                </div>
               </div>
             ))}
           </div>
@@ -242,25 +397,14 @@ export function Landing() {
       <section style={{ background: LIGHT_GRAY, overflow: 'hidden', padding: '8px 0' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 12, padding: '0 24px' }}>Nuestras Marcas Aliadas</h2>
-          <div className="marquee-track" style={{ overflow: 'hidden', width: '100%' }}>
-            <div style={{ display: 'flex', gap: 24, width: 'max-content', animation: 'marquee 30s linear infinite' }}>
-              {[...MARCAS, ...MARCAS].map((m, i) => {
-                const colors = ['#c41430','#2563eb','#0d5e2e','#f59e0b','#db2777','#7c3aed','#0891b2','#16a34a','#e63950','#1a3a6b','#b8860b','#475569','#be123c','#0369a1','#854d0e','#4f46e5']
-                return (
-                  <div key={i} style={{
-                    width: 100, height: 100, borderRadius: '50%',
-                    background: colors[i % colors.length],
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden',
-                    transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'default',
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)' }}
-                  >
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2, padding: 4 }}>{m}</span>
-                  </div>
-                )
-              })}
+          <div className="marquee-track" style={{ overflow: 'hidden', width: '100%', padding: '8px 0' }}>
+            <div style={{ display: 'flex', width: 'max-content', animation: 'marquee 30s linear infinite' }}>
+              <div style={{ display: 'flex', gap: 20 }}>
+                {MARCAS.map((m, i) => renderBrand(m, i))}
+              </div>
+              <div style={{ display: 'flex', gap: 20 }}>
+                {MARCAS.map((m, i) => renderBrand(m, i + MARCAS.length))}
+              </div>
             </div>
           </div>
         </div>
@@ -291,21 +435,46 @@ export function Landing() {
           </div>
 
           {/* Mission / Vision / Values */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="grid-cols-3">
+          <div style={{ display: 'grid', gap: 20 }} className="grid-cols-1 md:grid-cols-3">
             {[
-              { titulo: 'Mision', texto: 'Ofrecer productos de calidad superior con un servicio cercano, contribuyendo al bienestar de nuestras comunidades y al desarrollo de nuestro equipo.', color: NAVY },
-              { titulo: 'Vision', texto: 'Ser la cadena de supermercados lider en Venezuela, reconocida por nuestra innovacion, calidad y compromiso social.', color: GREEN },
-              { titulo: 'Valores', texto: 'Compromiso, Calidad, Trabajo en equipo, Innovacion, Responsabilidad social y Respeto por nuestros clientes y colaboradores.', color: CORAL },
+              { titulo: 'Mision', texto: 'Ofrecer productos de calidad superior con un servicio cercano, contribuyendo al bienestar de nuestras comunidades y al desarrollo de nuestro equipo.', color: NAVY, Icon: FaGear },
+              { titulo: 'Vision', texto: 'Ser la cadena de supermercados lider en Venezuela, reconocida por nuestra innovacion, calidad y compromiso social.', color: GREEN, Icon: FaTrophy },
+              { titulo: 'Valores', texto: 'Compromiso, Calidad, Trabajo en equipo, Innovacion, Responsabilidad social y Respeto por nuestros clientes y colaboradores.', color: CORAL, Icon: FaHeart },
             ].map(item => (
-              <div key={item.titulo} style={{ background: LIGHT_GRAY, padding: 28, transition: 'transform 0.3s, box-shadow 0.3s' }}
+              <div key={item.titulo} style={{ background: LIGHT_GRAY, padding: 28, transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'pointer', overflow: 'hidden' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.06)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+                onClick={() => setModalItem(item)}
               >
-                <div style={{ width: 40, height: 40, background: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.8rem', marginBottom: 14 }}>{item.titulo[0]}</div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: NAVY, marginBottom: 8 }}>{item.titulo}</h3>
+                <div style={{ background: item.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', width: 38, height: 38, marginRight: 12, float: 'left' }}>
+                  <item.Icon size={20} color="#fff" />
+                </div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: NAVY, marginBottom: 4 }}>{item.titulo}</h3>
                 <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.7 }}>{item.texto}</p>
               </div>
             ))}
+          </div>
+
+          {/* Modal — solo mobile */}
+          <div className="md:hidden">
+            {modalItem && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+                onClick={() => setModalItem(null)}
+              >
+                <div style={{ background: '#fff', padding: 32, maxWidth: 400, width: '100%', position: 'relative' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <button onClick={() => setModalItem(null)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8', lineHeight: 1 }}>
+                    <svg width={20} height={20} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                  <div style={{ background: modalItem.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', width: 38, height: 38, marginBottom: 14 }}>
+                    <modalItem.Icon size={20} color="#fff" />
+                  </div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: NAVY, marginBottom: 10 }}>{modalItem.titulo}</h3>
+                  <p style={{ fontSize: '0.85rem', color: '#475569', lineHeight: 1.7 }}>{modalItem.texto}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
