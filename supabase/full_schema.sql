@@ -998,5 +998,66 @@ END;
 $$;
 
 -- ============================================================
+-- Compras
+-- ============================================================
+CREATE TABLE IF NOT EXISTS compras_metas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  departamento TEXT NOT NULL,
+  mes INTEGER NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  anio INTEGER NOT NULL,
+  ventas_unidades DECIMAL(12,2) NOT NULL DEFAULT 0,
+  ventas_dolares DECIMAL(12,2) NOT NULL DEFAULT 0,
+  meta_unidades DECIMAL(12,2) NOT NULL DEFAULT 0,
+  meta_dolares DECIMAL(12,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (departamento, mes, anio)
+);
+ALTER TABLE compras_metas ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Compras metas read" ON compras_metas;
+CREATE POLICY "Compras metas read" ON compras_metas FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Compras metas insert" ON compras_metas;
+CREATE POLICY "Compras metas insert" ON compras_metas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Compras metas delete" ON compras_metas;
+CREATE POLICY "Compras metas delete" ON compras_metas FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- Inventario
+-- ============================================================
+CREATE TABLE IF NOT EXISTS inventario_indicadores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  departamento TEXT NOT NULL,
+  mes INTEGER NOT NULL CHECK (mes >= 1 AND mes <= 12),
+  anio INTEGER NOT NULL,
+  botes_porcentaje DECIMAL(5,2) NOT NULL,
+  devoluciones_dias INTEGER NOT NULL,
+  fidelidad_porcentaje DECIMAL(5,2) NOT NULL,
+  error_recepcion_porcentaje DECIMAL(5,2) NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (departamento, mes, anio)
+);
+ALTER TABLE inventario_indicadores ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Inventario indicadores read" ON inventario_indicadores FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Inventario indicadores insert" ON inventario_indicadores FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Inventario indicadores delete" ON inventario_indicadores FOR DELETE USING (es_admin());
+
+-- Departamentos (catalogo dinamico)
+CREATE TABLE IF NOT EXISTS departamentos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE departamentos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Departamentos read" ON departamentos FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Departamentos insert" ON departamentos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Departamentos delete" ON departamentos FOR DELETE USING (es_admin());
+
+INSERT INTO departamentos (nombre) VALUES
+  ('CONSUMO MASIVO'), ('CESTA BASICA'), ('CARNICERIA'), ('FRUTERIA'),
+  ('CHARCUTERIA'), ('LICORES'), ('BEBIDAS NO ALCOHOLICAS'), ('COSMETICOS'),
+  ('PRODUCCION'), ('SPORT'), ('AUTOMOTRIZ'), ('JARDINERIA'),
+  ('FERRETERIA'), ('BAZAR'), ('LIMPIEZA'), ('MASCOTAS')
+ON CONFLICT (nombre) DO NOTHING;
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================

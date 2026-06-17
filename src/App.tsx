@@ -29,6 +29,8 @@ import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
 import { Contabilidad } from './pages/contabilidad/Contabilidad'
 import { Administracion } from './pages/administracion/Administracion'
 import { Impuestos } from './pages/impuestos/Impuestos'
+import { Compras } from './pages/compras/Compras'
+import { Inventario } from './pages/inventario/Inventario'
 import { GestionUsuarios } from './pages/admin/GestionUsuarios'
 
 function App() {
@@ -58,6 +60,8 @@ function App() {
             <Route path="/departamento/contabilidad" element={<Contabilidad />} />
             <Route path="/departamento/administracion" element={<Administracion />} />
             <Route path="/departamento/impuestos" element={<Impuestos />} />
+            <Route path="/departamento/compras" element={<Compras />} />
+            <Route path="/departamento/inventario" element={<Inventario />} />
             <Route path="/departamento/seguridad" element={<ControlGaritas />} />
             <Route path="/departamento/seguridad/historial" element={<HistorialGaritas />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
