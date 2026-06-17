@@ -52,16 +52,7 @@ export function HistorialGaritas() {
       <div className="mb-4 text-xs text-slate-400">
         <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
         <span className="mx-1">›</span>
-        <span className="text-slate-500">Operaciones</span>
-        <span className="mx-1">›</span>
-        <span className="text-slate-700 font-medium">Seguridad</span>
-      </div>
-      <div className="mb-6 flex items-center justify-end gap-2">
-        <Link to="/departamento/seguridad"
-          className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-        >
-          Volver al control
-        </Link>
+        <span className="text-slate-700 font-medium">Historial Entradas / Salidas</span>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -102,50 +93,53 @@ export function HistorialGaritas() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
-                <th className="px-4 py-3">Placa</th>
-                <th className="px-4 py-3">Vehiculo</th>
-                <th className="px-4 py-3">Garita</th>
-                <th className="px-4 py-3">Tipo</th>
-                <th className="px-4 py-3">Chofer</th>
-                <th className="px-4 py-3">Carga</th>
-                <th className="px-4 py-3">Destino / Origen</th>
-                <th className="px-4 py-3">Combustible</th>
-                <th className="px-4 py-3">Fecha</th>
+              <tr className="border-b border-slate-200 text-[11px] font-semibold uppercase text-slate-500">
+                <th className="w-[100px] px-2 py-1.5">Placa</th>
+                <th className="px-2 py-1.5">Vehiculo</th>
+                <th className="w-[52px] px-2 py-1.5">Garita</th>
+                <th className="w-[68px] px-2 py-1.5">Tipo</th>
+                <th className="px-2 py-1.5">Chofer</th>
+                <th className="px-2 py-1.5">Carga</th>
+                <th className="px-2 py-1.5">Destino / Origen</th>
+                <th className="w-[80px] px-2 py-1.5">Combustible</th>
+                <th className="w-[128px] px-2 py-1.5">Fecha</th>
               </tr>
             </thead>
             <tbody>
-              {registros.map((r) => (
+              {registros.map((r) => {
+                const textoVehiculo = r.vehiculo ? `${r.vehiculo.marca} ${r.vehiculo.modelo} ${r.vehiculo.color}` : ''
+                return (
                 <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono font-bold text-slate-800">{r.placa}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {r.vehiculo ? `${r.vehiculo.marca} ${r.vehiculo.modelo} ${r.vehiculo.color}` : '—'}
+                  <td className="px-2 py-1.5 font-mono font-bold text-slate-800 truncate" onMouseEnter={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && !el.title) el.title = el.textContent || '' }}>{r.placa}</td>
+                  <td className="px-2 py-1.5 text-slate-600 truncate max-w-[140px]" onMouseEnter={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && !el.title) el.title = el.textContent || '' }}>
+                    {textoVehiculo || '—'}
                   </td>
-                  <td className="px-4 py-3">{r.garita}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${r.tipo === 'entrada' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                  <td className="px-2 py-1.5">{r.garita}</td>
+                  <td className="px-2 py-1.5">
+                    <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${r.tipo === 'entrada' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                       {r.tipo === 'entrada' ? 'Entrada' : 'Salida'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{r.chofer || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{r.tipo_carga || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">{r.destino_origen || '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-1.5 text-slate-600 truncate max-w-[100px]" onMouseEnter={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && !el.title) el.title = el.textContent || '' }}>{r.chofer || '—'}</td>
+                  <td className="px-2 py-1.5 text-slate-600 truncate max-w-[100px]" onMouseEnter={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && !el.title) el.title = el.textContent || '' }}>{r.tipo_carga || '—'}</td>
+                  <td className="px-2 py-1.5 text-slate-600 truncate max-w-[120px]" onMouseEnter={(e) => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && !el.title) el.title = el.textContent || '' }}>{r.destino_origen || '—'}</td>
+                  <td className="px-2 py-1.5">
                     {r.vehiculo?.origen === 'Luxor' ? (
                       r.combustible_defectuoso ? (
-                        <span className="text-xs text-amber-600">Defectuoso</span>
+                        <span className="text-[11px] text-amber-600">Defectuoso</span>
                       ) : r.nivel_combustible !== null ? (
-                        <span className="text-xs font-medium text-amber-700">{r.nivel_combustible}%</span>
+                        <span className="text-[11px] font-medium text-amber-700">{r.nivel_combustible}%</span>
                       ) : '—'
                     ) : '—'}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-400">
+                  <td className="px-2 py-1.5 text-[11px] text-slate-400 whitespace-nowrap">
                     {new Date(r.created_at).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

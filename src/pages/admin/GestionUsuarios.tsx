@@ -9,6 +9,7 @@ interface Usuario {
   nombre: string
   username: string
   rol: 'admin' | 'evaluador'
+  congelado: boolean
   created_at: string
 }
 
@@ -35,7 +36,7 @@ export function GestionUsuarios() {
 
   function cargarUsuarios() {
     setLoading(true)
-    supabase.from('perfiles').select('id, nombre, username, rol, created_at').order('nombre').then(({ data }) => {
+    supabase.from('perfiles').select('id, nombre, username, rol, congelado, created_at').order('nombre').then(({ data }) => {
       setUsuarios((data ?? []) as Usuario[])
       setLoading(false)
     })
@@ -52,6 +53,14 @@ export function GestionUsuarios() {
     setFormRol('evaluador')
     setError('')
     setShowModal(true)
+  }
+
+  async function toggleCongelado(u: Usuario) {
+    setGuardando(true)
+    const { error: err } = await supabase.from('perfiles').update({ congelado: !u.congelado }).eq('id', u.id)
+    if (err) { setError(err.message); setGuardando(false); return }
+    setGuardando(false)
+    cargarUsuarios()
   }
 
   function openEdit(u: Usuario) {
@@ -71,6 +80,12 @@ export function GestionUsuarios() {
     setError('')
 
     if (editUser) {
+      if (formPassword.trim()) {
+        if (editUser.id === perfil!.id) {
+          const { error: pwdErr } = await supabase.auth.updateUser({ password: formPassword.trim() })
+          if (pwdErr) { setError(pwdErr.message); setGuardando(false); return }
+        }
+      }
       const { error: err } = await supabase.from('perfiles').update({
         nombre: formNombre.trim(), username: formUsername.trim(), rol: formRol,
       }).eq('id', editUser.id)
@@ -79,9 +94,12 @@ export function GestionUsuarios() {
       if (!formEmail.trim() || !formPassword.trim()) {
         setError('Email y password requeridos'); setGuardando(false); return
       }
-      const { error: err } = await supabase.rpc('admin_crear_usuario', {
-        p_email: formEmail.trim(), p_password: formPassword,
-        p_nombre: formNombre.trim(), p_username: formUsername.trim(), p_rol: formRol,
+      const { error: err } = await supabase.auth.signUp({
+        email: formEmail.trim(),
+        password: formPassword,
+        options: {
+          data: { nombre: formNombre.trim(), username: formUsername.trim(), rol: formRol },
+        },
       })
       if (err) { setError(err.message); setGuardando(false); return }
     }
@@ -93,7 +111,7 @@ export function GestionUsuarios() {
 
   async function handleDelete(id: string) {
     setGuardando(true)
-    const { error: err } = await supabase.rpc('admin_eliminar_usuario', { p_user_id: id })
+    const { error: err } = await supabase.from('perfiles').delete().eq('id', id)
     if (err) { setError(err.message); setGuardando(false); return }
     setGuardando(false)
     setDeleteConfirm(null)
@@ -125,18 +143,24 @@ export function GestionUsuarios() {
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">Usuario</th>
                 <th className="px-4 py-3">Rol</th>
+                <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3">Creado</th>
                 <th className="px-4 py-3">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {usuarios.map((u) => (
-                <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr key={u.id} className={`border-b border-slate-100 hover:bg-slate-50 ${u.congelado ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-3 font-medium text-slate-800">{u.nombre}</td>
                   <td className="px-4 py-3 font-mono text-slate-600">{u.username}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${u.rol === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
                       {u.rol}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${u.congelado ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {u.congelado ? 'Congelado' : 'Activo'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">
@@ -150,11 +174,18 @@ export function GestionUsuarios() {
                         Editar
                       </button>
                       {u.id !== perfil.id && (
-                        <button type="button" onClick={() => { setDeleteConfirm(u.id); setError('') }}
-                          className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                        >
-                          Eliminar
-                        </button>
+                        <>
+                          <button type="button" onClick={() => toggleCongelado(u)} disabled={guardando}
+                            className={`rounded px-2 py-1 text-xs font-medium ${u.congelado ? 'text-emerald-600 hover:bg-emerald-50' : 'text-amber-600 hover:bg-amber-50'}`}
+                          >
+                            {u.congelado ? 'Descongelar' : 'Congelar'}
+                          </button>
+                          <button type="button" onClick={() => { setDeleteConfirm(u.id); setError('') }}
+                            className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                          >
+                            Eliminar
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -172,7 +203,17 @@ export function GestionUsuarios() {
               {editUser ? 'Editar usuario' : 'Nuevo usuario'}
             </h2>
             <form onSubmit={handleSave} className="space-y-3">
-              {!editUser && (
+              {editUser ? (
+                <div>
+                  <input value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="Nueva contrasena (dejar vacio para no cambiar)"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    type="password"
+                  />
+                  {editUser.id !== perfil!.id && (
+                    <p className="mt-1 text-xs text-slate-400">Solo podes cambiar tu propia contrasena</p>
+                  )}
+                </div>
+              ) : (
                 <>
                   <input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Email *"
                     className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"

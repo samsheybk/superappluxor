@@ -28,6 +28,7 @@ import { Garita1 } from './pages/seguridad/Garita1'
 import { Garita2 } from './pages/seguridad/Garita2'
 import { ReportesCCTV } from './pages/seguridad/ReportesCCTV'
 import { RecorridosQR } from './pages/seguridad/RecorridosQR'
+import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
 import { Contabilidad } from './pages/contabilidad/Contabilidad'
 import { Administracion } from './pages/administracion/Administracion'
 import { Impuestos } from './pages/impuestos/Impuestos'
@@ -69,6 +70,7 @@ function App() {
             <Route path="/seguridad/garita-2" element={<Garita2 />} />
             <Route path="/seguridad/reportes-cctv" element={<ReportesCCTV />} />
             <Route path="/seguridad/recorridos-qr" element={<RecorridosQR />} />
+            <Route path="/seguridad/historial-entradas-salidas" element={<HistorialGaritas />} />
             <Route path="/departamento/servicios-generales" element={<ServiciosGenerales />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />

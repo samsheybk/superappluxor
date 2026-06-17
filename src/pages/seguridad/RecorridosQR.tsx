@@ -43,8 +43,7 @@ export function RecorridosQR() {
   const [areaValida, setAreaValida] = useState<string | null>(null)
 
   const [scanState, setScanState] = useState<ScanState>('scanning')
-  const [qrCanvas, setQrCanvas] = useState<{ nombre: string; token: string } | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [verQR, setVerQR] = useState<{ nombre: string; token: string } | null>(null)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const readerRef = useRef<HTMLDivElement>(null)
 
@@ -97,8 +96,12 @@ export function RecorridosQR() {
       setScanState('valid')
       registrarEscaner(token)
     } else {
+      detenerCamara()
       setScanState('invalid')
-      setTimeout(() => setScanState('scanning'), 1500)
+      setTimeout(() => {
+        setScanState('scanning')
+        iniciarCamara()
+      }, 3000)
     }
   }
 
@@ -163,12 +166,6 @@ export function RecorridosQR() {
     const { error: err } = await supabase.from('recorridos_qr_areas').insert({ nombre, token })
     if (err) { setError(err.message); return }
     setNuevaArea('')
-    setQrCanvas({ nombre, token })
-    setTimeout(() => {
-      if (canvasRef.current) {
-        QRCode.toCanvas(canvasRef.current, token, { width: 200, margin: 2 })
-      }
-    }, 100)
     await cargarAreas()
   }
 
@@ -347,13 +344,6 @@ export function RecorridosQR() {
                 + Agregar
               </button>
             </div>
-            {qrCanvas && (
-              <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-center">
-                <p className="mb-2 text-sm font-medium text-slate-600">{qrCanvas.nombre}</p>
-                <canvas ref={canvasRef} className="mx-auto rounded" />
-                <p className="mt-2 text-xs text-slate-400">QR generado para impresion</p>
-              </div>
-            )}
           </div>
 
           <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
@@ -362,19 +352,27 @@ export function RecorridosQR() {
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="p-3 font-medium">Area</th>
                   <th className="p-3 font-medium">QR</th>
+                  <th className="p-3 font-medium"></th>
                   {esAdmin && <th className="p-3 font-medium">Accion</th>}
                 </tr>
               </thead>
               <tbody>
                 {areas.length === 0 ? (
                   <tr>
-                    <td colSpan={esAdmin ? 3 : 2} className="p-8 text-center text-slate-400">Sin areas registradas</td>
+                    <td colSpan={esAdmin ? 4 : 3} className="p-8 text-center text-slate-400">Sin areas registradas</td>
                   </tr>
                 ) : areas.map((a) => (
                   <tr key={a.id} className="border-b border-slate-100">
                     <td className="p-3 font-medium text-slate-800">{a.nombre}</td>
                     <td className="p-3">
                       <QRCodeImg token={a.token} />
+                    </td>
+                    <td className="p-3">
+                      <button onClick={() => setVerQR({ nombre: a.nombre, token: a.token })}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Ver
+                      </button>
                     </td>
                     {esAdmin && (
                       <td className="p-3">
@@ -388,8 +386,71 @@ export function RecorridosQR() {
           </div>
         </div>
       )}
+
+      {verQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setVerQR(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <QRPrint nombre={verQR.nombre} token={verQR.token} />
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => descargarQR(verQR.nombre, verQR.token)}
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Descargar
+              </button>
+              <button onClick={() => setVerQR(null)}
+                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function QRPrint({ nombre, token }: { nombre: string; token: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    if (canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, token, { width: 250, margin: 2 })
+    }
+  }, [token])
+  return (
+    <div className="text-center">
+      <canvas ref={canvasRef} className="mx-auto rounded" />
+      <p className="mt-3 text-sm font-bold text-slate-700">{nombre}</p>
+      <p className="mt-1 text-xs text-slate-500">Departamento de seguridad fisica</p>
+      <p className="text-xs text-slate-500">SuperAppLuxor</p>
+    </div>
+  )
+}
+
+async function descargarQR(nombre: string, token: string) {
+  const dataUrl = await QRCode.toDataURL(token, { width: 400, margin: 2 })
+  const img = new Image()
+  img.src = dataUrl
+  await new Promise((r) => { img.onload = r })
+  const c = document.createElement('canvas')
+  c.width = 400
+  c.height = 520
+  const ctx = c.getContext('2d')!
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, c.width, c.height)
+  ctx.drawImage(img, 75, 30, 250, 250)
+  ctx.fillStyle = '#1e293b'
+  ctx.font = 'bold 20px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText(nombre, 200, 315)
+  ctx.fillStyle = '#64748b'
+  ctx.font = '14px sans-serif'
+  ctx.fillText('Departamento de seguridad fisica', 200, 345)
+  ctx.fillText('SuperAppLuxor', 200, 365)
+  const link = document.createElement('a')
+  link.download = `QR-${nombre.replace(/\s+/g, '-')}.png`
+  link.href = c.toDataURL()
+  link.click()
 }
 
 function QRCodeImg({ token }: { token: string }) {
