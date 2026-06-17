@@ -1059,5 +1059,59 @@ INSERT INTO departamentos (nombre) VALUES
 ON CONFLICT (nombre) DO NOTHING;
 
 -- ============================================================
+-- CCTV Reportes (CCOM)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS cctv_reportes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ubicacion TEXT NOT NULL,
+  zona TEXT NOT NULL,
+  comentario TEXT NOT NULL,
+  criticidad TEXT NOT NULL CHECK (criticidad IN ('Baja', 'Media', 'Alta', 'Critica')),
+  fotos JSONB DEFAULT '[]'::jsonb,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE cctv_reportes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "CCTV reportes read" ON cctv_reportes;
+CREATE POLICY "CCTV reportes read" ON cctv_reportes FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "CCTV reportes insert" ON cctv_reportes;
+CREATE POLICY "CCTV reportes insert" ON cctv_reportes FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "CCTV reportes delete" ON cctv_reportes;
+CREATE POLICY "CCTV reportes delete" ON cctv_reportes FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- Recorridos QR
+-- ============================================================
+CREATE TABLE IF NOT EXISTS recorridos_qr_areas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  token TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE recorridos_qr_areas ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Recorridos QR areas read" ON recorridos_qr_areas;
+CREATE POLICY "Recorridos QR areas read" ON recorridos_qr_areas FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Recorridos QR areas insert" ON recorridos_qr_areas;
+CREATE POLICY "Recorridos QR areas insert" ON recorridos_qr_areas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Recorridos QR areas delete" ON recorridos_qr_areas;
+CREATE POLICY "Recorridos QR areas delete" ON recorridos_qr_areas FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS recorridos_qr_registros (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  area_token TEXT NOT NULL REFERENCES recorridos_qr_areas(token),
+  registro_time TIMESTAMPTZ NOT NULL DEFAULT now(),
+  novedad TEXT,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE recorridos_qr_registros ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Recorridos QR registros read" ON recorridos_qr_registros;
+CREATE POLICY "Recorridos QR registros read" ON recorridos_qr_registros FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Recorridos QR registros insert" ON recorridos_qr_registros;
+CREATE POLICY "Recorridos QR registros insert" ON recorridos_qr_registros FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Recorridos QR registros delete" ON recorridos_qr_registros;
+CREATE POLICY "Recorridos QR registros delete" ON recorridos_qr_registros FOR DELETE USING (es_admin());
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================

@@ -7,7 +7,7 @@ export interface Departamento {
 export type Direcciones = 'Operaciones' | 'Talento Humano' | 'Comercial' | 'Finanzas'
 
 export const DEPARTAMENTOS_POR_DIRECCION: Record<Direcciones, string[]> = {
-  'Operaciones': ['Supermercados', 'Servicios generales', 'Taller automotriz', 'Plantas electricas', 'Almacen y distribucion', 'Sistemas', 'Seguridad'],
+  'Operaciones': ['Supermercados', 'Servicios generales', 'Taller automotriz', 'Plantas electricas', 'Almacen y distribucion', 'Sistemas'],
   'Talento Humano': ['Reclutamiento y seleccion', 'Capacitacion y desarrollo', 'Seguridad laboral', 'Nomina', 'Bienestar social', 'Relaciones laborales'],
   'Comercial': ['Compras', 'Mercadeo'],
   'Finanzas': ['Administracion', 'Contabilidad', 'Cuentas por pagar', 'Cuentas por cobrar', 'Inventario', 'Tesoreria', 'Banco', 'Impuestos', 'Auditoria de caja'],

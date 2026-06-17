@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { DEPARTAMENTOS_POR_DIRECCION, type Direcciones } from '../types'
 import {
-  IconDashboard, IconOperaciones, IconTalento, IconComercial, IconFinanzas,
+  IconDashboard, IconOperaciones, IconTalento, IconComercial, IconFinanzas, IconSeguridad,
   IconChevronDown, IconCerrar,
 } from './Icons'
 
@@ -19,6 +19,7 @@ const ICONOS_DIR: Record<Direcciones, typeof IconOperaciones> = {
 export function Sidebar() {
   const [abierto, setAbierto] = useState(false)
   const [direccionAbierta, setDireccionAbierta] = useState<Direcciones | null>(null)
+  const [seguridadAbierto, setSeguridadAbierto] = useState(false)
   const { signOut, user, perfil } = useAuth()
 
   return (
@@ -108,6 +109,41 @@ export function Sidebar() {
               </div>
             )
           })}
+
+          <div className="mb-1">
+            <button
+              onClick={() => setSeguridadAbierto(!seguridadAbierto)}
+              className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm transition-colors hover:bg-slate-800 ${seguridadAbierto ? 'bg-slate-800' : ''}`}
+            >
+              <IconSeguridad />
+              <span className="flex-1 font-medium">Seguridad</span>
+              <IconChevronDown className={`h-4 w-4 transition-transform ${seguridadAbierto ? 'rotate-180' : ''}`} />
+            </button>
+            {seguridadAbierto && (
+              <div className="ml-4 mt-1 space-y-1 border-l border-slate-700 pl-3">
+                <NavLink to="/seguridad/garita-1" onClick={() => setAbierto(false)}
+                  className={({ isActive }) => `block rounded-lg px-4 py-2 text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                  Garita 1
+                </NavLink>
+                <NavLink to="/seguridad/garita-2" onClick={() => setAbierto(false)}
+                  className={({ isActive }) => `block rounded-lg px-4 py-2 text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                  Garita 2
+                </NavLink>
+                <NavLink to="/seguridad/reportes-cctv" onClick={() => setAbierto(false)}
+                  className={({ isActive }) => `block rounded-lg px-4 py-2 text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                  Reportes de CCTV
+                </NavLink>
+                <NavLink to="/seguridad/recorridos-qr" onClick={() => setAbierto(false)}
+                  className={({ isActive }) => `block rounded-lg px-4 py-2 text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                  Recorridos QR
+                </NavLink>
+              </div>
+            )}
+          </div>
 
           {perfil?.rol === 'admin' && (
             <NavLink

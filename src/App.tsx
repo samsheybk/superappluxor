@@ -24,13 +24,16 @@ import { Documentacion } from './pages/Documentacion'
 import { ListaTickets } from './pages/sistemas/ListaTickets'
 import { CrearTicket } from './pages/sistemas/CrearTicket'
 import { DetalleTicket } from './pages/sistemas/DetalleTicket'
-import { ControlGaritas } from './pages/seguridad/ControlGaritas'
-import { HistorialGaritas } from './pages/seguridad/HistorialGaritas'
+import { Garita1 } from './pages/seguridad/Garita1'
+import { Garita2 } from './pages/seguridad/Garita2'
+import { ReportesCCTV } from './pages/seguridad/ReportesCCTV'
+import { RecorridosQR } from './pages/seguridad/RecorridosQR'
 import { Contabilidad } from './pages/contabilidad/Contabilidad'
 import { Administracion } from './pages/administracion/Administracion'
 import { Impuestos } from './pages/impuestos/Impuestos'
 import { Compras } from './pages/compras/Compras'
 import { Inventario } from './pages/inventario/Inventario'
+import { ServiciosGenerales } from './pages/servicios-generales/ServiciosGenerales'
 import { GestionUsuarios } from './pages/admin/GestionUsuarios'
 
 function App() {
@@ -62,8 +65,11 @@ function App() {
             <Route path="/departamento/impuestos" element={<Impuestos />} />
             <Route path="/departamento/compras" element={<Compras />} />
             <Route path="/departamento/inventario" element={<Inventario />} />
-            <Route path="/departamento/seguridad" element={<ControlGaritas />} />
-            <Route path="/departamento/seguridad/historial" element={<HistorialGaritas />} />
+            <Route path="/seguridad/garita-1" element={<Garita1 />} />
+            <Route path="/seguridad/garita-2" element={<Garita2 />} />
+            <Route path="/seguridad/reportes-cctv" element={<ReportesCCTV />} />
+            <Route path="/seguridad/recorridos-qr" element={<RecorridosQR />} />
+            <Route path="/departamento/servicios-generales" element={<ServiciosGenerales />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />

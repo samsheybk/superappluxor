@@ -7,12 +7,11 @@ import { SUPERMERCADOS } from '../../types'
 type Phase = 'plate' | 'vehicle_form' | 'movement_form'
 type VehiculoRow = { id: string; marca: string; modelo: string; color: string; tipo: string; origen: string }
 
-export function ControlGaritas() {
+export function ControlGaritas({ garita = 1 }: { garita?: number }) {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [phase, setPhase] = useState<Phase>('plate')
   const [placa, setPlaca] = useState('')
-  const [garita, setGarita] = useState(1)
   const [tipo, setTipo] = useState<'entrada' | 'salida'>('entrada')
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<{ texto: string; error: boolean } | null>(null)
@@ -111,28 +110,19 @@ export function ControlGaritas() {
       <div className="mb-4 text-xs text-slate-400">
         <Link to="/" className="text-slate-500 hover:text-blue-600">Panel</Link>
         <span className="mx-1">›</span>
-        <span className="text-slate-500">Operaciones</span>
+        <span className="text-slate-500">Seguridad</span>
         <span className="mx-1">›</span>
-        <span className="text-slate-700 font-medium">Seguridad</span>
+        <span className="text-slate-700 font-medium">Garita {garita}</span>
       </div>
       <div className="mx-auto flex min-h-[80vh] max-w-lg flex-col items-center justify-center px-4 py-8">
       <div className="w-full">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-slate-800">Control de Acceso</h1>
-          <p className="text-slate-400">Garita 1 y 2</p>
+          <p className="text-slate-400">Garita {garita}</p>
         </div>
 
         {phase === 'plate' && (
           <div className="space-y-4">
-            <div className="flex gap-3">
-              {[1, 2].map((g) => (
-                <button key={g} type="button" onClick={() => setGarita(g)}
-                  className={`flex-1 rounded-xl py-3 text-lg font-bold transition-all ${garita === g ? 'bg-slate-800 text-white shadow-lg shadow-slate-200' : 'bg-white text-slate-400 shadow-sm hover:bg-slate-50'}`}
-                >
-                  Garita {g}
-                </button>
-              ))}
-            </div>
             <div className="flex gap-3">
               {(['entrada', 'salida'] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setTipo(t)}
@@ -153,18 +143,10 @@ export function ControlGaritas() {
             >
               {guardando ? 'Buscando...' : 'Siguiente'}
             </button>
-            <button type="button" onClick={() => navigate('/departamento/seguridad/historial')}
+            <button type="button" onClick={() => navigate(`/seguridad/garita-${garita === 1 ? 2 : 1}`)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-500 transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
             >
-              Historial de movimientos
-            </button>
-            <button type="button" onClick={() => navigate('/departamento/sistemas/crear')}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-3 text-sm font-medium text-slate-500 transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              Reportar incidencia
+              Ir a Garita {garita === 1 ? 2 : 1}
             </button>
           </div>
         )}
