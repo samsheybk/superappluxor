@@ -1,172 +1,401 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
-const PUESTOS = [
-  { value: 'cajero', label: 'Cajero' },
-  { value: 'reponedor', label: 'Reponedor' },
-  { value: 'atencion-al-cliente', label: 'Atencion al cliente' },
-  { value: 'supervisor', label: 'Supervisor de piso' },
-  { value: 'jefe-sucursal', label: 'Jefe de sucursal' },
-  { value: 'administrativo', label: 'Administrativo' },
-  { value: 'logistica', label: 'Logistica / Deposito' },
-  { value: 'sistemas', label: 'Sistemas / TI' },
-  { value: 'recursos-humanos', label: 'Recursos Humanos' },
-  { value: 'contencion', label: 'Contencion / Seguridad' },
-  { value: 'otro', label: 'Otro' },
+const NAVY = '#001A4A'
+const YELLOW = '#FFD700'
+const GREEN = '#00A651'
+const CORAL = '#FF5252'
+const LIGHT_GRAY = '#F0F0F0'
+
+const TIENDAS = [
+  { nombre: 'Luxor IPSFA', dir: 'Av. Principal, Urb. Las Mercedes', hora: '8:00 AM - 9:00 PM' },
+  { nombre: 'Luxor Centro', dir: 'Calle 5, Zona Central', hora: '7:00 AM - 10:00 PM' },
+  { nombre: 'EuroMax Este', dir: 'Av. Oriental, CC Plaza', hora: '8:00 AM - 9:00 PM' },
+  { nombre: 'EuroMax Oeste', dir: 'Av. Occidental, Sector 3', hora: '8:00 AM - 8:00 PM' },
+  { nombre: 'Luxor Express', dir: 'Av. Principal, Local 12', hora: '7:00 AM - 11:00 PM' },
 ]
 
-export function Landing() {
-  const [nombre, setNombre] = useState('')
-  const [email, setEmail] = useState('')
-  const [telefono, setTelefono] = useState('')
-  const [puesto, setPuesto] = useState('')
-  const [experiencia, setExperiencia] = useState('')
-  const [enviado, setEnviado] = useState(false)
-  const [enviando, setEnviando] = useState(false)
+const MARCAS = ['Solera', 'Mary', 'Excelcior', 'Pampero', 'Tio Rico', 'Agua del Norte', 'Polar', 'Empresas Polar']
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setEnviando(true)
-    // Simulacion de envio (a futuro se conectara con el modulo de RRHH)
-    await new Promise(r => setTimeout(r, 1200))
-    setEnviando(false)
-    setEnviado(true)
-  }
+export function Landing() {
+  const [bgIdx, setBgIdx] = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  const HERO_BG = [
+    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1400&q=80',
+    'https://images.unsplash.com/photo-1567653418876-5bb0e566e1c2?w=1400&q=80',
+    'https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=1400&q=80',
+    'https://images.unsplash.com/photo-1534723328310-e82abd3f4046?w=1400&q=80',
+    'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1400&q=80',
+  ]
+  useEffect(() => {
+    const t = setInterval(() => setBgIdx(i => (i + 1) % HERO_BG.length), 5000)
+    return () => clearInterval(t)
+  }, [])
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", color: '#1e293b', background: '#f8fafc', lineHeight: 1.6, minHeight: '100vh' }}>
-      {/* Header */}
-      <div style={{ background: '#1e293b', color: '#fff', padding: '20px 0' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: 1 }}>SUPERMERCADOS LUXOR</span>
-          <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Calidad y confianza</span>
-        </div>
-      </div>
+    <div style={{ fontFamily: "'Poppins', 'Segoe UI', system-ui, sans-serif", color: '#1e293b', background: '#FFFFFF', lineHeight: 1.6, minHeight: '100vh' }}>
 
-      {/* Hero */}
-      <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)', color: '#fff', padding: '60px 0', textAlign: 'center' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: 12 }}>Forma parte de nuestro equipo</h1>
-          <p style={{ fontSize: '1rem', color: '#cbd5e1', maxWidth: 600, margin: '0 auto' }}>
-            En Supermercados Luxor buscamos talento comprometido con la excelencia y el servicio. Sumate a una empresa en crecimiento.
-          </p>
-        </div>
-      </div>
+      {/* ======= HEADER ======= */}
+      <header style={{
+        background: scrolled ? 'rgba(255,255,255,0.65)' : '#fff',
+        backdropFilter: scrolled ? 'blur(24px) saturate(200%)' : 'none',
+        color: '#1e293b',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        boxShadow: scrolled ? '0 4px 30px rgba(0,0,0,0.1)' : '0 1px 3px rgba(0,0,0,0.04)',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
+        transition: 'background 0.3s, backdrop-filter 0.3s, box-shadow 0.3s, border-color 0.3s',
+      }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 72, gap: 16 }}>
+          {/* Logo */}
+          <a href="#inicio" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.3s', position: 'relative' }}
+            onMouseEnter={e => { const i = e.currentTarget.querySelector('img'); const s = e.currentTarget.querySelector('svg'); if(i) i.style.opacity = '0'; if(s) s.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.08)' }}
+            onMouseLeave={e => { const i = e.currentTarget.querySelector('img'); const s = e.currentTarget.querySelector('svg'); if(i) i.style.opacity = '1'; if(s) s.style.opacity = '0'; e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            <img src="/logo.webp" alt="Luxor" style={{ height: 48, width: 'auto', display: 'block', transition: 'opacity 0.3s' }} />
+            <svg width={28} height={28} fill="none" stroke={NAVY} viewBox="0 0 24 24" style={{ position: 'absolute', left: 10, top: '50%', marginTop: -14, opacity: 0, transition: 'opacity 0.3s' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </a>
 
-      {/* About */}
-      <div style={{ padding: '48px 0' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: 24, textAlign: 'center', color: '#1e293b' }}>Sobre Supermercados Luxor</h2>
-          <p style={{ textAlign: 'center', color: '#475569', maxWidth: 700, margin: '0 auto 12px', fontSize: '0.95rem' }}>
-            Somos una cadena de supermercados comprometida con ofrecer productos de calidad y un servicio
-            cercano a nuestras comunidades. Con presencia en multiples ubicaciones, trabajamos cada dia
-            para superar las expectativas de nuestros clientes.
-          </p>
-          <p style={{ textAlign: 'center', color: '#475569', maxWidth: 700, margin: '0 auto 12px', fontSize: '0.95rem' }}>
-            Creemos en el talento local y en la mejora continua. Por eso estamos siempre en busqueda de
-            personas que compartan nuestra vision y quieran crecer junto a nosotros.
-          </p>
-        </div>
-      </div>
+          {/* Desktop Nav */}
+          <nav style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
+            {['Ubicaciones', 'Ofertas', 'Carreras', 'Sobre Nosotros'].map(item => (
+              <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+                style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, transition: 'color 0.2s', letterSpacing: 0.3, whiteSpace: 'nowrap' }}
+                onMouseEnter={e => e.currentTarget.style.color = NAVY}
+                onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+              >{item}</a>
+            ))}
+          </nav>
 
-      {/* Valores */}
-      <div style={{ padding: '0 0 48px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: 24, textAlign: 'center', color: '#1e293b' }}>Nuestros valores</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+          {/* Search */}
+          <div style={{ display: 'none', flex: 1, maxWidth: 260, position: 'relative' }} className="lg:block">
+            <input placeholder="Buscar productos..."
+              style={{ width: '100%', padding: '8px 14px 8px 36px', borderRadius: 20, border: 'none', fontSize: '0.8rem', background: '#f1f5f9', color: '#1e293b', outline: 'none' }}
+            />
+            <svg style={{ position: 'absolute', left: 10, top: 8, width: 18, height: 18, color: '#94a3b8' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+      </header>
+
+      {/* ======= HERO ======= */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      <section id="inicio" style={{ position: 'relative', minHeight: '38.5vh', padding: '16px 0 0', overflow: 'hidden', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        {/* Background images slideshow */}
+        <div style={{ position: 'absolute', inset: 0 }}>
+          {HERO_BG.map((url, i) => (
+            <div key={url} style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url(${url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: i === bgIdx ? 1 : 0,
+              transition: 'opacity 1.2s ease-in-out',
+            }} />
+          ))}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 100%)' }} />
+        </div>
+
+      </section>
+
+      {/* ======= VARIEDAD ======= */}
+      <section style={{ padding: 0, background: '#fff' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+          <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 20 }}>Todo lo que buscas en un solo lugar</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 14, alignItems: 'flex-start' }}>
             {[
-              { titulo: 'Compromiso', desc: 'Responsabilidad y dedicacion en cada tarea' },
-              { titulo: 'Calidad', desc: 'Excelencia en productos y servicio al cliente' },
-              { titulo: 'Trabajo en equipo', desc: 'Colaboracion para alcanzar metas comunes' },
-              { titulo: 'Innovacion', desc: 'Mejora continua para evolucionar juntos' },
-            ].map(v => (
-              <div key={v.titulo} style={{ background: '#fff', borderRadius: 10, padding: '24px 16px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: 6, color: '#1e293b' }}>{v.titulo}</h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748b' }}>{v.desc}</p>
+              { text: 'CARNICERIA', color: '#c41430' },
+              { text: 'CHARCUTERIA', color: '#e63950' },
+              { text: 'VIVERES', color: '#0d5e2e' },
+              { text: 'MASCOTAS', color: '#f59e0b' },
+              { text: 'HIGIENE', color: '#0891b2' },
+              { text: 'COSMETICOS', color: '#db2777' },
+              { text: 'LICORES', color: '#7c3aed' },
+              { text: 'BAZAR', color: '#2563eb' },
+              { text: 'DEPORTE', color: '#16a34a' },
+            ].map(cat => (
+              <div key={cat.text} style={{
+                background: cat.color, padding: '12px 28px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.08)', width: 'auto',
+                transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'default',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.15)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)' }}
+              >
+                <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', textAlign: 'center', letterSpacing: 1.5, whiteSpace: 'nowrap' }}>{cat.text}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Formulario */}
-      <div style={{ padding: '0 0 48px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px' }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: 24, textAlign: 'center', color: '#1e293b' }}>Formulario de postulacion</h2>
+      {/* ======= UBICACIONES ======= */}
+      <section id="ubicaciones" style={{ padding: '40px 0', background: '#fff' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+          <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 8 }}>Nuestras Ubicaciones</h2>
+          <p style={{ textAlign: 'left', color: '#64748b', fontSize: '0.9rem', marginBottom: 40, maxWidth: 600 }}>Encuentra la tienda mas cercana y descubre nuestros horarios y servicios</p>
 
-          {!enviado ? (
-            <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', padding: 40, marginBottom: 16 }} id="formWrapper">
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>Nombre completo *</label>
-                    <input value={nombre} onChange={e => setNombre(e.target.value)} required
-                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.9rem', color: '#1e293b', background: '#fff', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>Correo electronico *</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.9rem', color: '#1e293b', background: '#fff', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>Telefono *</label>
-                    <input type="tel" value={telefono} onChange={e => setTelefono(e.target.value)} required
-                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.9rem', color: '#1e293b', background: '#fff', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>Puesto solicitado *</label>
-                    <select value={puesto} onChange={e => setPuesto(e.target.value)} required
-                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.9rem', color: '#1e293b', background: '#fff' }}
-                    >
-                      <option value="">Seleccione un puesto</option>
-                      {PUESTOS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>Experiencia previa / Mensaje</label>
-                  <textarea value={experiencia} onChange={e => setExperiencia(e.target.value)} placeholder="Contanos sobre tu experiencia laboral, estudios y por que te gustaria trabajar con nosotros..."
-                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.9rem', color: '#1e293b', background: '#fff', resize: 'vertical', minHeight: 100, fontFamily: 'inherit', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#334155', marginBottom: 6 }}>Adjuntar CV (opcional)</label>
-                  <input type="file" accept=".pdf,.doc,.docx,.jpg,.png"
-                    style={{ width: '100%', padding: 8, border: '1px dashed #cbd5e1', borderRadius: 8, fontSize: '0.9rem', background: '#f8fafc', cursor: 'pointer', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <button type="submit" disabled={enviando}
-                  style={{ width: '100%', padding: '12px 24px', background: enviando ? '#94a3b8' : '#1e293b', color: '#fff', border: 'none', borderRadius: 8, fontSize: '0.95rem', fontWeight: 600, cursor: enviando ? 'not-allowed' : 'pointer' }}
+          {/* Store cards — horizontal scroll */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => {
+              const el = scrollRef.current
+              if (!el) return
+              if (el.scrollLeft <= 100) { el.scrollLeft = el.scrollWidth - el.clientWidth; return }
+              el.scrollBy({ left: -340, behavior: 'smooth' })
+            }}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'box-shadow 0.2s', color: NAVY }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+            >
+              <svg width={18} height={18} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <div ref={scrollRef} style={{
+              display: 'flex', gap: 24, overflowX: 'auto', scrollSnapType: 'x mandatory',
+              paddingBottom: 12, scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', flex: 1,
+            }}
+              className="hide-scrollbar"
+            >
+            {TIENDAS.map((t, i) => {
+              const gradients = [
+                'linear-gradient(135deg, #001A4A, #1a3a6b)',
+                'linear-gradient(135deg, #c41430, #e63950)',
+                'linear-gradient(135deg, #0d5e2e, #1a8a4a)',
+                'linear-gradient(135deg, #28315f, #4a5580)',
+                'linear-gradient(135deg, #b8860b, #daa520)',
+              ]
+              return (
+                <div key={t.nombre} style={{
+                  overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                  transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'default',
+                  display: 'flex', flexDirection: 'column',
+                  scrollSnapAlign: 'start', flexShrink: 0, minWidth: 300,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)' }}
                 >
-                  {enviando ? 'Enviando...' : 'Enviar postulacion'}
-                </button>
-                <p style={{ textAlign: 'center', marginTop: 12, fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Tus datos seran tratados con confidencialidad conforme a nuestra politica de privacidad.
-                </p>
-              </form>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 32, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, color: '#166534' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: 8 }}>Postulacion recibida</h3>
-              <p style={{ fontSize: '0.9rem', color: '#15803d' }}>
-                Gracias por interesarte en formar parte de Supermercados Luxor. Te contactaremos a la brevedad si tu perfil se ajusta a nuestras necesidades.
-              </p>
-            </div>
-          )}
+                  <div style={{
+                    height: 160, background: gradients[i % gradients.length],
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 40%, rgba(255,255,255,0.06) 0%, transparent 60%)' }} />
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', textAlign: 'center', position: 'relative', zIndex: 1, letterSpacing: 0.5 }}>{t.nombre}</div>
+                  </div>
+                  <div style={{ padding: '16px 20px', background: '#fff', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      {t.dir}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: GREEN, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      {t.hora}
+                    </div>
+                  </div>
+                  <div style={{ padding: '0 20px 16px', background: '#fff', display: 'flex', gap: 8 }}>
+                    <button style={{ flex: 1, background: CORAL, color: '#fff', border: 'none', borderRadius: 10, padding: '8px 0', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >Pedir Delivery</button>
+                    <button style={{ flex: 1, background: '#fff', color: NAVY, border: `1px solid ${NAVY}20`, borderRadius: 10, padding: '8px 0', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>Como llegar</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+            <button onClick={() => {
+              const el = scrollRef.current
+              if (!el) return
+              if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 100) el.scrollLeft = 0
+              else el.scrollBy({ left: 340, behavior: 'smooth' })
+            }}
+              style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'box-shadow 0.2s', color: NAVY }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'}
+            >
+              <svg width={18} height={18} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <div style={{ background: '#1e293b', color: '#94a3b8', textAlign: 'center', padding: '24px 0', fontSize: '0.82rem' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 20px' }}>
-          <p>&copy; 2026 <strong style={{ color: '#e2e8f0' }}>Supermercados Luxor</strong>. Todos los derechos reservados.</p>
-          <p style={{ marginTop: 4 }}>Formulario de postulacion laboral &mdash; Recursos Humanos</p>
+      {/* ======= MARCAS ALIADAS ======= */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .marquee-track:hover > div { animation-play-state: paused; }
+      `}</style>
+      <section style={{ background: LIGHT_GRAY, overflow: 'hidden', padding: '8px 0' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 12, padding: '0 24px' }}>Nuestras Marcas Aliadas</h2>
+          <div className="marquee-track" style={{ overflow: 'hidden', width: '100%' }}>
+            <div style={{ display: 'flex', gap: 24, width: 'max-content', animation: 'marquee 30s linear infinite' }}>
+              {[...MARCAS, ...MARCAS].map((m, i) => {
+                const colors = ['#c41430','#2563eb','#0d5e2e','#f59e0b','#db2777','#7c3aed','#0891b2','#16a34a','#e63950','#1a3a6b','#b8860b','#475569','#be123c','#0369a1','#854d0e','#4f46e5']
+                return (
+                  <div key={i} style={{
+                    width: 100, height: 100, borderRadius: '50%',
+                    background: colors[i % colors.length],
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden',
+                    transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'default',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)' }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)' }}
+                  >
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2, padding: 4 }}>{m}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* ======= CONOCENOS ======= */}
+      <section id="sobre-nosotros" style={{ padding: '64px 0', background: '#fff' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+          <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 8 }}>Conocenos</h2>
+          <p style={{ textAlign: 'left', color: '#64748b', fontSize: '0.9rem', marginBottom: 40, maxWidth: 600 }}>Descubre nuestra historia, mision y el equipo que hace posible Supermercados Luxor</p>
+
+          {/* Image grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 40 }} className="grid-cols-2">
+            <div style={{ overflow: 'hidden', height: 280, background: `linear-gradient(135deg, ${NAVY}, #002d6e)`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,26,74,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: '#fff' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 4 }}>+15 anos</div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>sirviendo a nuestras comunidades</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ overflow: 'hidden', height: 280, background: `linear-gradient(135deg, ${GREEN}, ${NAVY})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ textAlign: 'center', color: '#fff' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 4 }}>5 sucursales</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>siempre cerca de ti</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mission / Vision / Values */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="grid-cols-3">
+            {[
+              { titulo: 'Mision', texto: 'Ofrecer productos de calidad superior con un servicio cercano, contribuyendo al bienestar de nuestras comunidades y al desarrollo de nuestro equipo.', color: NAVY },
+              { titulo: 'Vision', texto: 'Ser la cadena de supermercados lider en Venezuela, reconocida por nuestra innovacion, calidad y compromiso social.', color: GREEN },
+              { titulo: 'Valores', texto: 'Compromiso, Calidad, Trabajo en equipo, Innovacion, Responsabilidad social y Respeto por nuestros clientes y colaboradores.', color: CORAL },
+            ].map(item => (
+              <div key={item.titulo} style={{ background: LIGHT_GRAY, padding: 28, transition: 'transform 0.3s, box-shadow 0.3s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+              >
+                <div style={{ width: 40, height: 40, background: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.8rem', marginBottom: 14 }}>{item.titulo[0]}</div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: NAVY, marginBottom: 8 }}>{item.titulo}</h3>
+                <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.7 }}>{item.texto}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ======= CARRERAS ======= */}
+      <section id="carreras" style={{
+        position: 'relative', background: NAVY, minHeight: '12vh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(circle at 30% 50%, rgba(255,215,0,0.06) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(255,82,82,0.05) 0%, transparent 50%)',
+        }} />
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', padding: '20px 24px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 800, color: '#fff', marginBottom: 16, lineHeight: 1.2 }}>
+            Estamos buscando<span style={{ color: YELLOW }}> tu talento</span>
+          </h2>
+          <p style={{ fontSize: '1rem', color: '#CBD5E1', marginBottom: 28, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>
+            Postulate aca y forma parte de una empresa en crecimiento donde tu trabajo realmente importa.
+          </p>
+          <a href="/sitio/postular"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: CORAL, color: '#fff', padding: '14px 40px', fontSize: '0.95rem', fontWeight: 700, textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 8px 28px rgba(255,82,82,0.4)' }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(255,82,82,0.5)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(255,82,82,0.4)' }}
+          >
+            Quiero postularme
+            <svg width={18} height={18} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14m-4-4l4 4-4 4" /></svg>
+          </a>
+        </div>
+      </section>
+
+      {/* ======= FOOTER ======= */}
+      <footer style={{ background: NAVY, color: '#94a3b8', padding: '48px 0 24px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 40 }} className="grid-cols-1 md:grid-cols-4">
+            {/* Brand */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <img src="/lofo-footer.webp" alt="Luxor" style={{ height: 40, width: 'auto', display: 'block' }} />
+              </div>
+              <p style={{ fontSize: '0.8rem', lineHeight: 1.7, marginBottom: 16 }}>Calidad y confianza para toda la comunidad. Con 5 sucursales y creciendo.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {[
+                  { id: 'facebook', path: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+                  { id: 'instagram', path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z' },
+                  { id: 'twitter', path: 'M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z' },
+                  { id: 'whatsapp', path: 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' },
+                ].map(s => (
+                  <div key={s.id} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s, transform 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = GREEN; e.currentTarget.style.transform = 'scale(1.1)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
+                  >
+                    <svg width={16} height={16} fill="#CBD5E1" viewBox="0 0 24 24" style={{ transition: 'fill 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.fill = '#fff'}
+                      onMouseLeave={e => e.currentTarget.style.fill = '#CBD5E1'}
+                    ><path d={s.path} /></svg>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Links */}
+            {[
+              { titulo: 'Compania', links: ['Sobre nosotros', 'Trabaja con nosotros', 'Prensa', 'Blog'] },
+              { titulo: 'Ayuda', links: ['Preguntas frecuentes', 'Politica de devolucion', 'Contacto', 'Sugerencias'] },
+              { titulo: 'Legal', links: ['Terminos y condiciones', 'Privacidad', 'Cookies', 'Libro de reclamaciones'] },
+            ].map(col => (
+              <div key={col.titulo}>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: 16 }}>{col.titulo}</h4>
+                {col.links.map(l => (
+                  <a key={l} href="#" style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'none', marginBottom: 10, transition: 'color 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = YELLOW}
+                    onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                  >{l}</a>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Contact bar */}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: '0.78rem' }}>
+            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> contacto@luxor.com</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg> +58 412-123-4567</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Av. Principal, Caracas</span>
+            </div>
+            <div>&copy; 2026 <strong style={{ color: '#e2e8f0' }}>Supermercados Luxor</strong>. Todos los derechos reservados.</div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
