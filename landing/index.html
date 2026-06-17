@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supermercados Luxor</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      background: #f8fafc;
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+    /* Header */
+    header {
+      background: #1e293b;
+      color: #fff;
+      padding: 20px 0;
+    }
+    header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    header span { color: #94a3b8; font-size: 0.8rem; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: #fff;
+      padding: 60px 0;
+      text-align: center;
+    }
+    .hero h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .hero p {
+      font-size: 1rem;
+      color: #cbd5e1;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Sections */
+    section { padding: 48px 0; }
+    section h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: #1e293b;
+      text-align: center;
+    }
+    .about p {
+      text-align: center;
+      color: #475569;
+      max-width: 700px;
+      margin: 0 auto 12px;
+      font-size: 0.95rem;
+    }
+
+    /* Form */
+    .form-section {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      padding: 40px;
+      margin-bottom: 16px;
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: #1e293b;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group input[type="file"] {
+      padding: 8px;
+      border: 1px dashed #cbd5e1;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 12px 24px;
+      background: #1e293b;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #334155; }
+    .btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    .form-footer {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .success-msg {
+      display: none;
+      text-align: center;
+      padding: 32px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      color: #166534;
+    }
+    .success-msg h4 { font-size: 1.1rem; margin-bottom: 8px; }
+    .success-msg p { font-size: 0.9rem; color: #15803d; }
+
+    /* Valores */
+    .values {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .value-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px 16px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .value-card h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #1e293b;
+    }
+    .value-card p {
+      font-size: 0.82rem;
+      color: #64748b;
+    }
+
+    /* Footer */
+    footer {
+      background: #1e293b;
+      color: #94a3b8;
+      text-align: center;
+      padding: 24px 0;
+      font-size: 0.82rem;
+    }
+    footer strong { color: #e2e8f0; }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .hero h2 { font-size: 1.5rem; }
+      .form-section { padding: 24px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>SUPERMERCADOS LUXOR</h1>
+    <span>Calidad y confianza</span>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <h2>Forma parte de nuestro equipo</h2>
+    <p>En Supermercados Luxor buscamos talento comprometido con la excelencia y el servicio. Sumate a una empresa en crecimiento.</p>
+  </div>
+</section>
+
+<section class="about">
+  <div class="container">
+    <h3>Sobre Supermercados Luxor</h3>
+    <p>
+      Somos una cadena de supermercados comprometida con ofrecer productos de calidad y un servicio
+      cercano a nuestras comunidades. Con presencia en multiples ubicaciones, trabajamos cada dia
+      para superar las expectativas de nuestros clientes.
+    </p>
+    <p>
+      Creemos en el talento local y en la mejora continua. Por eso estamos siempre en busqueda de
+      personas que compartan nuestra vision y quieran crecer junto a nosotros.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h3>Nuestros valores</h3>
+    <div class="values">
+      <div class="value-card">
+        <h4>Compromiso</h4>
+        <p>Responsabilidad y dedicacion en cada tarea</p>
+      </div>
+      <div class="value-card">
+        <h4>Calidad</h4>
+        <p>Excelencia en productos y servicio al cliente</p>
+      </div>
+      <div class="value-card">
+        <h4>Trabajo en equipo</h4>
+        <p>Colaboracion para alcanzar metas comunes</p>
+      </div>
+      <div class="value-card">
+        <h4>Innovacion</h4>
+        <p>Mejora continua para evolucionar juntos</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h3>Formulario de postulacion</h3>
+    <div class="form-section" id="formWrapper">
+      <form id="postulacionForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombre">Nombre completo *</label>
+            <input type="text" id="nombre" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Correo electronico *</label>
+            <input type="email" id="email" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="telefono">Telefono *</label>
+            <input type="tel" id="telefono" required>
+          </div>
+          <div class="form-group">
+            <label for="puesto">Puesto solicitado *</label>
+            <select id="puesto" required>
+              <option value="">Seleccione un puesto</option>
+              <option value="cajero">Cajero</option>
+              <option value="reponedor">Reponedor</option>
+              <option value="atencion-al-cliente">Atencion al cliente</option>
+              <option value="supervisor">Supervisor de piso</option>
+              <option value="jefe-sucursal">Jefe de sucursal</option>
+              <option value="administrativo">Administrativo</option>
+              <option value="logistica">Logistica / Deposito</option>
+              <option value="sistemas">Sistemas / TI</option>
+              <option value="recursos-humanos">Recursos Humanos</option>
+              <option value="contencion">Contencion / Seguridad</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="experiencia">Experiencia previa / Mensaje</label>
+          <textarea id="experiencia" placeholder="Contanos sobre tu experiencia laboral, estudios y por que te gustaria trabajar con nosotros..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="cv">Adjuntar CV (opcional)</label>
+          <input type="file" id="cv" accept=".pdf,.doc,.docx,.jpg,.png">
+        </div>
+        <button type="submit" class="btn" id="btnEnviar">Enviar postulacion</button>
+        <p class="form-footer">Tus datos seran tratados con confidencialidad conforme a nuestra politica de privacidad.</p>
+      </form>
+    </div>
+    <div class="success-msg" id="successMsg">
+      <h4>Postulacion recibida</h4>
+      <p>Gracias por interesarte en formar parte de Supermercados Luxor. Te contactaremos a la brevedad si tu perfil se ajusta a nuestras necesidades.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2026 <strong>Supermercados Luxor</strong>. Todos los derechos reservados.</p>
+    <p style="margin-top:4px">Formulario de postulacion laboral &mdash; Recursos Humanos</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('postulacionForm').addEventListener('submit', async function(e) {
+    e.preventDefault()
+    const btn = document.getElementById('btnEnviar')
+    btn.disabled = true
+    btn.textContent = 'Enviando...'
+
+    const data = {
+      nombre: document.getElementById('nombre').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      telefono: document.getElementById('telefono').value.trim(),
+      puesto: document.getElementById('puesto').value,
+      experiencia: document.getElementById('experiencia').value.trim(),
+    }
+
+    // Simulacion de envio (a futuro se conectara con el modulo de RRHH)
+    await new Promise(r => setTimeout(r, 1200))
+
+    document.getElementById('formWrapper').style.display = 'none'
+    document.getElementById('successMsg').style.display = 'block'
+  })
+</script>
+
+</body>
+</html>
