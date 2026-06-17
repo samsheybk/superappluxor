@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabaseClient'
 
 const NAVY = '#001A4A'
 const CORAL = '#FF5252'
@@ -54,8 +55,22 @@ export function Postular() {
     setErrores(errs)
     if (Object.values(errs).some(Boolean)) return
     setEnviando(true)
-    await new Promise(r => setTimeout(r, 1200))
+    const { error } = await supabase.from('rrhh_candidatos').insert({
+      nombres: form.nombre,
+      correo: form.email,
+      telefono: form.telefono,
+      direccion: form.direccion,
+      posibles_cargos: form.puesto,
+      experiencia: form.experiencia,
+      estudios: form.estudios,
+      habilidades: form.habilidades,
+      disponibilidad: form.disponibilidad,
+      referencias: form.referencias,
+      origen: 'web',
+      estado: 'NUEVO',
+    })
     setEnviando(false)
+    if (error) { setErrores({ general: 'Error al enviar la postulacion. Intenta de nuevo.' }); return }
     setEnviado(true)
   }
 
@@ -163,6 +178,8 @@ export function Postular() {
                   <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style={{ display: 'none' }} />
                 </div>
               </div>
+
+              {errores.general && <div style={{ padding: '10px 16px', marginBottom: 16, background: '#fef2f2', color: '#dc2626', fontSize: '0.85rem' }}>{errores.general}</div>}
 
               <button type="submit" disabled={enviando}
                 style={{ width: '100%', padding: '14px 24px', background: enviando ? '#94a3b8' : CORAL, color: '#fff', border: 'none', fontSize: '0.95rem', fontWeight: 700, cursor: enviando ? 'not-allowed' : 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: enviando ? 'none' : `0 6px 20px ${CORAL}50` }}

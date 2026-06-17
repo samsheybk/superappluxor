@@ -1115,3 +1115,44 @@ CREATE POLICY "Recorridos QR registros delete" ON recorridos_qr_registros FOR DE
 -- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================
+
+-- ============================================================
+-- RRHH: Candidatos (Reclutamiento y Seleccion)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rrhh_candidatos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cedula TEXT,
+  nombres TEXT NOT NULL,
+  apellidos TEXT,
+  fecha_nacimiento DATE,
+  direccion TEXT,
+  telefono TEXT,
+  correo TEXT,
+  profesion TEXT,
+  posibles_cargos TEXT,
+  origen TEXT NOT NULL DEFAULT 'manual' CHECK (origen IN ('manual', 'web')),
+  cv_url TEXT,
+  experiencia TEXT,
+  estudios TEXT,
+  habilidades TEXT,
+  disponibilidad TEXT,
+  referencias TEXT,
+  estado TEXT NOT NULL DEFAULT 'NUEVO' CHECK (estado IN ('NUEVO', 'PRELIMINAR', 'TECNICA', 'MEDICA', 'ELEGIBLE', 'NO ELEGIBLE', 'ACTIVO', 'EGRESO')),
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_candidatos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH candidatos read" ON rrhh_candidatos;
+CREATE POLICY "RRHH candidatos read" ON rrhh_candidatos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH candidatos insert" ON rrhh_candidatos;
+CREATE POLICY "RRHH candidatos insert" ON rrhh_candidatos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH candidatos update" ON rrhh_candidatos;
+CREATE POLICY "RRHH candidatos update" ON rrhh_candidatos FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH candidatos delete" ON rrhh_candidatos;
+CREATE POLICY "RRHH candidatos delete" ON rrhh_candidatos FOR DELETE USING (es_admin());
