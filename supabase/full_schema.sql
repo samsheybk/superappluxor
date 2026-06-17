@@ -1156,3 +1156,51 @@ CREATE POLICY "RRHH candidatos update" ON rrhh_candidatos FOR UPDATE USING (auth
 
 DROP POLICY IF EXISTS "RRHH candidatos delete" ON rrhh_candidatos;
 CREATE POLICY "RRHH candidatos delete" ON rrhh_candidatos FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- RRHH: Plantillas Aprobadas (cargos aprobados con ubicaciones)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rrhh_plantillas_aprobadas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  descripcion TEXT NOT NULL,
+  departamento TEXT NOT NULL,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_plantillas_aprobadas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH plantillas read" ON rrhh_plantillas_aprobadas;
+CREATE POLICY "RRHH plantillas read" ON rrhh_plantillas_aprobadas FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH plantillas insert" ON rrhh_plantillas_aprobadas;
+CREATE POLICY "RRHH plantillas insert" ON rrhh_plantillas_aprobadas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH plantillas update" ON rrhh_plantillas_aprobadas;
+CREATE POLICY "RRHH plantillas update" ON rrhh_plantillas_aprobadas FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH plantillas delete" ON rrhh_plantillas_aprobadas;
+CREATE POLICY "RRHH plantillas delete" ON rrhh_plantillas_aprobadas FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_plantillas_ubicaciones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plantilla_id UUID NOT NULL REFERENCES rrhh_plantillas_aprobadas(id) ON DELETE CASCADE,
+  ubicacion TEXT NOT NULL,
+  vacantes INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_plantillas_ubicaciones ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH ubicaciones read" ON rrhh_plantillas_ubicaciones;
+CREATE POLICY "RRHH ubicaciones read" ON rrhh_plantillas_ubicaciones FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH ubicaciones insert" ON rrhh_plantillas_ubicaciones;
+CREATE POLICY "RRHH ubicaciones insert" ON rrhh_plantillas_ubicaciones FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH ubicaciones update" ON rrhh_plantillas_ubicaciones;
+CREATE POLICY "RRHH ubicaciones update" ON rrhh_plantillas_ubicaciones FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH ubicaciones delete" ON rrhh_plantillas_ubicaciones;
+CREATE POLICY "RRHH ubicaciones delete" ON rrhh_plantillas_ubicaciones FOR DELETE USING (es_admin());

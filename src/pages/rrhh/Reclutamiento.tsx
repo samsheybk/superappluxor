@@ -167,63 +167,73 @@ function Ats() {
         })}
       </div>
 
-      {/* Formulario manual */}
+      {/* Modal nuevo candidato */}
       {showForm && (
-        <div style={{ background: '#f8fafc', padding: 24, marginBottom: 20, border: '1px solid #e2e8f0' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#001A4A', marginBottom: 16 }}>Registrar candidato manualmente</h3>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>CEDULA</label>
-                <input value={form.cedula} onChange={e => setForm(f => ({ ...f, cedula: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>NOMBRES *</label>
-                <input value={form.nombres} onChange={e => setForm(f => ({ ...f, nombres: e.target.value }))} required
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>APELLIDOS</label>
-                <input value={form.apellidos} onChange={e => setForm(f => ({ ...f, apellidos: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>FECHA NACIMIENTO</label>
-                <input type="date" value={form.fecha_nacimiento} onChange={e => setForm(f => ({ ...f, fecha_nacimiento: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>DIRECCION</label>
-                <input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>TELEFONO</label>
-                <input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>CORREO</label>
-                <input type="email" value={form.correo} onChange={e => setForm(f => ({ ...f, correo: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>PROFESION</label>
-                <input value={form.profesion} onChange={e => setForm(f => ({ ...f, profesion: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>POSIBLES CARGOS</label>
-                <input value={form.posibles_cargos} onChange={e => setForm(f => ({ ...f, posibles_cargos: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
-              </div>
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowForm(false)}>
+          <div style={{
+            background: '#fff', padding: 32, width: '90%', maxWidth: 800, maxHeight: '90vh', overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#001A4A' }}>Registrar candidato manualmente</h3>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8', padding: '0 4px' }}>✕</button>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" style={{ background: '#001A4A', color: '#fff', border: 'none', padding: '8px 24px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>Guardar candidato</button>
-              <button type="button" onClick={() => setShowForm(false)} style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '8px 24px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-            </div>
-          </form>
+            <form onSubmit={handleSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>CEDULA</label>
+                  <input value={form.cedula} onChange={e => setForm(f => ({ ...f, cedula: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>NOMBRES *</label>
+                  <input value={form.nombres} onChange={e => setForm(f => ({ ...f, nombres: e.target.value }))} required
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>APELLIDOS</label>
+                  <input value={form.apellidos} onChange={e => setForm(f => ({ ...f, apellidos: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>FECHA NACIMIENTO</label>
+                  <input type="date" value={form.fecha_nacimiento} onChange={e => setForm(f => ({ ...f, fecha_nacimiento: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>DIRECCION</label>
+                  <input value={form.direccion} onChange={e => setForm(f => ({ ...f, direccion: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>TELEFONO</label>
+                  <input value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>CORREO</label>
+                  <input type="email" value={form.correo} onChange={e => setForm(f => ({ ...f, correo: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>PROFESION</label>
+                  <input value={form.profesion} onChange={e => setForm(f => ({ ...f, profesion: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>POSIBLES CARGOS</label>
+                  <input value={form.posibles_cargos} onChange={e => setForm(f => ({ ...f, posibles_cargos: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" style={{ background: '#001A4A', color: '#fff', border: 'none', padding: '8px 24px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>Guardar candidato</button>
+                <button type="button" onClick={() => setShowForm(false)} style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '8px 24px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -290,16 +300,199 @@ function Ats() {
   )
 }
 
+interface PlantillaItem {
+  id: string
+  descripcion: string
+  departamento: string
+  ubicaciones: Ubicacion[]
+  created_at: string
+}
+
+interface Ubicacion {
+  id: string
+  ubicacion: string
+  vacantes: number
+}
+
 function PlantillaAprobada() {
+  const [plantillas, setPlantillas] = useState<PlantillaItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [mensaje, setMensaje] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [departamento, setDepartamento] = useState('')
+  const [ubicaciones, setUbicaciones] = useState<{ ubicacion: string; vacantes: number }[]>([])
+
+  useEffect(() => { cargarPlantillas() }, [])
+
+  async function cargarPlantillas() {
+    setLoading(true)
+    const { data: pts } = await supabase.from('rrhh_plantillas_aprobadas').select('*').order('created_at', { ascending: false })
+    if (!pts) { setLoading(false); return }
+    const { data: ubs } = await supabase.from('rrhh_plantillas_ubicaciones').select('*')
+    const ubMap: Record<string, Ubicacion[]> = {}
+    if (ubs) {
+      for (const u of ubs) {
+        if (!ubMap[u.plantilla_id]) ubMap[u.plantilla_id] = []
+        ubMap[u.plantilla_id].push(u)
+      }
+    }
+    setPlantillas(pts.map(p => ({ ...p, ubicaciones: ubMap[p.id] || [] })) as PlantillaItem[])
+    setLoading(false)
+  }
+
+  function agregarUbicacion() {
+    setUbicaciones(u => [...u, { ubicacion: '', vacantes: 1 }])
+  }
+
+  function quitarUbicacion(i: number) {
+    setUbicaciones(u => u.filter((_, idx) => idx !== i))
+  }
+
+  function actualizarUbicacion(i: number, campo: 'ubicacion' | 'vacantes', valor: string | number) {
+    setUbicaciones(u => u.map((item, idx) => idx === i ? { ...item, [campo]: valor } : item))
+  }
+
+  async function handleCrear(e: React.FormEvent) {
+    e.preventDefault()
+    if (!descripcion.trim() || !departamento.trim()) return
+    setMensaje('')
+    const { data: pt, error: errPt } = await supabase.from('rrhh_plantillas_aprobadas').insert({
+      descripcion, departamento,
+    }).select().single()
+    if (errPt) { setMensaje(`Error: ${errPt.message}`); return }
+    const ubicacionesValidas = ubicaciones.filter(u => u.ubicacion.trim())
+    if (ubicacionesValidas.length > 0) {
+      const { error: errUb } = await supabase.from('rrhh_plantillas_ubicaciones').insert(
+        ubicacionesValidas.map(u => ({ plantilla_id: pt.id, ubicacion: u.ubicacion, vacantes: u.vacantes }))
+      )
+      if (errUb) { setMensaje(`Error: ${errUb.message}`); return }
+    }
+    setDescripcion(''); setDepartamento(''); setUbicaciones([])
+    setShowModal(false)
+    setMensaje('Plantilla aprobada creada exitosamente')
+    cargarPlantillas()
+  }
+
+  async function eliminarPlantilla(id: string) {
+    const { error } = await supabase.from('rrhh_plantillas_aprobadas').delete().eq('id', id)
+    if (error) { setMensaje(`Error: ${error.message}`); return }
+    cargarPlantillas()
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#001A4A' }}>Plantilla Aprobada</h2>
-        <button style={{ background: '#001A4A', color: '#fff', border: 'none', padding: '8px 20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>Aprobar plantilla</button>
+        <button onClick={() => { setShowModal(true); setMensaje('') }}
+          style={{ background: '#001A4A', color: '#fff', border: 'none', padding: '8px 20px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+        >Aprobar plantilla</button>
       </div>
-      <div style={{ background: '#f8fafc', padding: 40, textAlign: 'center' }}>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No hay plantillas aprobadas registradas.</p>
-      </div>
+
+      {mensaje && (
+        <div style={{ padding: '10px 16px', marginBottom: 16, background: mensaje.startsWith('Error') ? '#fef2f2' : '#f0fdf4', color: mensaje.startsWith('Error') ? '#dc2626' : '#16a34a', fontSize: '0.85rem' }}>{mensaje}</div>
+      )}
+
+      {loading ? (
+        <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>Cargando plantillas...</div>
+      ) : plantillas.length === 0 ? (
+        <div style={{ background: '#f8fafc', padding: 40, textAlign: 'center' }}>
+          <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No hay plantillas aprobadas registradas.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {plantillas.map(p => (
+            <div key={p.id} style={{ border: '1px solid #e2e8f0', padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#001A4A', margin: 0 }}>{p.descripcion}</h3>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0' }}>{p.departamento}</p>
+                </div>
+                <button onClick={() => eliminarPlantilla(p.id)}
+                  style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '4px 12px', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                >Eliminar</button>
+              </div>
+              {p.ubicaciones.length > 0 && (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                      <th style={{ padding: '6px 10px', color: '#64748b', fontWeight: 600 }}>Ubicacion</th>
+                      <th style={{ padding: '6px 10px', color: '#64748b', fontWeight: 600 }}>Vacantes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {p.ubicaciones.map(u => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '6px 10px', color: '#1e293b' }}>{u.ubicacion}</td>
+                        <td style={{ padding: '6px 10px', color: '#1e293b' }}>{u.vacantes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modal crear plantilla */}
+      {showModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowModal(false)}>
+          <div style={{
+            background: '#fff', padding: 32, width: '90%', maxWidth: 700, maxHeight: '90vh', overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#001A4A' }}>Aprobar nueva plantilla</h3>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8', padding: '0 4px' }}>✕</button>
+            </div>
+            <form onSubmit={handleCrear}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>DESCRIPCION DEL CARGO *</label>
+                  <input value={descripcion} onChange={e => setDescripcion(e.target.value)} required
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>DEPARTAMENTO *</label>
+                  <input value={departamento} onChange={e => setDepartamento(e.target.value)} required
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>UBICACIONES Y VACANTES</label>
+                  <button type="button" onClick={agregarUbicacion}
+                    style={{ background: '#f1f5f9', color: '#001A4A', border: 'none', padding: '4px 12px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                  >+ Agregar ubicacion</button>
+                </div>
+                {ubicaciones.map((u, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                    <input value={u.ubicacion} onChange={e => actualizarUbicacion(i, 'ubicacion', e.target.value)}
+                      placeholder="Ej: Supermercado Centro, Oficina Central"
+                      style={{ flex: 1, padding: '6px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                    <input type="number" min={1} value={u.vacantes} onChange={e => actualizarUbicacion(i, 'vacantes', parseInt(e.target.value) || 1)}
+                      style={{ width: 80, padding: '6px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => quitarUbicacion(i)}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}>✕</button>
+                  </div>
+                ))}
+                {ubicaciones.length === 0 && (
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: 0 }}>Agregue al menos una ubicacion con su cantidad de vacantes.</p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" style={{ background: '#001A4A', color: '#fff', border: 'none', padding: '8px 24px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>Guardar plantilla</button>
+                <button type="button" onClick={() => setShowModal(false)} style={{ background: '#e2e8f0', color: '#475569', border: 'none', padding: '8px 24px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
