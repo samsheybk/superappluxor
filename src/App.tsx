@@ -36,6 +36,7 @@ import { Compras } from './pages/compras/Compras'
 import { Inventario } from './pages/inventario/Inventario'
 import { ServiciosGenerales } from './pages/servicios-generales/ServiciosGenerales'
 import { GestionUsuarios } from './pages/admin/GestionUsuarios'
+import { Landing } from './pages/landing/Landing'
 
 function App() {
   return (
@@ -82,6 +83,7 @@ function App() {
             <Route path="/admin/usuarios" element={<GestionUsuarios />} />
             <Route path="/taller/inspeccion/:vehiculoId" element={<InspeccionVehiculo />} />
           </Route>
+          <Route path="/sitio" element={<Landing />} />
           <Route path="/plantas/:id" element={<ProtectedRoute><VerificarPlanta /></ProtectedRoute>} />
           <Route path="/reporte/:id" element={<ReporteFalla />} />
           <Route path="/taller/vehiculo/:id" element={<DetalleVehiculo />} />
