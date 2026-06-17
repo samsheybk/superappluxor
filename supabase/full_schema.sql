@@ -1130,6 +1130,7 @@ CREATE TABLE IF NOT EXISTS rrhh_candidatos (
   correo TEXT,
   profesion TEXT,
   posibles_cargos TEXT,
+  ubicacion TEXT,
   origen TEXT NOT NULL DEFAULT 'manual' CHECK (origen IN ('manual', 'web')),
   cv_url TEXT,
   experiencia TEXT,
@@ -1142,6 +1143,8 @@ CREATE TABLE IF NOT EXISTS rrhh_candidatos (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE rrhh_candidatos ADD COLUMN IF NOT EXISTS ubicacion TEXT;
 
 ALTER TABLE rrhh_candidatos ENABLE ROW LEVEL SECURITY;
 
@@ -1164,10 +1167,13 @@ CREATE TABLE IF NOT EXISTS rrhh_plantillas_aprobadas (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   descripcion TEXT NOT NULL,
   departamento TEXT NOT NULL,
+  congelado BOOLEAN NOT NULL DEFAULT false,
   creado_por UUID REFERENCES perfiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE rrhh_plantillas_aprobadas ADD COLUMN IF NOT EXISTS congelado BOOLEAN NOT NULL DEFAULT false;
 
 ALTER TABLE rrhh_plantillas_aprobadas ENABLE ROW LEVEL SECURITY;
 
@@ -1188,8 +1194,11 @@ CREATE TABLE IF NOT EXISTS rrhh_plantillas_ubicaciones (
   plantilla_id UUID NOT NULL REFERENCES rrhh_plantillas_aprobadas(id) ON DELETE CASCADE,
   ubicacion TEXT NOT NULL,
   vacantes INTEGER NOT NULL DEFAULT 1,
+  activos INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE rrhh_plantillas_ubicaciones ADD COLUMN IF NOT EXISTS activos INTEGER NOT NULL DEFAULT 0;
 
 ALTER TABLE rrhh_plantillas_ubicaciones ENABLE ROW LEVEL SECURITY;
 
@@ -1204,3 +1213,54 @@ CREATE POLICY "RRHH ubicaciones update" ON rrhh_plantillas_ubicaciones FOR UPDAT
 
 DROP POLICY IF EXISTS "RRHH ubicaciones delete" ON rrhh_plantillas_ubicaciones;
 CREATE POLICY "RRHH ubicaciones delete" ON rrhh_plantillas_ubicaciones FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- RRHH: Plantillas Idoneas
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rrhh_plantillas_idoneas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  descripcion TEXT NOT NULL,
+  departamento TEXT NOT NULL,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_plantillas_idoneas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH idoneas read" ON rrhh_plantillas_idoneas;
+CREATE POLICY "RRHH idoneas read" ON rrhh_plantillas_idoneas FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH idoneas insert" ON rrhh_plantillas_idoneas;
+CREATE POLICY "RRHH idoneas insert" ON rrhh_plantillas_idoneas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH idoneas update" ON rrhh_plantillas_idoneas;
+CREATE POLICY "RRHH idoneas update" ON rrhh_plantillas_idoneas FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH idoneas delete" ON rrhh_plantillas_idoneas;
+CREATE POLICY "RRHH idoneas delete" ON rrhh_plantillas_idoneas FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_plantillas_idoneas_ubicaciones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plantilla_id UUID NOT NULL REFERENCES rrhh_plantillas_idoneas(id) ON DELETE CASCADE,
+  ubicacion TEXT NOT NULL,
+  vacantes INTEGER NOT NULL DEFAULT 1,
+  activos INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_plantillas_idoneas_ubicaciones ADD COLUMN IF NOT EXISTS activos INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE rrhh_plantillas_idoneas_ubicaciones ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH idoneas ubic read" ON rrhh_plantillas_idoneas_ubicaciones;
+CREATE POLICY "RRHH idoneas ubic read" ON rrhh_plantillas_idoneas_ubicaciones FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH idoneas ubic insert" ON rrhh_plantillas_idoneas_ubicaciones;
+CREATE POLICY "RRHH idoneas ubic insert" ON rrhh_plantillas_idoneas_ubicaciones FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH idoneas ubic update" ON rrhh_plantillas_idoneas_ubicaciones;
+CREATE POLICY "RRHH idoneas ubic update" ON rrhh_plantillas_idoneas_ubicaciones FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH idoneas ubic delete" ON rrhh_plantillas_idoneas_ubicaciones;
+CREATE POLICY "RRHH idoneas ubic delete" ON rrhh_plantillas_idoneas_ubicaciones FOR DELETE USING (es_admin());
