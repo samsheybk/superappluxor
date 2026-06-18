@@ -1264,3 +1264,31 @@ CREATE POLICY "RRHH idoneas ubic update" ON rrhh_plantillas_idoneas_ubicaciones 
 
 DROP POLICY IF EXISTS "RRHH idoneas ubic delete" ON rrhh_plantillas_idoneas_ubicaciones;
 CREATE POLICY "RRHH idoneas ubic delete" ON rrhh_plantillas_idoneas_ubicaciones FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- RRHH: Antecedentes Laborales (Relaciones Laborales)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rrhh_antecedentes_laborales (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id UUID NOT NULL REFERENCES rrhh_candidatos(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  fecha DATE NOT NULL,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_antecedentes_laborales ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH antecedentes read" ON rrhh_antecedentes_laborales;
+CREATE POLICY "RRHH antecedentes read" ON rrhh_antecedentes_laborales FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH antecedentes insert" ON rrhh_antecedentes_laborales;
+CREATE POLICY "RRHH antecedentes insert" ON rrhh_antecedentes_laborales FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH antecedentes update" ON rrhh_antecedentes_laborales;
+CREATE POLICY "RRHH antecedentes update" ON rrhh_antecedentes_laborales FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH antecedentes delete" ON rrhh_antecedentes_laborales;
+CREATE POLICY "RRHH antecedentes delete" ON rrhh_antecedentes_laborales FOR DELETE USING (es_admin());
