@@ -1219,6 +1219,107 @@ DROP POLICY IF EXISTS "Bienestar nucleo delete" ON rrhh_bienestar_nucleo_familia
 CREATE POLICY "Bienestar nucleo delete" ON rrhh_bienestar_nucleo_familiar FOR DELETE USING (es_admin());
 
 -- ============================================================
+-- RRHH: Seguridad Laboral
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS rrhh_seguridad_permisos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tipo TEXT NOT NULL,
+  ubicacion TEXT NOT NULL,
+  fecha_emision DATE NOT NULL,
+  fecha_vencimiento DATE NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'vigente' CHECK (estado IN ('vigente', 'vencido', 'tramite')),
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_seguridad_permisos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Seguridad permisos read" ON rrhh_seguridad_permisos;
+CREATE POLICY "Seguridad permisos read" ON rrhh_seguridad_permisos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad permisos insert" ON rrhh_seguridad_permisos;
+CREATE POLICY "Seguridad permisos insert" ON rrhh_seguridad_permisos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad permisos update" ON rrhh_seguridad_permisos;
+CREATE POLICY "Seguridad permisos update" ON rrhh_seguridad_permisos FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad permisos delete" ON rrhh_seguridad_permisos;
+CREATE POLICY "Seguridad permisos delete" ON rrhh_seguridad_permisos FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_seguridad_equipos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tipo TEXT NOT NULL,
+  descripcion TEXT NOT NULL DEFAULT '',
+  ubicacion TEXT NOT NULL,
+  fecha_vencimiento DATE,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_seguridad_equipos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Seguridad equipos read" ON rrhh_seguridad_equipos;
+CREATE POLICY "Seguridad equipos read" ON rrhh_seguridad_equipos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad equipos insert" ON rrhh_seguridad_equipos;
+CREATE POLICY "Seguridad equipos insert" ON rrhh_seguridad_equipos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad equipos update" ON rrhh_seguridad_equipos;
+CREATE POLICY "Seguridad equipos update" ON rrhh_seguridad_equipos FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad equipos delete" ON rrhh_seguridad_equipos;
+CREATE POLICY "Seguridad equipos delete" ON rrhh_seguridad_equipos FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_seguridad_delegados (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id UUID NOT NULL REFERENCES rrhh_candidatos(id) ON DELETE CASCADE,
+  fecha_designacion DATE NOT NULL,
+  activo BOOLEAN NOT NULL DEFAULT true,
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_seguridad_delegados ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Seguridad delegados read" ON rrhh_seguridad_delegados;
+CREATE POLICY "Seguridad delegados read" ON rrhh_seguridad_delegados FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad delegados insert" ON rrhh_seguridad_delegados;
+CREATE POLICY "Seguridad delegados insert" ON rrhh_seguridad_delegados FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad delegados update" ON rrhh_seguridad_delegados;
+CREATE POLICY "Seguridad delegados update" ON rrhh_seguridad_delegados FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad delegados delete" ON rrhh_seguridad_delegados;
+CREATE POLICY "Seguridad delegados delete" ON rrhh_seguridad_delegados FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_seguridad_botiquines (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ubicacion TEXT NOT NULL,
+  descripcion TEXT NOT NULL DEFAULT '',
+  fecha_revision DATE NOT NULL,
+  estado TEXT NOT NULL DEFAULT 'completo' CHECK (estado IN ('completo', 'incompleto', 'vencido')),
+  observaciones TEXT NOT NULL DEFAULT '',
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_seguridad_botiquines ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Seguridad botiquines read" ON rrhh_seguridad_botiquines;
+CREATE POLICY "Seguridad botiquines read" ON rrhh_seguridad_botiquines FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad botiquines insert" ON rrhh_seguridad_botiquines;
+CREATE POLICY "Seguridad botiquines insert" ON rrhh_seguridad_botiquines FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad botiquines update" ON rrhh_seguridad_botiquines;
+CREATE POLICY "Seguridad botiquines update" ON rrhh_seguridad_botiquines FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad botiquines delete" ON rrhh_seguridad_botiquines;
+CREATE POLICY "Seguridad botiquines delete" ON rrhh_seguridad_botiquines FOR DELETE USING (es_admin());
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
 -- ============================================================
 -- ============================================================
