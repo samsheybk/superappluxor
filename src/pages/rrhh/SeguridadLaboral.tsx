@@ -49,13 +49,21 @@ interface Delegado {
   created_at: string
 }
 
-interface Botiquin {
+interface BotiquinProducto {
   id: string
   ubicacion: string
+  nombre: string
   descripcion: string
-  fecha_revision: string
-  estado: string
-  observaciones: string
+  stock_actual: number
+  created_at: string
+}
+
+interface BotiquinMovimiento {
+  id: string
+  producto_id: string
+  tipo: string
+  cantidad: number
+  justificacion: string
   created_at: string
 }
 
@@ -556,110 +564,169 @@ function DelegadosTab() {
   )
 }
 
-// --- Botiquines ---
+// --- Botiquines (inventario con entradas/salidas) ---
 
 function BotiquinesTab() {
-  const [items, setItems] = useState<Botiquin[]>([])
+  const [productos, setProductos] = useState<BotiquinProducto[]>([])
+  const [movimientos, setMovimientos] = useState<BotiquinMovimiento[]>([])
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [ubicacion, setUbicacion] = useState('')
-  const [descripcion, setDescripcion] = useState('')
-  const [fechaRevision, setFechaRevision] = useState(new Date().toISOString().split('T')[0])
-  const [estado, setEstado] = useState('completo')
-  const [observaciones, setObservaciones] = useState('')
+  const [showProductoModal, setShowProductoModal] = useState(false)
+  const [editProductoId, setEditProductoId] = useState<string | null>(null)
+  const [prodUbicacion, setProdUbicacion] = useState('')
+  const [prodNombre, setProdNombre] = useState('')
+  const [prodDescripcion, setProdDescripcion] = useState('')
+  const [prodStockInicial, setProdStockInicial] = useState('0')
+  const [showMovimientoModal, setShowMovimientoModal] = useState(false)
+  const [movProductoId, setMovProductoId] = useState('')
+  const [movTipo, setMovTipo] = useState<'entrada' | 'salida'>('entrada')
+  const [movCantidad, setMovCantidad] = useState('1')
+  const [movJustificacion, setMovJustificacion] = useState('')
+  const [showHistorial, setShowHistorial] = useState<string | null>(null)
   const [mensaje, setMensaje] = useState('')
 
   useEffect(() => { cargar() }, [])
 
   async function cargar() {
     setLoading(true)
-    const { data } = await supabase.from('rrhh_seguridad_botiquines').select('*').order('fecha_revision', { ascending: false })
-    if (data) setItems(data as Botiquin[])
+    const { data: prods } = await supabase.from('rrhh_seguridad_botiquin_productos').select('*').order('nombre', { ascending: true })
+    if (prods) setProductos(prods as BotiquinProducto[])
+    const { data: movs } = await supabase.from('rrhh_seguridad_botiquin_movimientos').select('*').order('created_at', { ascending: false })
+    if (movs) setMovimientos(movs as BotiquinMovimiento[])
     setLoading(false)
   }
 
-  function abrirModal(item?: Botiquin) {
+  function abrirProductoModal(item?: BotiquinProducto) {
     if (item) {
-      setEditId(item.id); setUbicacion(item.ubicacion); setDescripcion(item.descripcion)
-      setFechaRevision(item.fecha_revision); setEstado(item.estado); setObservaciones(item.observaciones)
+      setEditProductoId(item.id); setProdUbicacion(item.ubicacion); setProdNombre(item.nombre)
+      setProdDescripcion(item.descripcion); setProdStockInicial(String(item.stock_actual))
     } else {
-      setEditId(null); setUbicacion(''); setDescripcion(''); setFechaRevision(new Date().toISOString().split('T')[0]); setEstado('completo'); setObservaciones('')
+      setEditProductoId(null); setProdUbicacion(''); setProdNombre(''); setProdDescripcion(''); setProdStockInicial('0')
     }
-    setMensaje(''); setShowModal(true)
+    setMensaje(''); setShowProductoModal(true)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleProductoSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!ubicacion) return
-    const payload = { ubicacion, descripcion: descripcion.trim().toUpperCase(), fecha_revision: fechaRevision, estado, observaciones: observaciones.trim().toUpperCase() }
-    if (editId) {
-      const { error } = await supabase.from('rrhh_seguridad_botiquines').update(payload).eq('id', editId)
+    if (!prodUbicacion || !prodNombre.trim()) return
+    if (editProductoId) {
+      const { error } = await supabase.from('rrhh_seguridad_botiquin_productos').update({
+        ubicacion: prodUbicacion, nombre: prodNombre.trim().toUpperCase(), descripcion: prodDescripcion.trim().toUpperCase(),
+      }).eq('id', editProductoId)
       if (error) { setMensaje(`Error: ${error.message}`); return }
     } else {
-      const { error } = await supabase.from('rrhh_seguridad_botiquines').insert(payload)
+      const { error } = await supabase.from('rrhh_seguridad_botiquin_productos').insert({
+        ubicacion: prodUbicacion, nombre: prodNombre.trim().toUpperCase(), descripcion: prodDescripcion.trim().toUpperCase(),
+        stock_actual: parseInt(prodStockInicial) || 0,
+      })
       if (error) { setMensaje(`Error: ${error.message}`); return }
     }
-    setShowModal(false); cargar()
+    setShowProductoModal(false); cargar()
   }
 
-  async function eliminar(id: string) {
-    const { error } = await supabase.from('rrhh_seguridad_botiquines').delete().eq('id', id)
+  async function eliminarProducto(id: string) {
+    const { error } = await supabase.from('rrhh_seguridad_botiquin_productos').delete().eq('id', id)
     if (error) { setMensaje(`Error: ${error.message}`); return }
     cargar()
   }
 
-  const ESTADO_BOTIQUIN_COLORS: Record<string, string> = {
-    completo: '#16a34a',
-    incompleto: '#f59e0b',
-    vencido: '#ef4444',
+  function abrirMovimientoModal(productoId: string, tipo: 'entrada' | 'salida') {
+    setMovProductoId(productoId); setMovTipo(tipo); setMovCantidad('1'); setMovJustificacion('')
+    setMensaje(''); setShowMovimientoModal(true)
+  }
+
+  async function handleMovimientoSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const cantidad = parseInt(movCantidad)
+    if (!cantidad || cantidad <= 0) { setMensaje('La cantidad debe ser mayor a 0'); return }
+    if (movTipo === 'salida' && !movJustificacion.trim()) { setMensaje('Debe ingresar una justificacion para la salida'); return }
+
+    const producto = productos.find(p => p.id === movProductoId)
+    if (!producto) return
+    if (movTipo === 'salida' && cantidad > producto.stock_actual) { setMensaje('Stock insuficiente'); return }
+
+    const nuevoStock = movTipo === 'entrada' ? producto.stock_actual + cantidad : producto.stock_actual - cantidad
+
+    const { error: movErr } = await supabase.from('rrhh_seguridad_botiquin_movimientos').insert({
+      producto_id: movProductoId, tipo: movTipo, cantidad, justificacion: movJustificacion.trim().toUpperCase(),
+    })
+    if (movErr) { setMensaje(`Error: ${movErr.message}`); return }
+
+    const { error: updErr } = await supabase.from('rrhh_seguridad_botiquin_productos').update({ stock_actual: nuevoStock }).eq('id', movProductoId)
+    if (updErr) { setMensaje(`Error: ${updErr.message}`); return }
+
+    setShowMovimientoModal(false); cargar()
+  }
+
+  function movimientosDelProducto(productoId: string) {
+    return movimientos.filter(m => m.producto_id === productoId)
   }
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#001A4A' }}>Seguimiento de Botiquines</h2>
-        <button onClick={() => abrirModal()}
+        <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#001A4A' }}>Inventario de Botiquines</h2>
+        <button onClick={() => abrirProductoModal()}
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >+ Nueva revision</button>
+        >+ Nuevo producto</button>
       </div>
       {mensaje && <div style={{ padding: '10px 16px', marginBottom: 16, background: mensaje.startsWith('Error') ? '#fef2f2' : '#f0fdf4', color: mensaje.startsWith('Error') ? '#dc2626' : '#16a34a', fontSize: '0.85rem' }}>{mensaje}</div>}
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Cargando...</div>
-      ) : items.length === 0 ? (
-        <div style={{ background: '#f8fafc', padding: 40, textAlign: 'center' }}><p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No hay revisiones registradas.</p></div>
+      ) : productos.length === 0 ? (
+        <div style={{ background: '#f8fafc', padding: 40, textAlign: 'center' }}><p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No hay productos registrados.</p></div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>PRODUCTO</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>UBICACION</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>DESCRIPCION</th>
-                <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>FECHA REVISION</th>
-                <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>ESTADO</th>
-                <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>OBSERVACIONES</th>
+                <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>STOCK</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}></th>
               </tr>
             </thead>
             <tbody>
-              {items.map(item => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{item.ubicacion}</td>
-                  <td style={{ padding: '10px 12px', color: '#1e293b' }}>{item.descripcion || '-'}</td>
-                  <td style={{ padding: '10px 12px', color: '#1e293b' }}>{item.fecha_revision}</td>
+              {productos.map(p => (
+                <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{p.nombre}</td>
+                  <td style={{ padding: '10px 12px', color: '#1e293b' }}>{p.ubicacion}</td>
+                  <td style={{ padding: '10px 12px', color: '#1e293b' }}>{p.descripcion || '-'}</td>
                   <td style={{ padding: '10px 12px' }}>
                     <span style={{
-                      padding: '2px 10px', fontSize: '0.72rem', fontWeight: 700,
-                      background: item.estado === 'completo' ? '#f0fdf4' : item.estado === 'vencido' ? '#fef2f2' : '#fefce8',
-                      color: ESTADO_BOTIQUIN_COLORS[item.estado] || '#64748b',
-                    }}>{item.estado.toUpperCase()}</span>
+                      fontWeight: 700, fontSize: '0.9rem',
+                      color: p.stock_actual <= 0 ? '#ef4444' : p.stock_actual <= 5 ? '#f59e0b' : '#16a34a',
+                    }}>{p.stock_actual}</span>
                   </td>
-                  <td style={{ padding: '10px 12px', color: '#1e293b' }}>{item.observaciones || '-'}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => abrirModal(item)} className="rounded-lg px-2 py-1 text-xs text-blue-600 hover:bg-blue-50">Editar</button>
-                      <button onClick={() => eliminar(item.id)} className="rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50">Eliminar</button>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      <button onClick={() => abrirMovimientoModal(p.id, 'entrada')}
+                        className="rounded-lg px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700">+ Entrada</button>
+                      <button onClick={() => abrirMovimientoModal(p.id, 'salida')}
+                        className="rounded-lg px-2 py-1 text-xs font-medium text-white bg-orange-600 hover:bg-orange-700">- Salida</button>
+                      <button onClick={() => setShowHistorial(showHistorial === p.id ? null : p.id)}
+                        className="rounded-lg px-2 py-1 text-xs text-blue-600 hover:bg-blue-50">Historial</button>
+                      <button onClick={() => abrirProductoModal(p)} className="rounded-lg px-2 py-1 text-xs text-blue-600 hover:bg-blue-50">Editar</button>
+                      <button onClick={() => eliminarProducto(p.id)} className="rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50">Eliminar</button>
                     </div>
+                    {showHistorial === p.id && (
+                      <div style={{ marginTop: 8, background: '#f8fafc', padding: 8, fontSize: '0.75rem' }}>
+                        <p style={{ fontWeight: 600, marginBottom: 4, color: '#475569' }}>MOVIMIENTOS</p>
+                        {movimientosDelProducto(p.id).length === 0 ? (
+                          <p style={{ color: '#94a3b8' }}>Sin movimientos</p>
+                        ) : (
+                          movimientosDelProducto(p.id).map(m => (
+                            <div key={m.id} style={{ display: 'flex', gap: 8, padding: '4px 0', borderBottom: '1px solid #e2e8f0' }}>
+                              <span style={{ fontWeight: 600, color: m.tipo === 'entrada' ? '#16a34a' : '#ef4444', minWidth: 50 }}>
+                                {m.tipo === 'entrada' ? '+' : '-'}{m.cantidad}
+                              </span>
+                              <span style={{ color: '#64748b', flex: 1 }}>{m.justificacion || '-'}</span>
+                              <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>{new Date(m.created_at).toLocaleDateString()}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -667,49 +734,87 @@ function BotiquinesTab() {
           </table>
         </div>
       )}
-      {showModal && (
+
+      {/* Modal producto */}
+      {showProductoModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowModal(false)}>
+          onClick={() => setShowProductoModal(false)}>
           <div style={{ background: '#fff', padding: 28, width: '90%', maxWidth: 480 }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#001A4A', marginBottom: 16 }}>{editId ? 'Editar revision' : 'Nueva revision'}</h3>
-            <form onSubmit={handleSubmit}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#001A4A', marginBottom: 16 }}>{editProductoId ? 'Editar producto' : 'Nuevo producto'}</h3>
+            <form onSubmit={handleProductoSubmit}>
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>UBICACION *</label>
-                <select value={ubicacion} onChange={e => setUbicacion(e.target.value)} required
+                <select value={prodUbicacion} onChange={e => setProdUbicacion(e.target.value)} required
                   style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}>
                   <option value="">Seleccionar ubicacion</option>
                   {UBICACIONES.map(u => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>NOMBRE *</label>
+                <input value={prodNombre} onChange={e => setProdNombre(e.target.value.toUpperCase())} required
+                  placeholder="Ej: ALCOHOL, GASA, VENDA, CURITA"
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>DESCRIPCION</label>
-                <input value={descripcion} onChange={e => setDescripcion(e.target.value.toUpperCase())}
-                  placeholder="Contenido del botiquin"
+                <input value={prodDescripcion} onChange={e => setProdDescripcion(e.target.value.toUpperCase())}
                   style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
               </div>
+              {!editProductoId && (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>STOCK INICIAL</label>
+                  <input type="number" min="0" value={prodStockInicial} onChange={e => setProdStockInicial(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">{editProductoId ? 'Guardar' : 'Crear'}</button>
+                <button type="button" onClick={() => setShowProductoModal(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal movimiento */}
+      {showMovimientoModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowMovimientoModal(false)}>
+          <div style={{ background: '#fff', padding: 28, width: '90%', maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#001A4A', marginBottom: 16 }}>
+              {movTipo === 'entrada' ? 'Registrar entrada' : 'Registrar salida'}
+            </h3>
+            <form onSubmit={handleMovimientoSubmit}>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>FECHA DE REVISION</label>
-                <input type="date" value={fechaRevision} onChange={e => setFechaRevision(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>PRODUCTO</label>
+                <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>{productos.find(p => p.id === movProductoId)?.nombre}</p>
               </div>
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>ESTADO</label>
-                <select value={estado} onChange={e => setEstado(e.target.value)}
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>TIPO</label>
+                <select value={movTipo} onChange={e => setMovTipo(e.target.value as 'entrada' | 'salida')}
                   style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}>
-                  <option value="completo">COMPLETO</option>
-                  <option value="incompleto">INCOMPLETO</option>
-                  <option value="vencido">VENCIDO</option>
+                  <option value="entrada">ENTRADA</option>
+                  <option value="salida">SALIDA</option>
                 </select>
               </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>CANTIDAD *</label>
+                <input type="number" min="1" value={movCantidad} onChange={e => setMovCantidad(e.target.value)} required
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>OBSERVACIONES</label>
-                <textarea value={observaciones} onChange={e => setObservaciones(e.target.value.toUpperCase())}
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>
+                  JUSTIFICACION {movTipo === 'salida' ? '*' : ''}
+                </label>
+                <textarea value={movJustificacion} onChange={e => setMovJustificacion(e.target.value.toUpperCase())}
                   rows={3}
+                  placeholder={movTipo === 'salida' ? 'Ej: ENTREGADO A ENFERMERIA, VENCIDO, EN USO' : 'Opcional'}
                   style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">{editId ? 'Guardar' : 'Crear'}</button>
-                <button type="button" onClick={() => setShowModal(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Cancelar</button>
+                <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Registrar</button>
+                <button type="button" onClick={() => setShowMovimientoModal(false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Cancelar</button>
               </div>
             </form>
           </div>

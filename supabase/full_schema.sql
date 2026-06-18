@@ -1294,30 +1294,50 @@ CREATE POLICY "Seguridad delegados update" ON rrhh_seguridad_delegados FOR UPDAT
 DROP POLICY IF EXISTS "Seguridad delegados delete" ON rrhh_seguridad_delegados;
 CREATE POLICY "Seguridad delegados delete" ON rrhh_seguridad_delegados FOR DELETE USING (es_admin());
 
-CREATE TABLE IF NOT EXISTS rrhh_seguridad_botiquines (
+CREATE TABLE IF NOT EXISTS rrhh_seguridad_botiquin_productos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ubicacion TEXT NOT NULL,
+  nombre TEXT NOT NULL,
   descripcion TEXT NOT NULL DEFAULT '',
-  fecha_revision DATE NOT NULL,
-  estado TEXT NOT NULL DEFAULT 'completo' CHECK (estado IN ('completo', 'incompleto', 'vencido')),
-  observaciones TEXT NOT NULL DEFAULT '',
+  stock_actual INTEGER NOT NULL DEFAULT 0,
   creado_por UUID REFERENCES perfiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE rrhh_seguridad_botiquines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rrhh_seguridad_botiquin_productos ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Seguridad botiquines read" ON rrhh_seguridad_botiquines;
-CREATE POLICY "Seguridad botiquines read" ON rrhh_seguridad_botiquines FOR SELECT USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Seguridad botiquin productos read" ON rrhh_seguridad_botiquin_productos;
+CREATE POLICY "Seguridad botiquin productos read" ON rrhh_seguridad_botiquin_productos FOR SELECT USING (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Seguridad botiquines insert" ON rrhh_seguridad_botiquines;
-CREATE POLICY "Seguridad botiquines insert" ON rrhh_seguridad_botiquines FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Seguridad botiquin productos insert" ON rrhh_seguridad_botiquin_productos;
+CREATE POLICY "Seguridad botiquin productos insert" ON rrhh_seguridad_botiquin_productos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Seguridad botiquines update" ON rrhh_seguridad_botiquines;
-CREATE POLICY "Seguridad botiquines update" ON rrhh_seguridad_botiquines FOR UPDATE USING (auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Seguridad botiquin productos update" ON rrhh_seguridad_botiquin_productos;
+CREATE POLICY "Seguridad botiquin productos update" ON rrhh_seguridad_botiquin_productos FOR UPDATE USING (auth.role() = 'authenticated');
 
-DROP POLICY IF EXISTS "Seguridad botiquines delete" ON rrhh_seguridad_botiquines;
-CREATE POLICY "Seguridad botiquines delete" ON rrhh_seguridad_botiquines FOR DELETE USING (es_admin());
+DROP POLICY IF EXISTS "Seguridad botiquin productos delete" ON rrhh_seguridad_botiquin_productos;
+CREATE POLICY "Seguridad botiquin productos delete" ON rrhh_seguridad_botiquin_productos FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_seguridad_botiquin_movimientos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  producto_id UUID NOT NULL REFERENCES rrhh_seguridad_botiquin_productos(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL CHECK (tipo IN ('entrada', 'salida')),
+  cantidad INTEGER NOT NULL CHECK (cantidad > 0),
+  justificacion TEXT NOT NULL DEFAULT '',
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_seguridad_botiquin_movimientos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Seguridad botiquin movimientos read" ON rrhh_seguridad_botiquin_movimientos;
+CREATE POLICY "Seguridad botiquin movimientos read" ON rrhh_seguridad_botiquin_movimientos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad botiquin movimientos insert" ON rrhh_seguridad_botiquin_movimientos;
+CREATE POLICY "Seguridad botiquin movimientos insert" ON rrhh_seguridad_botiquin_movimientos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Seguridad botiquin movimientos delete" ON rrhh_seguridad_botiquin_movimientos;
+CREATE POLICY "Seguridad botiquin movimientos delete" ON rrhh_seguridad_botiquin_movimientos FOR DELETE USING (es_admin());
 
 -- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
