@@ -1558,6 +1558,7 @@ CREATE TABLE IF NOT EXISTS mercadeo_acuerdos (
   proveedor TEXT NOT NULL,
   monto DECIMAL(12,2) NOT NULL DEFAULT 0,
   tiempo TEXT NOT NULL DEFAULT '',
+  metodo_pago TEXT NOT NULL DEFAULT '',
   estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'activo', 'vencido')),
   created_by UUID REFERENCES perfiles(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()

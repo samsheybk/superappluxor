@@ -19,6 +19,7 @@ interface Acuerdo {
   proveedor: string
   monto: number
   tiempo: string
+  metodo_pago: string
   estado: string
   created_at: string
 }
@@ -105,6 +106,7 @@ function AcuerdosComerciales() {
   const [proveedor, setProveedor] = useState('')
   const [monto, setMonto] = useState('')
   const [tiempo, setTiempo] = useState('')
+  const [metodoPago, setMetodoPago] = useState('')
   const [estado, setEstado] = useState('pendiente')
   const [mensaje, setMensaje] = useState('')
   const [editId, setEditId] = useState<string | null>(null)
@@ -120,9 +122,9 @@ function AcuerdosComerciales() {
 
   function abrirModal(a?: Acuerdo) {
     if (a) {
-      setEditId(a.id); setProveedor(a.proveedor); setMonto(String(a.monto)); setTiempo(a.tiempo); setEstado(a.estado)
+      setEditId(a.id); setProveedor(a.proveedor); setMonto(String(a.monto)); setTiempo(a.tiempo); setMetodoPago(a.metodo_pago || ''); setEstado(a.estado)
     } else {
-      setEditId(null); setProveedor(''); setMonto(''); setTiempo(''); setEstado('pendiente')
+      setEditId(null); setProveedor(''); setMonto(''); setTiempo(''); setMetodoPago(''); setEstado('pendiente')
     }
     setMensaje(''); setShowModal(true)
   }
@@ -130,7 +132,7 @@ function AcuerdosComerciales() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!proveedor.trim()) return
-    const payload = { proveedor: proveedor.trim().toUpperCase(), monto: parseFloat(monto) || 0, tiempo: tiempo.trim(), estado }
+    const payload = { proveedor: proveedor.trim().toUpperCase(), monto: parseFloat(monto) || 0, tiempo: tiempo.trim(), metodo_pago: metodoPago, estado }
     if (editId) {
       const { error } = await supabase.from('mercadeo_acuerdos').update(payload).eq('id', editId)
       if (error) { setMensaje(`Error: ${error.message}`); return }
@@ -168,6 +170,7 @@ function AcuerdosComerciales() {
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>PROVEEDOR</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>MONTO</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>TIEMPO</th>
+                <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>METODO PAGO</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>ESTADO</th>
                 <th style={{ padding: '10px 12px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}></th>
               </tr>
@@ -178,6 +181,7 @@ function AcuerdosComerciales() {
                   <td style={{ padding: '10px 12px', fontWeight: 600, color: '#1e293b' }}>{a.proveedor}</td>
                   <td style={{ padding: '10px 12px', color: '#1e293b' }}>${a.monto.toLocaleString()}</td>
                   <td style={{ padding: '10px 12px', color: '#1e293b' }}>{a.tiempo || '-'}</td>
+                  <td style={{ padding: '10px 12px', color: '#1e293b' }}>{a.metodo_pago || '-'}</td>
                   <td style={{ padding: '10px 12px' }}>
                     <span style={{
                       padding: '2px 10px', fontSize: '0.72rem', fontWeight: 700,
@@ -217,6 +221,19 @@ function AcuerdosComerciales() {
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>TIEMPO</label>
                 <input value={tiempo} onChange={e => setTiempo(e.target.value.toUpperCase())}
                   style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>METODO DE PAGO</label>
+                <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="NOTA DE CREDITO">NOTA DE CREDITO</option>
+                  <option value="FACTURA">FACTURA</option>
+                  <option value="EFECTIVO">EFECTIVO</option>
+                  <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                  <option value="OTRO">OTRO</option>
+                </select>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>ESTADO</label>
