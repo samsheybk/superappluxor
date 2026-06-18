@@ -1113,7 +1113,114 @@ DROP POLICY IF EXISTS "Recorridos QR registros delete" ON recorridos_qr_registro
 CREATE POLICY "Recorridos QR registros delete" ON recorridos_qr_registros FOR DELETE USING (es_admin());
 
 -- ============================================================
+-- ============================================================
+-- RRHH: Bienestar Social
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS rrhh_bienestar_uniformes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id UUID NOT NULL REFERENCES rrhh_candidatos(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL,
+  talla TEXT NOT NULL DEFAULT '',
+  cantidad INTEGER NOT NULL DEFAULT 1,
+  fecha_entrega DATE NOT NULL,
+  observaciones TEXT NOT NULL DEFAULT '',
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_bienestar_uniformes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Bienestar uniformes read" ON rrhh_bienestar_uniformes;
+CREATE POLICY "Bienestar uniformes read" ON rrhh_bienestar_uniformes FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar uniformes insert" ON rrhh_bienestar_uniformes;
+CREATE POLICY "Bienestar uniformes insert" ON rrhh_bienestar_uniformes FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar uniformes update" ON rrhh_bienestar_uniformes;
+CREATE POLICY "Bienestar uniformes update" ON rrhh_bienestar_uniformes FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar uniformes delete" ON rrhh_bienestar_uniformes;
+CREATE POLICY "Bienestar uniformes delete" ON rrhh_bienestar_uniformes FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_bienestar_eventos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  descripcion TEXT NOT NULL DEFAULT '',
+  fecha_evento DATE NOT NULL,
+  presupuesto DECIMAL(12,2) NOT NULL DEFAULT 0,
+  estado TEXT NOT NULL DEFAULT 'planificado' CHECK (estado IN ('planificado', 'realizado', 'cancelado')),
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_bienestar_eventos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Bienestar eventos read" ON rrhh_bienestar_eventos;
+CREATE POLICY "Bienestar eventos read" ON rrhh_bienestar_eventos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar eventos insert" ON rrhh_bienestar_eventos;
+CREATE POLICY "Bienestar eventos insert" ON rrhh_bienestar_eventos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar eventos update" ON rrhh_bienestar_eventos;
+CREATE POLICY "Bienestar eventos update" ON rrhh_bienestar_eventos FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar eventos delete" ON rrhh_bienestar_eventos;
+CREATE POLICY "Bienestar eventos delete" ON rrhh_bienestar_eventos FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_bienestar_ayudas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id UUID NOT NULL REFERENCES rrhh_candidatos(id) ON DELETE CASCADE,
+  tipo_ayuda TEXT NOT NULL,
+  monto DECIMAL(12,2) NOT NULL DEFAULT 0,
+  fecha DATE NOT NULL,
+  motivo TEXT NOT NULL DEFAULT '',
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_bienestar_ayudas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Bienestar ayudas read" ON rrhh_bienestar_ayudas;
+CREATE POLICY "Bienestar ayudas read" ON rrhh_bienestar_ayudas FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar ayudas insert" ON rrhh_bienestar_ayudas;
+CREATE POLICY "Bienestar ayudas insert" ON rrhh_bienestar_ayudas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar ayudas update" ON rrhh_bienestar_ayudas;
+CREATE POLICY "Bienestar ayudas update" ON rrhh_bienestar_ayudas FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar ayudas delete" ON rrhh_bienestar_ayudas;
+CREATE POLICY "Bienestar ayudas delete" ON rrhh_bienestar_ayudas FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS rrhh_bienestar_nucleo_familiar (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidato_id UUID NOT NULL REFERENCES rrhh_candidatos(id) ON DELETE CASCADE,
+  familiar_nombre TEXT NOT NULL,
+  parentesco TEXT NOT NULL,
+  fecha_nacimiento DATE,
+  telefono TEXT NOT NULL DEFAULT '',
+  creado_por UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_bienestar_nucleo_familiar ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Bienestar nucleo read" ON rrhh_bienestar_nucleo_familiar;
+CREATE POLICY "Bienestar nucleo read" ON rrhh_bienestar_nucleo_familiar FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar nucleo insert" ON rrhh_bienestar_nucleo_familiar;
+CREATE POLICY "Bienestar nucleo insert" ON rrhh_bienestar_nucleo_familiar FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar nucleo update" ON rrhh_bienestar_nucleo_familiar;
+CREATE POLICY "Bienestar nucleo update" ON rrhh_bienestar_nucleo_familiar FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Bienestar nucleo delete" ON rrhh_bienestar_nucleo_familiar;
+CREATE POLICY "Bienestar nucleo delete" ON rrhh_bienestar_nucleo_familiar FOR DELETE USING (es_admin());
+
+-- ============================================================
 -- FIN: Full schema listo para nueva cuenta de Supabase
+-- ============================================================
 -- ============================================================
 
 -- ============================================================
