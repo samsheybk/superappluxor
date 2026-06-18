@@ -70,7 +70,7 @@ export function Sidebar() {
             }
           >
             <IconDashboard />
-            Dashboard
+            Cierre de evaluaciones
           </NavLink>
 
           {DIRECCIONES.map((dir) => {
