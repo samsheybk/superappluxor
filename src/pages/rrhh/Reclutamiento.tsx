@@ -100,8 +100,23 @@ function Ats() {
   const [asignarCargo, setAsignarCargo] = useState('')
   const [asignarUbic, setAsignarUbic] = useState('')
   const [contactoId, setContactoId] = useState<string | null>(null)
+  const [plantillaCargos, setPlantillaCargos] = useState<{ descripcion: string; ubicaciones: string[] }[]>([])
 
-  useEffect(() => { cargarCandidatos() }, [])
+  useEffect(() => { cargarCandidatos(); cargarPlantillaCargos() }, [])
+
+  async function cargarPlantillaCargos() {
+    const { data: pts } = await supabase.from('rrhh_plantillas_aprobadas').select('*')
+    if (!pts) return
+    const { data: ubs } = await supabase.from('rrhh_plantillas_ubicaciones').select('*')
+    const ubMap: Record<string, string[]> = {}
+    if (ubs) {
+      for (const u of ubs) {
+        if (!ubMap[u.plantilla_id]) ubMap[u.plantilla_id] = []
+        ubMap[u.plantilla_id].push(u.ubicacion)
+      }
+    }
+    setPlantillaCargos(pts.map(p => ({ descripcion: p.descripcion, ubicaciones: ubMap[p.id] || [] })))
+  }
 
   async function cargarCandidatos() {
     setLoading(true)
@@ -367,7 +382,9 @@ function Ats() {
       })()}
 
       {/* Modal asignar cargo y ubicacion para activar */}
-      {asignarId && (
+      {asignarId && (() => {
+        const cargosFiltrados = plantillaCargos.filter(p => p.ubicaciones.includes(asignarUbic))
+        return (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -379,12 +396,19 @@ function Ats() {
             <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 16 }}>El candidato debe tener CARGO y UBICACION para cambiar a ACTIVO.</p>
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>CARGO *</label>
-              <input value={asignarCargo} onChange={e => setAsignarCargo(e.target.value.toUpperCase())}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+              <select value={asignarCargo} onChange={e => setAsignarCargo(e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+              >
+                <option value="">-- Seleccionar --</option>
+                {cargosFiltrados.map(p => <option key={p.descripcion} value={p.descripcion}>{p.descripcion}</option>)}
+              </select>
+              {cargosFiltrados.length === 0 && asignarUbic && (
+                <p style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 4 }}>No hay cargos en plantilla aprobada para esta ubicacion.</p>
+              )}
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>UBICACION *</label>
-              <select value={asignarUbic} onChange={e => setAsignarUbic(e.target.value)}
+              <select value={asignarUbic} onChange={e => { setAsignarUbic(e.target.value); setAsignarCargo('') }}
                 style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
               >
                 <option value="">-- Seleccionar --</option>
@@ -401,7 +425,8 @@ function Ats() {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

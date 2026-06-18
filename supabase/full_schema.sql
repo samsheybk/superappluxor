@@ -1292,3 +1292,31 @@ CREATE POLICY "RRHH antecedentes update" ON rrhh_antecedentes_laborales FOR UPDA
 
 DROP POLICY IF EXISTS "RRHH antecedentes delete" ON rrhh_antecedentes_laborales;
 CREATE POLICY "RRHH antecedentes delete" ON rrhh_antecedentes_laborales FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- RRHH: Tipos de Antecedentes Laborales
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rrhh_antecedentes_tipos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO rrhh_antecedentes_tipos (nombre) VALUES
+  ('LLAMADO DE ATENCION'),
+  ('SUSPENSION'),
+  ('DESPIDO'),
+  ('RENUNCIA'),
+  ('RECONOCIMIENTO')
+ON CONFLICT (nombre) DO NOTHING;
+
+ALTER TABLE rrhh_antecedentes_tipos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH ant tipos read" ON rrhh_antecedentes_tipos;
+CREATE POLICY "RRHH ant tipos read" ON rrhh_antecedentes_tipos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH ant tipos insert" ON rrhh_antecedentes_tipos;
+CREATE POLICY "RRHH ant tipos insert" ON rrhh_antecedentes_tipos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH ant tipos delete" ON rrhh_antecedentes_tipos;
+CREATE POLICY "RRHH ant tipos delete" ON rrhh_antecedentes_tipos FOR DELETE USING (es_admin());

@@ -1,5 +1,6 @@
 import { FaGear, FaTrophy, FaHeart } from 'react-icons/fa6'
 import { useState, useEffect, useRef } from 'react'
+import { supabase } from '../../lib/supabaseClient'
 
 const NAVY = '#001A4A'
 const YELLOW = '#FFD700'
@@ -26,6 +27,12 @@ export function Landing() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [modalItem, setModalItem] = useState<{ titulo: string; texto: string; color: string; Icon: React.ComponentType<{ size?: number; color?: string }> } | null>(null)
   const [rates, setRates] = useState<{ usd: number; eur: number } | null>(null)
+  const [showValidator, setShowValidator] = useState(false)
+  const [valCedula, setValCedula] = useState('')
+  const [valResult, setValResult] = useState<{ nombres: string; apellidos: string; cedula: string; posibles_cargos: string; ubicacion: string; estado: string } | null>(null)
+  const [valLoading, setValLoading] = useState(false)
+  const [valError, setValError] = useState('')
+  const [footerOpen, setFooterOpen] = useState<string[]>([])
   useEffect(() => {
     fetch('https://ve.dolarapi.com/v1/dolares/oficial')
       .then(r => r.json())
@@ -36,6 +43,22 @@ export function Landing() {
       .then(d => setRates(prev => ({ usd: prev?.usd ?? 0, eur: d.promedio })))
       .catch(() => {})
   }, [])
+  async function validarTrabajador() {
+    const q = valCedula.trim()
+    if (!q) return
+    setValLoading(true); setValError(''); setValResult(null)
+    const { data } = await supabase
+      .from('rrhh_candidatos')
+      .select('nombres, apellidos, cedula, posibles_cargos, ubicacion, estado')
+      .eq('cedula', q)
+      .maybeSingle()
+    if (!data) {
+      setValError('No se encontro ningun trabajador con esa cedula.')
+    } else {
+      setValResult(data)
+    }
+    setValLoading(false)
+  }
   const renderBrand = (m: string, i: number) => (
     <div key={i} style={{
       width: 76, height: 76, borderRadius: '50%',
@@ -115,7 +138,7 @@ export function Landing() {
           </a>
 
           {/* Nav — oculto en mobile, visible en desktop */}
-          <nav style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }} className="hidden md:flex">
+          <nav className="hidden md:flex" style={{ gap: 14, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto' }}>
             {['Ubicaciones', 'Ofertas', 'Carreras', 'Sobre Nosotros'].map(item => (
               <a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
                 style={{ color: '#64748b', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, transition: 'color 0.2s', letterSpacing: 0.3, whiteSpace: 'nowrap' }}
@@ -488,13 +511,17 @@ export function Landing() {
           position: 'absolute', inset: 0,
           background: 'radial-gradient(circle at 30% 50%, rgba(255,215,0,0.06) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(255,82,82,0.05) 0%, transparent 50%)',
         }} />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto', padding: '20px 24px', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 800, color: '#fff', marginBottom: 16, lineHeight: 1.2 }}>
-            Estamos buscando<span style={{ color: YELLOW }}> tu talento</span>
-          </h2>
-          <p style={{ fontSize: '1rem', color: '#CBD5E1', marginBottom: 28, maxWidth: 500, margin: '0 auto 28px', lineHeight: 1.6 }}>
-            Postulate aca y forma parte de una empresa en crecimiento donde tu trabajo realmente importa.
-          </p>
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: 1000, margin: '0 auto', padding: '20px 24px', width: '100%' }}
+          className="md:flex md:items-center md:justify-between"
+        >
+          <div className="md:text-left" style={{ textAlign: 'center' }}>
+            <h2 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', fontWeight: 800, color: '#fff', marginBottom: 16, lineHeight: 1.2 }}>
+              Estamos buscando<span style={{ color: YELLOW }}> tu talento</span>
+            </h2>
+            <p style={{ fontSize: '1rem', color: '#CBD5E1', marginBottom: 28, maxWidth: 500, lineHeight: 1.6, margin: '0 auto 28px' }} className="md:mx-0">
+              Postulate aca y forma parte de una empresa en crecimiento donde tu trabajo realmente importa.
+            </p>
+          </div>
           <a href="/sitio/postular"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: CORAL, color: '#fff', padding: '14px 40px', fontSize: '0.95rem', fontWeight: 700, textDecoration: 'none', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 8px 28px rgba(255,82,82,0.4)' }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 12px 36px rgba(255,82,82,0.5)' }}
@@ -509,7 +536,70 @@ export function Landing() {
       {/* ======= FOOTER ======= */}
       <footer style={{ background: NAVY, color: '#94a3b8', padding: '48px 0 24px' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 40 }} className="grid-cols-1 md:grid-cols-4">
+          {/* Mobile accordion layout */}
+          <div className="flex flex-col md:hidden" style={{ gap: 8, marginBottom: 40 }}>
+            {/* Brand */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <img src="/lofo-footer.webp" alt="Luxor" style={{ height: 40, width: 'auto', display: 'block' }} />
+              </div>
+              <p style={{ fontSize: '0.8rem', lineHeight: 1.7, marginBottom: 16 }}>Calidad y confianza para toda la comunidad. Con 5 sucursales y creciendo.</p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {[
+                  { id: 'facebook', path: 'M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' },
+                  { id: 'instagram', path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z' },
+                  { id: 'twitter', path: 'M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z' },
+                  { id: 'whatsapp', path: 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z' },
+                ].map(s => (
+                  <div key={s.id} style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s, transform 0.2s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = GREEN; e.currentTarget.style.transform = 'scale(1.1)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)' }}
+                  >
+                    <svg width={16} height={16} fill="#CBD5E1" viewBox="0 0 24 24" style={{ transition: 'fill 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.fill = '#fff'}
+                      onMouseLeave={e => e.currentTarget.style.fill = '#CBD5E1'}
+                    ><path d={s.path} /></svg>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile accordion links */}
+            {[
+              { titulo: 'Compania', links: ['Sobre nosotros', 'Trabaja con nosotros', 'Prensa', 'Blog'] },
+              { titulo: 'Ayuda', links: ['Preguntas frecuentes', 'Politica de devolucion', 'Contacto', 'Validar trabajador'] },
+              { titulo: 'Legal', links: ['Terminos y condiciones', 'Privacidad', 'Cookies', 'Libro de reclamaciones'] },
+            ].map(col => {
+              const isOpen = footerOpen.includes(col.titulo)
+              return (
+              <div key={col.titulo} style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <button onClick={() => setFooterOpen(prev => prev.includes(col.titulo) ? prev.filter(t => t !== col.titulo) : [...prev, col.titulo])}
+                  style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '12px 0', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700 }}
+                >
+                  {col.titulo}
+                  <svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                  ><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                {isOpen && (
+                  <div style={{ paddingBottom: 12 }}>
+                    {col.links.map(l => (
+                      <a key={l} href={l === 'Validar trabajador' ? undefined : '#'}
+                        onClick={l === 'Validar trabajador' ? (e) => { e.preventDefault(); setShowValidator(true); setValCedula(''); setValResult(null); setValError('') } : undefined}
+                        style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'none', marginBottom: 10, transition: 'color 0.2s', cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.color = YELLOW}
+                        onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                      >{l}</a>
+                    ))}
+                  </div>
+                )}
+              </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop grid layout */}
+          <div className="hidden md:grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40, marginBottom: 40 }}>
             {/* Brand */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -536,16 +626,18 @@ export function Landing() {
               </div>
             </div>
 
-            {/* Links */}
+            {/* Desktop static columns */}
             {[
               { titulo: 'Compania', links: ['Sobre nosotros', 'Trabaja con nosotros', 'Prensa', 'Blog'] },
-              { titulo: 'Ayuda', links: ['Preguntas frecuentes', 'Politica de devolucion', 'Contacto', 'Sugerencias'] },
+              { titulo: 'Ayuda', links: ['Preguntas frecuentes', 'Politica de devolucion', 'Contacto', 'Validar trabajador'] },
               { titulo: 'Legal', links: ['Terminos y condiciones', 'Privacidad', 'Cookies', 'Libro de reclamaciones'] },
             ].map(col => (
               <div key={col.titulo}>
                 <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: 16 }}>{col.titulo}</h4>
                 {col.links.map(l => (
-                  <a key={l} href="#" style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'none', marginBottom: 10, transition: 'color 0.2s' }}
+                  <a key={l} href={l === 'Validar trabajador' ? undefined : '#'}
+                    onClick={l === 'Validar trabajador' ? (e) => { e.preventDefault(); setShowValidator(true); setValCedula(''); setValResult(null); setValError('') } : undefined}
+                    style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'none', marginBottom: 10, transition: 'color 0.2s', cursor: 'pointer' }}
                     onMouseEnter={e => e.currentTarget.style.color = YELLOW}
                     onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
                   >{l}</a>
@@ -565,6 +657,73 @@ export function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Validar trabajador modal */}
+      {showValidator && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => setShowValidator(false)}
+        >
+          <div style={{ background: '#fff', padding: 32, maxWidth: 440, width: '100%', position: 'relative' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setShowValidator(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8', lineHeight: 1 }}>
+              <svg width={20} height={20} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: NAVY, marginBottom: 16 }}>Validar trabajador</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 16 }}>Ingrese la cedula del trabajador para verificar su estatus en la empresa.</p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input value={valCedula} onChange={e => setValCedula(e.target.value.toUpperCase())}
+                placeholder="V-12345678"
+                onKeyDown={e => e.key === 'Enter' && validarTrabajador()}
+                style={{ flex: 1, padding: '10px 14px', border: '1px solid #e2e8f0', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+              />
+              <button onClick={validarTrabajador} disabled={valLoading}
+                style={{ background: NAVY, color: '#fff', border: 'none', padding: '10px 20px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >{valLoading ? 'Buscando...' : 'Buscar'}</button>
+            </div>
+
+            {valError && (
+              <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem', marginBottom: 12 }}>{valError}</div>
+            )}
+
+            {valResult && (
+              <div style={{ border: '1px solid #e2e8f0' }}>
+                <div style={{ padding: 20, textAlign: 'center' }}>
+                  <div style={{
+                    width: 72, height: 72, borderRadius: '50%',
+                    background: valResult.estado === 'ACTIVO' ? '#16a34a' : '#94a3b8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.6rem', fontWeight: 700, color: '#fff', margin: '0 auto 12px',
+                  }}>{((valResult.nombres || '')[0] + (valResult.apellidos || '')[0]).toUpperCase()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: NAVY }}>{valResult.nombres} {valResult.apellidos}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 4 }}>{valResult.cedula}</div>
+                  <div style={{
+                    display: 'inline-block', marginTop: 10, padding: '4px 14px', fontSize: '0.75rem', fontWeight: 700,
+                    background: valResult.estado === 'ACTIVO' ? '#f0fdf4' : '#fef2f2',
+                    color: valResult.estado === 'ACTIVO' ? '#16a34a' : '#dc2626',
+                  }}>{valResult.estado === 'ACTIVO' ? 'TRABAJADOR ACTIVO' : 'INACTIVO'}</div>
+                </div>
+                {(valResult.posibles_cargos || valResult.ubicacion) && (
+                  <div style={{ borderTop: '1px solid #e2e8f0', padding: 16, display: 'grid', gap: 10 }}>
+                    {valResult.posibles_cargos && (
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>CARGO</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>{valResult.posibles_cargos}</span>
+                      </div>
+                    )}
+                    {valResult.ubicacion && (
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>UBICACION</span>
+                        <span style={{ fontSize: '0.85rem', color: '#1e293b' }}>{valResult.ubicacion}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

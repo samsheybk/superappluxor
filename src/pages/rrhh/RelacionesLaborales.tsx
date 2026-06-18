@@ -26,7 +26,7 @@ interface Antecedente {
   created_at: string
 }
 
-const TIPOS = ['LLAMADO DE ATENCION', 'SUSPENSION', 'DESPIDO', 'RENUNCIA', 'RECONOCIMIENTO', 'OTRO']
+const TIPOS_BASE: string[] = []
 
 const AVATAR_COLORS = ['#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2']
 
@@ -48,11 +48,22 @@ export function RelacionesLaborales() {
   const [antecedentes, setAntecedentes] = useState<Antecedente[]>([])
   const [showModal, setShowModal] = useState(false)
   const [mensaje, setMensaje] = useState('')
-  const [formTipo, setFormTipo] = useState(TIPOS[0])
+  const [tipos, setTipos] = useState(TIPOS_BASE)
+  const [formTipo, setFormTipo] = useState(TIPOS_BASE[0])
   const [formDescripcion, setFormDescripcion] = useState('')
   const [formFecha, setFormFecha] = useState(new Date().toISOString().split('T')[0])
+  const [showNuevoTipo, setShowNuevoTipo] = useState(false)
+  const [nuevoTipo, setNuevoTipo] = useState('')
 
-  useEffect(() => { cargarTrabajadores() }, [])
+  useEffect(() => {
+    cargarTrabajadores()
+    cargarTipos()
+  }, [])
+
+  async function cargarTipos() {
+    const { data } = await supabase.from('rrhh_antecedentes_tipos').select('nombre').order('nombre', { ascending: true })
+    if (data && data.length > 0) setTipos(data.map(t => t.nombre))
+  }
 
   async function cargarTrabajadores() {
     const { data } = await supabase
@@ -88,7 +99,7 @@ export function RelacionesLaborales() {
       fecha: formFecha,
     })
     if (error) { setMensaje(`Error: ${error.message}`); return }
-    setFormTipo(TIPOS[0]); setFormDescripcion(''); setFormFecha(new Date().toISOString().split('T')[0])
+    setFormTipo(tipos[0]); setFormDescripcion(''); setFormFecha(new Date().toISOString().split('T')[0])
     setShowModal(false); setMensaje('')
     cargarAntecedentes(selectedId!)
   }
@@ -303,11 +314,36 @@ export function RelacionesLaborales() {
               <div style={{ display: 'grid', gap: 12, marginBottom: 20 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>TIPO *</label>
-                  <select value={formTipo} onChange={e => setFormTipo(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
-                  >
-                    {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <select value={formTipo} onChange={e => setFormTipo(e.target.value)}
+                      style={{ flex: 1, padding: '8px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+                    >
+                      {tipos.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <button type="button" onClick={() => setShowNuevoTipo(true)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                    >+ Nuevo tipo</button>
+                  </div>
+                  {showNuevoTipo && (
+                    <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                      <input value={nuevoTipo} onChange={e => setNuevoTipo(e.target.value.toUpperCase())} placeholder="Nuevo tipo..."
+                        style={{ flex: 1, padding: '6px 10px', border: '1px solid #e2e8f0', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }} />
+                      <button type="button" onClick={async () => {
+                        const t = nuevoTipo.trim()
+                        if (t && !tipos.includes(t)) {
+                          await supabase.from('rrhh_antecedentes_tipos').insert({ nombre: t }).maybeSingle()
+                          setTipos(prev => [...prev, t])
+                          setFormTipo(t)
+                        }
+                        setNuevoTipo(''); setShowNuevoTipo(false)
+                      }}
+                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                      >Agregar</button>
+                      <button type="button" onClick={() => { setNuevoTipo(''); setShowNuevoTipo(false) }}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                      >Cancelar</button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: 2 }}>FECHA *</label>

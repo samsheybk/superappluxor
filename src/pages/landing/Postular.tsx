@@ -6,6 +6,17 @@ const NAVY = '#001A4A'
 const CORAL = '#FF5252'
 const GREEN = '#00A651'
 
+const COLOR_ESTADO: Record<string, string> = {
+  NUEVO: '#3b82f6',
+  PRELIMINAR: '#f59e0b',
+  TECNICA: '#8b5cf6',
+  MEDICA: '#06b6d4',
+  ELEGIBLE: '#16a34a',
+  'NO ELEGIBLE': '#ef4444',
+  ACTIVO: '#001A4A',
+  EGRESO: '#64748b',
+}
+
 const PUESTOS = [
   { value: 'cajero', label: 'Cajero' },
   { value: 'reponedor', label: 'Reponedor' },
@@ -33,6 +44,11 @@ export function Postular() {
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
+  const [showVal, setShowVal] = useState(false)
+  const [valCedula, setValCedula] = useState('')
+  const [valResult, setValResult] = useState<{ nombres: string; apellidos: string; cedula: string; posibles_cargos: string; estado: string } | null>(null)
+  const [valLoading, setValLoading] = useState(false)
+  const [valError, setValError] = useState('')
 
   const val = (name: string, value: string) => {
     if (!value.trim() && !['experiencia', 'estudios', 'habilidades', 'referencias'].includes(name))
@@ -74,6 +90,23 @@ export function Postular() {
     setEnviado(true)
   }
 
+  async function validarCandidatura() {
+    const q = valCedula.trim()
+    if (!q) return
+    setValLoading(true); setValError(''); setValResult(null)
+    const { data } = await supabase
+      .from('rrhh_candidatos')
+      .select('nombres, apellidos, cedula, posibles_cargos, estado')
+      .eq('cedula', q)
+      .maybeSingle()
+    if (!data) {
+      setValError('No encontramos ninguna postulacion con esa cedula.')
+    } else {
+      setValResult(data)
+    }
+    setValLoading(false)
+  }
+
   return (
     <div style={{ fontFamily: "'Poppins', 'Segoe UI', system-ui, sans-serif", background: '#f8fafc', minHeight: '100vh' }}>
       {/* Header */}
@@ -89,9 +122,14 @@ export function Postular() {
         {!enviado ? (
           <>
             <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, marginBottom: 6 }}>Postulate</h1>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: 32, maxWidth: 500 }}>
+            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: 8, maxWidth: 500 }}>
               Completá el formulario y formá parte del equipo de Supermercados Luxor
             </p>
+            <button onClick={() => { setShowVal(true); setValCedula(''); setValResult(null); setValError('') }}
+              style={{ background: 'none', border: 'none', color: NAVY, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: 3, marginBottom: 32 }}
+              onMouseEnter={e => e.currentTarget.style.color = CORAL}
+              onMouseLeave={e => e.currentTarget.style.color = NAVY}
+            >¿Ya te postulaste? Revisa el estado de tu candidatura aqui</button>
 
             <form onSubmit={handleSubmit} style={{ background: '#fff', padding: 40, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -207,6 +245,63 @@ export function Postular() {
           </div>
         )}
       </div>
+
+      {/* Modal validar candidatura */}
+      {showVal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => setShowVal(false)}
+        >
+          <div style={{ background: '#fff', padding: 32, maxWidth: 420, width: '100%', position: 'relative' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setShowVal(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8', lineHeight: 1 }}>
+              <svg width={20} height={20} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: NAVY, marginBottom: 12 }}>Estado de tu candidatura</h3>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 16 }}>Ingresa tu cedula para consultar el estado actual de tu postulacion.</p>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input value={valCedula} onChange={e => setValCedula(e.target.value.toUpperCase())}
+                placeholder="V-12345678"
+                onKeyDown={e => e.key === 'Enter' && validarCandidatura()}
+                style={{ flex: 1, padding: '10px 14px', border: '1px solid #e2e8f0', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box' }}
+              />
+              <button onClick={validarCandidatura} disabled={valLoading}
+                style={{ background: NAVY, color: '#fff', border: 'none', padding: '10px 20px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >{valLoading ? 'Buscando...' : 'Buscar'}</button>
+            </div>
+
+            {valError && (
+              <div style={{ padding: '12px 16px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem', marginBottom: 12 }}>{valError}</div>
+            )}
+
+            {valResult && (
+              <div style={{ border: '1px solid #e2e8f0' }}>
+                <div style={{ padding: 20, textAlign: 'center' }}>
+                  <div style={{
+                    width: 72, height: 72, borderRadius: '50%',
+                    background: COLOR_ESTADO[valResult.estado] || '#94a3b8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.6rem', fontWeight: 700, color: '#fff', margin: '0 auto 12px',
+                  }}>{((valResult.nombres || '')[0] + (valResult.apellidos || '')[0]).toUpperCase()}</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: NAVY }}>{valResult.nombres} {valResult.apellidos}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 4 }}>{valResult.cedula}</div>
+                  <div style={{
+                    display: 'inline-block', marginTop: 10, padding: '4px 14px', fontSize: '0.75rem', fontWeight: 700,
+                    background: valResult.estado === 'ACTIVO' || valResult.estado === 'ELEGIBLE' ? '#f0fdf4' : valResult.estado === 'NO ELEGIBLE' || valResult.estado === 'EGRESO' ? '#fef2f2' : '#fefce8',
+                    color: COLOR_ESTADO[valResult.estado] || '#64748b',
+                  }}>{valResult.estado}</div>
+                </div>
+                {valResult.posibles_cargos && (
+                  <div style={{ borderTop: '1px solid #e2e8f0', padding: 16 }}>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>PUESTO SOLICITADO</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b' }}>{valResult.posibles_cargos}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
