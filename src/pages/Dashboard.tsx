@@ -82,14 +82,6 @@ export function Dashboard() {
     guardarResultado(indId, field, val)
   }
 
-  const deptos = new Map<string, string[]>()
-  for (const [dir, deps] of Object.entries(DEPARTAMENTOS_POR_DIRECCION)) {
-    for (const d of deps) {
-      if (!deptos.has(d)) deptos.set(d, [])
-      deptos.get(d)!.push(dir)
-    }
-  }
-
   const indicadoresPorDepto = new Map<string, Indicador[]>()
   for (const ind of indicadores) {
     const key = ind.departamento
@@ -124,36 +116,38 @@ export function Dashboard() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {Object.entries(DEPARTAMENTOS_POR_DIRECCION).map(([direccion, departamentos]) => {
-            const depsConIndicadores = departamentos.filter(d => (indicadoresPorDepto.get(d) || []).length > 0)
-            if (depsConIndicadores.length === 0) return null
-            return (
-              <div key={direccion} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                <button onClick={() => setDirAbierta(dirAbierta === direccion ? null : direccion)}
-                  style={{
-                    width: '100%', padding: '12px 16px', textAlign: 'left', border: 'none', cursor: 'pointer',
-                    background: dirAbierta === direccion ? '#f1f5f9' : '#fff', fontSize: '0.85rem', fontWeight: 700,
-                    color: '#001A4A', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}>
-                  <span>{direccion}</span>
-                  <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{dirAbierta === direccion ? '▼' : '▶'}</span>
-                </button>
-                {dirAbierta === direccion && (
-                  <div style={{ padding: '0 16px 12px' }}>
-                    {depsConIndicadores.map(depto => {
-                      const inds = indicadoresPorDepto.get(depto) || []
-                      return (
-                        <div key={depto} style={{ marginTop: 8, borderRadius: 6, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                          <button onClick={() => setDeptoAbierto(deptoAbierto === depto ? null : depto)}
-                            style={{
-                              width: '100%', padding: '10px 14px', textAlign: 'left', border: 'none', cursor: 'pointer',
-                              background: deptoAbierto === depto ? '#f8fafc' : '#fff', fontSize: '0.8rem', fontWeight: 600,
-                              color: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            }}>
-                            <span>{depto} <span style={{ fontWeight: 400, color: '#94a3b8' }}>({inds.length})</span></span>
-                            <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{deptoAbierto === depto ? '▼' : '▶'}</span>
-                          </button>
-                          {deptoAbierto === depto && (
+          {Object.entries(DEPARTAMENTOS_POR_DIRECCION).map(([direccion, departamentos]) => (
+            <div key={direccion} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+              <button onClick={() => setDirAbierta(dirAbierta === direccion ? null : direccion)}
+                style={{
+                  width: '100%', padding: '12px 16px', textAlign: 'left', border: 'none', cursor: 'pointer',
+                  background: dirAbierta === direccion ? '#f1f5f9' : '#fff', fontSize: '0.85rem', fontWeight: 700,
+                  color: '#001A4A', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                <span>{direccion}</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{dirAbierta === direccion ? '▼' : '▶'}</span>
+              </button>
+              {dirAbierta === direccion && (
+                <div style={{ padding: '0 16px 12px' }}>
+                  {departamentos.map(depto => {
+                    const inds = indicadoresPorDepto.get(depto) || []
+                    return (
+                      <div key={depto} style={{ marginTop: 8, borderRadius: 6, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                        <button onClick={() => setDeptoAbierto(deptoAbierto === depto ? null : depto)}
+                          style={{
+                            width: '100%', padding: '10px 14px', textAlign: 'left', border: 'none', cursor: 'pointer',
+                            background: deptoAbierto === depto ? '#f8fafc' : '#fff', fontSize: '0.8rem', fontWeight: 600,
+                            color: '#334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          }}>
+                          <span>{depto} <span style={{ fontWeight: 400, color: '#94a3b8' }}>({inds.length})</span></span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{deptoAbierto === depto ? '▼' : '▶'}</span>
+                        </button>
+                        {deptoAbierto === depto && (
+                          inds.length === 0 ? (
+                            <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
+                              No hay indicadores registrados para {depto}.
+                            </div>
+                          ) : (
                             <div style={{ overflowX: 'auto' }}>
                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                                 <thead>
