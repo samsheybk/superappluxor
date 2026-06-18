@@ -1320,3 +1320,94 @@ CREATE POLICY "RRHH ant tipos insert" ON rrhh_antecedentes_tipos FOR INSERT WITH
 
 DROP POLICY IF EXISTS "RRHH ant tipos delete" ON rrhh_antecedentes_tipos;
 CREATE POLICY "RRHH ant tipos delete" ON rrhh_antecedentes_tipos FOR DELETE USING (es_admin());
+
+-- ============================================================
+-- MÓDULO MERCADEO
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS mercadeo_acuerdos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  proveedor TEXT NOT NULL,
+  monto DECIMAL(12,2) NOT NULL DEFAULT 0,
+  tiempo TEXT NOT NULL DEFAULT '',
+  estado TEXT NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'activo', 'vencido')),
+  created_by UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE mercadeo_acuerdos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Mercadeo acuerdos read" ON mercadeo_acuerdos;
+CREATE POLICY "Mercadeo acuerdos read" ON mercadeo_acuerdos FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo acuerdos insert" ON mercadeo_acuerdos;
+CREATE POLICY "Mercadeo acuerdos insert" ON mercadeo_acuerdos FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo acuerdos update" ON mercadeo_acuerdos;
+CREATE POLICY "Mercadeo acuerdos update" ON mercadeo_acuerdos FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo acuerdos delete" ON mercadeo_acuerdos;
+CREATE POLICY "Mercadeo acuerdos delete" ON mercadeo_acuerdos FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS mercadeo_diseno_incidencias (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plataforma TEXT NOT NULL DEFAULT '',
+  error TEXT NOT NULL DEFAULT '',
+  mes TEXT NOT NULL DEFAULT '',
+  created_by UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE mercadeo_diseno_incidencias ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Mercadeo diseno read" ON mercadeo_diseno_incidencias;
+CREATE POLICY "Mercadeo diseno read" ON mercadeo_diseno_incidencias FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo diseno insert" ON mercadeo_diseno_incidencias;
+CREATE POLICY "Mercadeo diseno insert" ON mercadeo_diseno_incidencias FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo diseno delete" ON mercadeo_diseno_incidencias;
+CREATE POLICY "Mercadeo diseno delete" ON mercadeo_diseno_incidencias FOR DELETE USING (es_admin());
+
+CREATE TABLE IF NOT EXISTS mercadeo_rrss_metas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  mes TEXT NOT NULL,
+  seguidores_meta INT NOT NULL DEFAULT 0,
+  likes_meta INT NOT NULL DEFAULT 0,
+  interacciones_meta INT NOT NULL DEFAULT 0,
+  seguidores_logrado INT NOT NULL DEFAULT 0,
+  likes_logrado INT NOT NULL DEFAULT 0,
+  interacciones_logrado INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE mercadeo_rrss_metas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Mercadeo rrss read" ON mercadeo_rrss_metas;
+CREATE POLICY "Mercadeo rrss read" ON mercadeo_rrss_metas FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo rrss insert" ON mercadeo_rrss_metas;
+CREATE POLICY "Mercadeo rrss insert" ON mercadeo_rrss_metas FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo rrss update" ON mercadeo_rrss_metas;
+CREATE POLICY "Mercadeo rrss update" ON mercadeo_rrss_metas FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE TABLE IF NOT EXISTS mercadeo_marcas_propias (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre_marca TEXT NOT NULL DEFAULT '',
+  estado TEXT NOT NULL DEFAULT 'ACTIVA' CHECK (estado IN ('ACTIVA', 'INACTIVA')),
+  mes TEXT NOT NULL DEFAULT '',
+  created_by UUID REFERENCES perfiles(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE mercadeo_marcas_propias ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Mercadeo marcas read" ON mercadeo_marcas_propias;
+CREATE POLICY "Mercadeo marcas read" ON mercadeo_marcas_propias FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo marcas insert" ON mercadeo_marcas_propias;
+CREATE POLICY "Mercadeo marcas insert" ON mercadeo_marcas_propias FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Mercadeo marcas update" ON mercadeo_marcas_propias;
+CREATE POLICY "Mercadeo marcas update" ON mercadeo_marcas_propias FOR UPDATE USING (auth.role() = 'authenticated');

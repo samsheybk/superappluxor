@@ -37,6 +37,7 @@ import { Inventario } from './pages/inventario/Inventario'
 import { ServiciosGenerales } from './pages/servicios-generales/ServiciosGenerales'
 import { Reclutamiento } from './pages/rrhh/Reclutamiento'
 import { RelacionesLaborales } from './pages/rrhh/RelacionesLaborales'
+import { Mercadeo } from './pages/mercadeo/Mercadeo'
 import { GestionUsuarios } from './pages/admin/GestionUsuarios'
 import { Landing } from './pages/landing/Landing'
 import { Postular } from './pages/landing/Postular'
@@ -78,6 +79,7 @@ function App() {
             <Route path="/departamento/servicios-generales" element={<ServiciosGenerales />} />
             <Route path="/departamento/reclutamiento-y-seleccion" element={<Reclutamiento />} />
             <Route path="/departamento/relaciones-laborales" element={<RelacionesLaborales />} />
+            <Route path="/departamento/mercadeo" element={<Mercadeo />} />
             <Route path="/departamento/:slug" element={<Departamento />} />
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />
