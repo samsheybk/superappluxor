@@ -29,8 +29,48 @@ export function Landing() {
   const [rates, setRates] = useState<{ usd: number; eur: number } | null>(null)
   const [showValidator, setShowValidator] = useState(false)
   const [valCedula, setValCedula] = useState('')
-  const [valResult, setValResult] = useState<{ nombres: string; apellidos: string; cedula: string; posibles_cargos: string; ubicacion: string; estado: string } | null>(null)
+  const [valResult, setValResult] = useState<any>(null)
   const [valLoading, setValLoading] = useState(false)
+
+  const CATEGORIES = [
+    { text: 'CARNICERIA', color: '#c41430' },
+    { text: 'CHARCUTERIA', color: '#e63950' },
+    { text: 'VIVERES', color: '#0d5e2e' },
+    { text: 'MASCOTAS', color: '#f59e0b' },
+    { text: 'HIGIENE', color: '#0891b2' },
+    { text: 'COSMETICOS', color: '#db2777' },
+    { text: 'LICORES', color: '#7c3aed' },
+    { text: 'BAZAR', color: '#2563eb' },
+    { text: 'DEPORTE', color: '#16a34a' },
+    { text: 'FERRETERIA', color: '#b8860b' },
+    { text: 'AUTOMOTRIZ', color: '#475569' },
+    { text: 'HOGAR', color: '#be123c' },
+    { text: 'PESCADERIA', color: '#0369a1' },
+    { text: 'CAMPING', color: '#854d0e' },
+    { text: 'PASTELERIA', color: '#4f46e5' },
+    { text: 'PANADERIA', color: '#a16207' },
+  ]
+  const [shuffledCategories, setShuffledCategories] = useState(() => [...CATEGORIES])
+  const catsRef = useRef([...CATEGORIES])
+  const rotatingTextRef = useRef<string | null>(null)
+  const [animPhase, setAnimPhase] = useState<'idle' | 'exiting' | 'entering'>('idle')
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const first = catsRef.current[0].text
+      rotatingTextRef.current = first
+      setAnimPhase('exiting')
+      setTimeout(() => {
+        catsRef.current = [...catsRef.current]
+        catsRef.current.push(catsRef.current.shift()!)
+        setShuffledCategories(catsRef.current)
+        setAnimPhase('entering')
+        setTimeout(() => {
+          setAnimPhase('idle')
+        }, 450)
+      }, 400)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
   const [valError, setValError] = useState('')
   const [footerOpen, setFooterOpen] = useState<string[]>([])
   useEffect(() => {
@@ -199,39 +239,40 @@ export function Landing() {
 
       {/* ======= VARIEDAD ======= */}
       <section style={{ padding: 0, background: '#fff' }}>
+        <style>{`
+          @keyframes slideOutLeft {
+            from { transform: translateX(0); opacity: 1; }
+            to   { transform: translateX(-60px); opacity: 0; }
+          }
+          @keyframes slideInRight {
+            from { transform: translateX(60px); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+          }
+        `}</style>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 20 }}>Todo lo que buscas en un solo lugar</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 14, alignItems: 'flex-start' }}>
-            {[
-              { text: 'CARNICERIA', color: '#c41430' },
-              { text: 'CHARCUTERIA', color: '#e63950' },
-              { text: 'VIVERES', color: '#0d5e2e' },
-              { text: 'MASCOTAS', color: '#f59e0b' },
-              { text: 'HIGIENE', color: '#0891b2' },
-              { text: 'COSMETICOS', color: '#db2777' },
-              { text: 'LICORES', color: '#7c3aed' },
-              { text: 'BAZAR', color: '#2563eb' },
-              { text: 'DEPORTE', color: '#16a34a' },
-              { text: 'FERRETERIA', color: '#b8860b' },
-              { text: 'AUTOMOTRIZ', color: '#475569' },
-              { text: 'HOGAR', color: '#be123c' },
-              { text: 'PESCADERIA', color: '#0369a1' },
-              { text: 'CAMPING', color: '#854d0e' },
-              { text: 'PASTELERIA', color: '#4f46e5' },
-              { text: 'PANADERIA', color: '#a16207' },
-            ].map(cat => (
+            {shuffledCategories.map((cat) => {
+              const isRotating = cat.text === rotatingTextRef.current
+              let animation = ''
+              if (animPhase === 'exiting' && isRotating) animation = 'slideOutLeft 0.4s ease forwards'
+              else if (animPhase === 'entering' && isRotating) animation = 'slideInRight 0.45s ease'
+              const animStyle = animation ? { animation } : {}
+              return (
               <div key={cat.text} style={{
                 background: cat.color, padding: '12px 28px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.08)', width: 'auto',
                 transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'default',
+                ...animStyle,
               }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(0,0,0,0.15)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)' }}
               >
                 <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff', textAlign: 'center', letterSpacing: 1.5, whiteSpace: 'nowrap' }}>{cat.text}</span>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
@@ -383,11 +424,11 @@ export function Landing() {
                     </div>
                   </div>
                   <div style={{ padding: '0 20px 16px', background: '#fff', display: 'flex', gap: 8 }}>
-                    <button style={{ flex: 1, background: CORAL, color: '#fff', border: 'none', borderRadius: 10, padding: '8px 0', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
+                    <button style={{ flex: 1, background: CORAL, color: '#fff', border: 'none', borderRadius: 0, padding: '8px 0', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'opacity 0.2s' }}
                       onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                       onMouseLeave={e => e.currentTarget.style.opacity = '1'}
                     >Pedir Delivery</button>
-                    <button style={{ flex: 1, background: '#fff', color: NAVY, border: `1px solid ${NAVY}20`, borderRadius: 10, padding: '8px 0', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>Como llegar</button>
+                    <button style={{ flex: 1, background: '#fff', color: NAVY, border: `1px solid ${NAVY}20`, borderRadius: 0, padding: '8px 0', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>Como llegar</button>
                   </div>
                 </div>
               )
@@ -413,7 +454,7 @@ export function Landing() {
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(calc(-50% - 10px)); }
         }
         .marquee-track:hover > div { animation-play-state: paused; }
       `}</style>
@@ -421,7 +462,7 @@ export function Landing() {
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.6rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 12, padding: '0 24px' }}>Nuestras Marcas Aliadas</h2>
           <div className="marquee-track" style={{ overflow: 'hidden', width: '100%', padding: '8px 0' }}>
-            <div style={{ display: 'flex', width: 'max-content', animation: 'marquee 30s linear infinite' }}>
+            <div style={{ display: 'flex', gap: 20, width: 'max-content', animation: 'marquee 30s linear infinite' }}>
               <div style={{ display: 'flex', gap: 20 }}>
                 {MARCAS.map((m, i) => renderBrand(m, i))}
               </div>
@@ -437,7 +478,14 @@ export function Landing() {
       <section id="sobre-nosotros" style={{ padding: '64px 0', background: '#fff' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px' }}>
           <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, color: NAVY, textAlign: 'left', marginBottom: 8 }}>Conocenos</h2>
-          <p style={{ textAlign: 'left', color: '#64748b', fontSize: '0.9rem', marginBottom: 40, maxWidth: 600 }}>Descubre nuestra historia, mision y el equipo que hace posible Supermercados Luxor</p>
+          <p style={{ textAlign: 'left', color: '#64748b', fontSize: '0.9rem', marginBottom: 24, maxWidth: 600 }}>Descubre nuestra historia, mision y el equipo que hace posible Supermercados Luxor</p>
+
+          <p className="hidden md:block" style={{ textAlign: 'justify', color: '#475569', fontSize: '0.85rem', lineHeight: 1.8, marginBottom: 32 }}>
+            En nuestra cadena de supermercados, entendemos que la calidad y el servicio no son solo valores, sino compromisos inquebrantables con cada familia venezolana que confia en nosotros. Nos esforzamos dia a dia para ofrecer productos frescos y de primera, garantizando que cada articulo en nuestras estanterias cumpla con los mas altos estandares de seleccion, higiene y conservacion. Pero no solo nos preocupamos por la calidad de lo que vendemos, sino tambien por la experiencia de compra de nuestros clientes.
+          </p>
+          <p className="hidden md:block" style={{ textAlign: 'justify', color: '#475569', fontSize: '0.85rem', lineHeight: 1.8, marginBottom: 40 }}>
+            Desde el momento en que cruzas nuestras puertas o visitas nuestra plataforma digital, encuentras un equipo dispuesto a atenderte con amabilidad, eficiencia y una sonrisa que refleja nuestro compromiso con tu bienestar. Con amplios espacios, variedad de opciones y precios accesibles, nos aseguramos de que cada visita sea comoda, rapida y satisfactoria. Ademas, implementamos promociones constantes y programas de fidelizacion para premiar tu preferencia, porque creemos que la calidad no solo se mide en productos, sino en el valor que agregamos a tu vida. En cada compra, en cada detalle, estamos aqui para hacer tu dia mas facil, brindandote confianza, seguridad y el mejor servicio en un solo lugar.
+          </p>
 
           {/* Image grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 40 }} className="grid-cols-2">
@@ -460,8 +508,8 @@ export function Landing() {
           {/* Mission / Vision / Values */}
           <div style={{ display: 'grid', gap: 20 }} className="grid-cols-1 md:grid-cols-3">
             {[
-              { titulo: 'Mision', texto: 'Ofrecer productos de calidad superior con un servicio cercano, contribuyendo al bienestar de nuestras comunidades y al desarrollo de nuestro equipo.', color: NAVY, Icon: FaGear },
-              { titulo: 'Vision', texto: 'Ser la cadena de supermercados lider en Venezuela, reconocida por nuestra innovacion, calidad y compromiso social.', color: GREEN, Icon: FaTrophy },
+              { titulo: 'Mision', texto: 'Contribuir con el abastecimiento de productos de alta calidad, satisfaciendo las necesidades y expectativas de los clientes, ofreciendo economia, confort y servicios apoyados en la filosofia de trabajo de nuestro talento humano, consolidandonos como empresa con alto compromiso social y rentabilidad.', color: NAVY, Icon: FaGear },
+              { titulo: 'Vision', texto: 'Convertirnos a nivel nacional en los supermercados preferidos por la gran familia venezolana, reconocidos por los grandes estandares de calidad y precios en sus productos, servicios y atencion, brindando a nuestra distinguida clientela un ambiente agradable y seguro.', color: GREEN, Icon: FaTrophy },
               { titulo: 'Valores', texto: 'Compromiso, Calidad, Trabajo en equipo, Innovacion, Responsabilidad social y Respeto por nuestros clientes y colaboradores.', color: CORAL, Icon: FaHeart },
             ].map(item => (
               <div key={item.titulo} style={{ background: LIGHT_GRAY, padding: 28, transition: 'transform 0.3s, box-shadow 0.3s', cursor: 'pointer', overflow: 'hidden' }}
@@ -473,7 +521,7 @@ export function Landing() {
                   <item.Icon size={20} color="#fff" />
                 </div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: NAVY, marginBottom: 4 }}>{item.titulo}</h3>
-                <p style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.7 }}>{item.texto}</p>
+                <p className="hidden md:block" style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.7 }}>{item.texto}</p>
               </div>
             ))}
           </div>
@@ -584,7 +632,7 @@ export function Landing() {
                 {isOpen && (
                   <div style={{ paddingBottom: 12 }}>
                     {col.links.map(l => (
-                      <a key={l} href={l === 'Validar trabajador' ? undefined : '#'}
+                      <a key={l} href={l === 'Validar trabajador' ? undefined : l === 'Sobre nosotros' ? '#sobre-nosotros' : l === 'Trabaja con nosotros' ? '#carreras' : '#'}
                         onClick={l === 'Validar trabajador' ? (e) => { e.preventDefault(); setShowValidator(true); setValCedula(''); setValResult(null); setValError('') } : undefined}
                         style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'none', marginBottom: 10, transition: 'color 0.2s', cursor: 'pointer' }}
                         onMouseEnter={e => e.currentTarget.style.color = YELLOW}
@@ -635,7 +683,7 @@ export function Landing() {
               <div key={col.titulo}>
                 <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fff', marginBottom: 16 }}>{col.titulo}</h4>
                 {col.links.map(l => (
-                  <a key={l} href={l === 'Validar trabajador' ? undefined : '#'}
+                  <a key={l} href={l === 'Validar trabajador' ? undefined : l === 'Sobre nosotros' ? '#sobre-nosotros' : l === 'Trabaja con nosotros' ? '#carreras' : '#'}
                     onClick={l === 'Validar trabajador' ? (e) => { e.preventDefault(); setShowValidator(true); setValCedula(''); setValResult(null); setValError('') } : undefined}
                     style={{ display: 'block', fontSize: '0.8rem', color: '#94a3b8', textDecoration: 'none', marginBottom: 10, transition: 'color 0.2s', cursor: 'pointer' }}
                     onMouseEnter={e => e.currentTarget.style.color = YELLOW}
@@ -649,9 +697,9 @@ export function Landing() {
           {/* Contact bar */}
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: '0.78rem' }}>
             <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> contacto@luxor.com</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg> info@tusupermercadoluxor.com</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg> +58 412-123-4567</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Av. Principal, Caracas</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width={14} height={14} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> C.E. Celtic Center Av. Aragua, Maracay 2107, Aragua</span>
             </div>
             <div>&copy; 2026 <strong style={{ color: '#e2e8f0' }}>Supermercados Luxor</strong>. Todos los derechos reservados.</div>
           </div>

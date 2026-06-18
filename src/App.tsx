@@ -19,6 +19,7 @@ import { ListaSupermercados } from './pages/supermercados/ListaSupermercados'
 import { EvaluarSupermercado } from './pages/supermercados/EvaluarSupermercado'
 import { GestionConceptos } from './pages/supermercados/GestionConceptos'
 import { HistorialEvaluaciones } from './pages/supermercados/HistorialEvaluaciones'
+import { EvaluacionRRLL } from './pages/supermercados/EvaluacionRRLL'
 import { DetalleEvaluacion } from './pages/supermercados/DetalleEvaluacion'
 import { Documentacion } from './pages/Documentacion'
 import { ListaTickets } from './pages/sistemas/ListaTickets'
@@ -84,6 +85,7 @@ function App() {
             <Route path="/operaciones/supermercados" element={<ListaSupermercados />} />
             <Route path="/operaciones/supermercados/conceptos" element={<GestionConceptos />} />
             <Route path="/operaciones/supermercados/:id/evaluar" element={<EvaluarSupermercado />} />
+            <Route path="/operaciones/supermercados/:id/evaluar-rrll" element={<EvaluacionRRLL />} />
             <Route path="/operaciones/supermercados/:id/evaluacion/:evaluacionId" element={<DetalleEvaluacion />} />
             <Route path="/operaciones/supermercados/:id" element={<HistorialEvaluaciones />} />
             <Route path="/documentacion" element={<Documentacion />} />

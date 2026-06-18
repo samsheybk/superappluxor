@@ -1411,3 +1411,30 @@ CREATE POLICY "Mercadeo marcas insert" ON mercadeo_marcas_propias FOR INSERT WIT
 
 DROP POLICY IF EXISTS "Mercadeo marcas update" ON mercadeo_marcas_propias;
 CREATE POLICY "Mercadeo marcas update" ON mercadeo_marcas_propias FOR UPDATE USING (auth.role() = 'authenticated');
+
+-- ============================================================
+-- RRHH Evaluaciones (RRLL)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rrhh_evaluaciones (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  supermercado_id UUID NOT NULL REFERENCES supermercados(id) ON DELETE CASCADE,
+  evaluador_nombre TEXT NOT NULL,
+  evaluador_cedula TEXT NOT NULL,
+  representante_nombre TEXT NOT NULL,
+  representante_cedula TEXT NOT NULL,
+  firma_tthh TEXT NOT NULL,
+  firma_super TEXT NOT NULL,
+  items JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE rrhh_evaluaciones ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "RRHH evaluaciones read" ON rrhh_evaluaciones;
+CREATE POLICY "RRHH evaluaciones read" ON rrhh_evaluaciones FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH evaluaciones insert" ON rrhh_evaluaciones;
+CREATE POLICY "RRHH evaluaciones insert" ON rrhh_evaluaciones FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "RRHH evaluaciones delete" ON rrhh_evaluaciones;
+CREATE POLICY "RRHH evaluaciones delete" ON rrhh_evaluaciones FOR DELETE USING (es_admin());

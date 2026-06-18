@@ -205,6 +205,9 @@ export function ListaSupermercados() {
                       <IconEditar />
                       Editar
                     </button>
+                    <Link to={`/operaciones/supermercados/${s.id}/evaluar-rrll`}
+                      className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-900"
+                    >RRLL</Link>
                     {confirmarDeshabilitar === s.id ? (
                       <div className="flex gap-1">
                         <button onClick={() => toggleActivo(s.id, false)} className="inline-flex items-center gap-1 rounded bg-orange-600 px-2 py-1 text-xs text-white">Deshabilitar</button>
