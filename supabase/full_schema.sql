@@ -691,6 +691,38 @@ END $$;
 
 CREATE INDEX IF NOT EXISTS idx_documentacion_indicadores_depto ON documentacion_indicadores(departamento);
 
+CREATE TABLE IF NOT EXISTS indicador_resultados (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  indicador_id UUID NOT NULL REFERENCES documentacion_indicadores(id) ON DELETE CASCADE,
+  fecha_desde DATE NOT NULL,
+  fecha_hasta DATE NOT NULL,
+  resultado DECIMAL(10,2) NOT NULL DEFAULT 0,
+  meta DECIMAL(10,2) NOT NULL DEFAULT 100,
+  cumplimiento DECIMAL(5,2) GENERATED ALWAYS AS (
+    CASE WHEN meta > 0 THEN ROUND((resultado / meta) * 100, 2) ELSE 0 END
+  ) STORED,
+  observaciones TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(indicador_id, fecha_desde, fecha_hasta)
+);
+
+ALTER TABLE indicador_resultados ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede leer indicador_resultados') THEN
+    CREATE POLICY "Autenticado puede leer indicador_resultados" ON indicador_resultados FOR SELECT USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede insertar indicador_resultados') THEN
+    CREATE POLICY "Autenticado puede insertar indicador_resultados" ON indicador_resultados FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Autenticado puede actualizar indicador_resultados') THEN
+    CREATE POLICY "Autenticado puede actualizar indicador_resultados" ON indicador_resultados FOR UPDATE USING (auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admin puede eliminar indicador_resultados') THEN
+    CREATE POLICY "Admin puede eliminar indicador_resultados" ON indicador_resultados FOR DELETE USING (es_admin());
+  END IF;
+END $$;
+
 -- ============================================================
 -- Modulo de Evaluacion de Almacen y Distribucion
 -- ============================================================
