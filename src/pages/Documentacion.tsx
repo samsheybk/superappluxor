@@ -1,8 +1,10 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { DEPARTAMENTOS_POR_DIRECCION, type Direcciones } from '../types'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const DIRECCIONES: Direcciones[] = ['Operaciones', 'Talento Humano', 'Comercial', 'Finanzas']
 
@@ -21,6 +23,8 @@ interface DocIndicador {
   frecuencia_medicion: string
   departamento: string
   repercusion_laboral: string
+  pdf_aprobado?: string | null
+  fecha_aprobacion?: string | null
   created_at: string
   updated_at: string
 }
@@ -150,6 +154,113 @@ export function Documentacion() {
     })
   }
 
+  const pdfInputRef = useRef<HTMLInputElement>(null)
+
+  function generarPDF(doc: DocIndicador) {
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pageW = 210
+    const margin = 20
+    const bodyW = pageW - margin * 2
+    let y = margin
+
+    function addSection(title: string, content: string | string[]) {
+      if (y > 260) { pdf.addPage(); y = margin }
+      pdf.setFontSize(10); pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(0, 26, 74)
+      pdf.text(title.toUpperCase(), margin, y)
+      y += 5
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9)
+      pdf.setTextColor(71, 85, 105)
+      if (Array.isArray(content)) {
+        content.forEach((line) => {
+          if (y > 270) { pdf.addPage(); y = margin }
+          pdf.text(`- ${line}`, margin + 3, y); y += 5
+        })
+      } else {
+        const lines = pdf.splitTextToSize(content, bodyW)
+        lines.forEach((line: string) => {
+          if (y > 270) { pdf.addPage(); y = margin }
+          pdf.text(line, margin, y); y += 5
+        })
+      }
+      y += 3
+    }
+
+    pdf.setFontSize(16); pdf.setFont('helvetica', 'bold')
+    pdf.setTextColor(0, 26, 74)
+    pdf.text('SUPERMERCADOS LUXOR C.A.', pageW / 2, y, { align: 'center' })
+    y += 8
+    pdf.setFontSize(11); pdf.setFont('helvetica', 'normal')
+    pdf.setTextColor(100, 116, 139)
+    pdf.text('DOCUMENTACION DE INDICADORES DE GESTION', pageW / 2, y, { align: 'center' })
+    y += 10
+
+    pdf.setDrawColor(0, 26, 74); pdf.setLineWidth(0.5)
+    pdf.line(margin, y, pageW - margin, y)
+    y += 8
+
+    addSection('Tipo', doc.tipo)
+    addSection('Titulo', doc.titulo)
+    addSection('Introduccion', doc.introduccion)
+    addSection('Objetivo Principal', doc.objetivo_principal)
+    addSection('Objetivos Secundarios', normalizarArr(doc.objetivos_secundarios))
+    addSection('Metodo de Evaluacion', doc.metodo_evaluacion)
+    addSection('Valoracion de los Resultados', doc.valoracion_resultados)
+    addSection('Impacto en el Negocio', doc.impacto_negocio)
+    addSection('Responsables Directos', normalizarArr(doc.responsables_directos))
+    addSection('Responsables Indirectos', normalizarArr(doc.responsables_indirectos))
+    addSection('Frecuencia de Medicion', doc.frecuencia_medicion)
+    addSection('Departamento', doc.departamento)
+    addSection('Repercusion Laboral', doc.repercusion_laboral)
+
+    if (y > 220) { pdf.addPage(); y = margin }
+
+    pdf.setDrawColor(0, 0, 0); pdf.setLineWidth(0.3)
+    pdf.line(margin, y, pageW - margin, y)
+    y += 10
+
+    pdf.setFontSize(10); pdf.setFont('helvetica', 'bold')
+    pdf.setTextColor(0, 26, 74)
+    pdf.text('FIRMAS DE APROBACION', pageW / 2, y, { align: 'center' })
+    y += 12
+
+    const firmas = [
+      'PRESIDENCIA',
+      'GERENCIA DE TALENTO HUMANO',
+      'RESPONSABLE DE EVALUACIONES',
+    ]
+    firmas.forEach((firma) => {
+      if (y > 260) { pdf.addPage(); y = margin + 20 }
+      pdf.setDrawColor(100, 116, 139); pdf.setLineWidth(0.5)
+      pdf.line(margin + 30, y, pageW - margin - 30, y)
+      y += 4
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(100, 116, 139)
+      pdf.text(firma, pageW / 2, y, { align: 'center' })
+      y += 12
+    })
+
+    pdf.setFontSize(7); pdf.setTextColor(148, 163, 184)
+    pdf.text(`Documento ID: ${doc.id.slice(0, 8)} | Generado: ${new Date().toLocaleDateString('es-VE')}`, pageW / 2, 290, { align: 'center' })
+
+    pdf.save(`${doc.titulo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`)
+  }
+
+  async function subirPDFAprobado(docId: string, file: File) {
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result as string
+      const { error } = await supabase.from('documentacion_indicadores').update({
+        pdf_aprobado: base64,
+        fecha_aprobacion: new Date().toISOString(),
+      }).eq('id', docId)
+      if (!error) {
+        setDocs((prev) => prev.map((d) => d.id === docId ? { ...d, pdf_aprobado: base64, fecha_aprobacion: new Date().toISOString() } : d))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <div className="text-sm text-slate-500">Cargando documentacion...</div>
@@ -225,16 +336,32 @@ export function Documentacion() {
               </button>
               {abierto && (
                 <div className="border-t border-slate-100 p-4">
-                  {esAdmin && (
-                    <div className="mb-4 flex gap-2">
-                      <button onClick={() => abrirEditar(doc)}
-                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-                      >Editar</button>
-                      <button onClick={() => eliminar(doc.id)}
-                        className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
-                      >Eliminar</button>
-                    </div>
-                  )}
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {esAdmin && (
+                      <>
+                        <button onClick={() => abrirEditar(doc)}
+                          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+                        >Editar</button>
+                        <button onClick={() => eliminar(doc.id)}
+                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                        >Eliminar</button>
+                      </>
+                    )}
+                    <button onClick={() => generarPDF(doc)}
+                      className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700"
+                    >Descargar PDF</button>
+                    <button onClick={() => pdfInputRef.current?.click()}
+                      className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+                    >Adjuntar PDF firmado</button>
+                    <input ref={pdfInputRef} type="file" accept=".pdf" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) subirPDFAprobado(doc.id, f); e.target.value = '' }}
+                    />
+                    {doc.pdf_aprobado && (
+                      <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                        ✓ Aprobado {doc.fecha_aprobacion ? new Date(doc.fecha_aprobacion).toLocaleDateString('es-VE') : ''}
+                      </span>
+                    )}
+                  </div>
 
                   <Section label="Tipo">
                     <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${doc.tipo === 'KPI' ? 'bg-purple-100 text-purple-700' : doc.tipo === 'OKR' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'}`}>{doc.tipo}</span>
