@@ -17,6 +17,7 @@ interface DocIndicador {
   valoracion_resultados: string
   impacto_negocio: string
   responsables_directos: string[]
+  responsables_indirectos: string[]
   frecuencia_medicion: string
   departamento: string
   repercusion_laboral: string
@@ -28,8 +29,8 @@ const emptyForm = {
   titulo: '', tipo: '', introduccion: '', objetivo_principal: '',
   objetivos_secundarios: [] as string[], metodo_evaluacion: '',
   valoracion_resultados: '', impacto_negocio: '',
-  responsables_directos: [] as string[], frecuencia_medicion: '',
-  departamento: '', repercusion_laboral: '',
+  responsables_directos: [] as string[], responsables_indirectos: [] as string[],
+  frecuencia_medicion: '', departamento: '', repercusion_laboral: '',
 }
 
 export function Documentacion() {
@@ -42,15 +43,18 @@ export function Documentacion() {
   const [editando, setEditando] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [nuevoObjSec, setNuevoObjSec] = useState('')
-  const [nuevoResp, setNuevoResp] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
+  const [cargos, setCargos] = useState<string[]>([])
 
   useEffect(() => {
     supabase.from('documentacion_indicadores').select('*').order('departamento').then(({ data }) => {
       if (data) setDocs(data as unknown as DocIndicador[])
       setLoading(false)
       if (data && data.length > 0) setDeptoSeleccionado((data[0] as any).departamento)
+    })
+    supabase.from('rrhh_plantillas_aprobadas').select('descripcion').then(({ data }) => {
+      if (data) setCargos([...new Set(data.map(r => r.descripcion))].sort())
     })
   }, [])
 
@@ -85,7 +89,7 @@ export function Documentacion() {
   function abrirNuevo() {
     setEditando(null)
     setForm({ ...emptyForm, departamento: deptoSeleccionado })
-    setNuevoObjSec(''); setNuevoResp('')
+    setNuevoObjSec('')
     setModalAbierto(true)
   }
 
@@ -101,11 +105,12 @@ export function Documentacion() {
       valoracion_resultados: doc.valoracion_resultados,
       impacto_negocio: doc.impacto_negocio,
       responsables_directos: normalizarArr(doc.responsables_directos),
+      responsables_indirectos: normalizarArr(doc.responsables_indirectos),
       frecuencia_medicion: doc.frecuencia_medicion,
       departamento: doc.departamento,
       repercusion_laboral: doc.repercusion_laboral,
     })
-    setNuevoObjSec(''); setNuevoResp('')
+    setNuevoObjSec('')
     setModalAbierto(true)
   }
 
@@ -138,10 +143,11 @@ export function Documentacion() {
     setNuevoObjSec('')
   }
 
-  function agregarResp() {
-    if (!nuevoResp.trim()) return
-    setForm((f) => ({ ...f, responsables_directos: [...f.responsables_directos, nuevoResp.trim()] }))
-    setNuevoResp('')
+  function toggleCargo(field: 'responsables_directos' | 'responsables_indirectos', cargo: string) {
+    setForm((f) => {
+      const arr = f[field]
+      return { ...f, [field]: arr.includes(cargo) ? arr.filter(c => c !== cargo) : [...arr, cargo] }
+    })
   }
 
   if (loading) return (
@@ -262,6 +268,13 @@ export function Documentacion() {
                       ))}
                     </div>
                   </Section>
+                  <Section label="Responsables indirectos">
+                    <div className="flex flex-wrap gap-2">
+                      {normalizarArr(doc.responsables_indirectos).map((r: string, i: number) => (
+                        <span key={i} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">{r}</span>
+                      ))}
+                    </div>
+                  </Section>
                   <Section label="Frecuencia de medicion">
                     <p className="text-sm text-slate-600">{doc.frecuencia_medicion}</p>
                   </Section>
@@ -363,13 +376,39 @@ export function Documentacion() {
                     </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <input value={nuevoResp} onChange={(e) => setNuevoResp(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && agregarResp()}
-                    placeholder="Agregar responsable..."
-                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                  />
-                  <button onClick={agregarResp} className="rounded-lg bg-blue-600 px-3 text-sm text-white hover:bg-blue-700">+</button>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
+                  {cargos.map((c) => (
+                    <button key={c} onClick={() => toggleCargo('responsables_directos', c)}
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                        form.responsables_directos.includes(c)
+                          ? 'bg-green-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >{c}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-600">Responsables indirectos</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {form.responsables_indirectos.map((r, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-600">
+                      {r}
+                      <button onClick={() => setForm({ ...form, responsables_indirectos: form.responsables_indirectos.filter((_, j) => j !== i) })}
+                        className="text-amber-400 hover:text-amber-600">&times;</button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
+                  {cargos.filter(c => !form.responsables_directos.includes(c)).map((c) => (
+                    <button key={c} onClick={() => toggleCargo('responsables_indirectos', c)}
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                        form.responsables_indirectos.includes(c)
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >{c}</button>
+                  ))}
                 </div>
               </div>
               <div>
