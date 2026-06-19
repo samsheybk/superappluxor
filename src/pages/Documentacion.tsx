@@ -21,12 +21,13 @@ interface DocIndicador {
   responsables_directos: string[]
   responsables_indirectos: string[]
   frecuencia_medicion: string
-  departamento: string
+  departamento: string[]
   repercusion_laboral: string
   pdf_aprobado?: string | null
   fecha_aprobacion?: string | null
   created_at: string
   updated_at: string
+  autocalculado?: boolean
 }
 
 const emptyForm = {
@@ -34,7 +35,7 @@ const emptyForm = {
   objetivos_secundarios: [] as string[], metodo_evaluacion: '',
   valoracion_resultados: '', impacto_negocio: '',
   responsables_directos: [] as string[], responsables_indirectos: [] as string[],
-  frecuencia_medicion: '', departamento: '', repercusion_laboral: '',
+  frecuencia_medicion: '', departamento: [] as string[], repercusion_laboral: '',
 }
 
 export function Documentacion() {
@@ -49,38 +50,48 @@ export function Documentacion() {
   const [nuevoObjSec, setNuevoObjSec] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set())
-  const [cargos, setCargos] = useState<string[]>([])
+  const [cargos, setCargos] = useState<{ descripcion: string; departamento: string }[]>([])
 
   useEffect(() => {
-    supabase.from('documentacion_indicadores').select('*').order('departamento').then(({ data }) => {
+    supabase.from('documentacion_indicadores').select('*').order('created_at').then(({ data }) => {
       if (data) setDocs(data as unknown as DocIndicador[])
       setLoading(false)
-      if (data && data.length > 0) setDeptoSeleccionado((data[0] as any).departamento)
+      if (data && data.length > 0) {
+        const depts = (data[0] as any).departamento
+        setDeptoSeleccionado(Array.isArray(depts) ? depts[0] : depts)
+      }
     })
-    supabase.from('rrhh_plantillas_aprobadas').select('descripcion').then(({ data }) => {
-      if (data) setCargos([...new Set(data.map(r => r.descripcion))].sort())
+    supabase.from('rrhh_plantillas_aprobadas').select('descripcion, departamento').then(({ data }) => {
+      if (data) setCargos(data as { descripcion: string; departamento: string }[])
     })
   }, [])
 
   function normalizarArr(val: any): string[] {
     if (Array.isArray(val)) return val
-    if (typeof val === 'string') try { return JSON.parse(val) } catch { return [] }
+    if (typeof val === 'string') try { return JSON.parse(val) } catch { return [val] }
     return []
   }
 
   const deptosConDocs = useMemo(() => {
-    const names = new Set(docs.map((d) => d.departamento))
+    const names = new Set(docs.flatMap((d) => normalizarArr(d.departamento)))
     const todos: { dir: Direcciones; deptos: { nombre: string; count: number }[] }[] = []
     for (const dir of DIRECCIONES) {
       const d = DEPARTAMENTOS_POR_DIRECCION[dir]
         .filter((nom) => names.has(nom))
-        .map((nom) => ({ nombre: nom, count: docs.filter((doc) => doc.departamento === nom).length }))
+        .map((nom) => ({ nombre: nom, count: docs.filter((doc) => normalizarArr(doc.departamento).includes(nom)).length }))
       if (d.length > 0) todos.push({ dir, deptos: d })
     }
     return todos
   }, [docs])
 
-  const docsDelDepto = docs.filter((d) => d.departamento === deptoSeleccionado)
+  const docsDelDepto = docs.filter((d) => normalizarArr(d.departamento).includes(deptoSeleccionado))
+
+  const cargosFiltrados = useMemo(() => {
+    if (form.departamento.length === 0 || cargos.length === 0) return []
+    const depts = form.departamento.map(d => d.toUpperCase())
+    const descs = cargos.filter(c => depts.includes(c.departamento.toUpperCase())).map(c => c.descripcion)
+    return [...new Set(descs)].sort()
+  }, [cargos, form.departamento])
 
   function toggleExpandido(id: string) {
     setExpandidos((prev) => {
@@ -92,7 +103,7 @@ export function Documentacion() {
 
   function abrirNuevo() {
     setEditando(null)
-    setForm({ ...emptyForm, departamento: deptoSeleccionado })
+    setForm({ ...emptyForm, departamento: deptoSeleccionado ? [deptoSeleccionado] : [] })
     setNuevoObjSec('')
     setModalAbierto(true)
   }
@@ -111,7 +122,7 @@ export function Documentacion() {
       responsables_directos: normalizarArr(doc.responsables_directos),
       responsables_indirectos: normalizarArr(doc.responsables_indirectos),
       frecuencia_medicion: doc.frecuencia_medicion,
-      departamento: doc.departamento,
+      departamento: normalizarArr(doc.departamento),
       repercusion_laboral: doc.repercusion_laboral,
     })
     setNuevoObjSec('')
@@ -127,7 +138,7 @@ export function Documentacion() {
       } else {
         await supabase.from('documentacion_indicadores').insert(payload)
       }
-      const { data } = await supabase.from('documentacion_indicadores').select('*').order('departamento')
+      const { data } = await supabase.from('documentacion_indicadores').select('*').order('created_at')
       if (data) setDocs(data as unknown as DocIndicador[])
       setModalAbierto(false)
     } catch (e: any) { console.error(e) } finally { setGuardando(false) }
@@ -136,7 +147,7 @@ export function Documentacion() {
   async function eliminar(id: string) {
     if (!confirm('Eliminar esta documentacion?')) return
     await supabase.from('documentacion_indicadores').delete().eq('id', id)
-    const { data } = await supabase.from('documentacion_indicadores').select('*').order('departamento')
+    const { data } = await supabase.from('documentacion_indicadores').select('*').order('created_at')
     if (data) setDocs(data as unknown as DocIndicador[])
     setExpandidos((prev) => { const n = new Set(prev); n.delete(id); return n })
   }
@@ -210,7 +221,7 @@ export function Documentacion() {
     addSection('Responsables Directos', normalizarArr(doc.responsables_directos))
     addSection('Responsables Indirectos', normalizarArr(doc.responsables_indirectos))
     addSection('Frecuencia de Medicion', doc.frecuencia_medicion)
-    addSection('Departamento', doc.departamento)
+    addSection('Departamento', normalizarArr(doc.departamento).join(', '))
     addSection('Repercusion Laboral', doc.repercusion_laboral)
 
     if (y > 220) { pdf.addPage(); y = margin }
@@ -275,7 +286,7 @@ export function Documentacion() {
         <span className="text-slate-700 font-medium">Documentacion</span>
       </div>
       <div className="flex items-center justify-end gap-2">
-        {esAdmin && deptoSeleccionado && (
+        {esAdmin && (
           <button onClick={abrirNuevo}
             className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
           >
@@ -406,7 +417,11 @@ export function Documentacion() {
                     <p className="text-sm text-slate-600">{doc.frecuencia_medicion}</p>
                   </Section>
                   <Section label="Departamento">
-                    <p className="text-sm font-medium text-blue-600">{doc.departamento}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {normalizarArr(doc.departamento).map((d, i) => (
+                        <span key={i} className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-600">{d}</span>
+                      ))}
+                    </div>
                   </Section>
                   <Section label="Repercusion a nivel de la relacion laboral">
                     <p className="text-sm text-slate-600 leading-relaxed">{doc.repercusion_laboral}</p>
@@ -504,9 +519,11 @@ export function Documentacion() {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
-                  {cargos.length === 0 ? (
-                    <p className="text-xs text-slate-400 p-1">No hay cargos registrados. Cree cargos en Reclutamiento → Plantilla Aprobada primero.</p>
-                  ) : cargos.map((c) => (
+                  {form.departamento.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-1">Selecciona uno o mas departamentos primero para ver los cargos disponibles.</p>
+                  ) : cargosFiltrados.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-1">No hay cargos registrados para el/los departamento(s) seleccionado(s). Cree cargos en Reclutamiento → Plantilla Aprobada primero.</p>
+                  ) : cargosFiltrados.map((c) => (
                     <button key={c} onClick={() => toggleCargo('responsables_directos', c)}
                       className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                         form.responsables_directos.includes(c)
@@ -529,17 +546,22 @@ export function Documentacion() {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
-                  {cargos.length === 0 ? (
-                    <p className="text-xs text-slate-400 p-1">No hay cargos registrados. Cree cargos en Reclutamiento → Plantilla Aprobada primero.</p>
-                  ) : cargos.filter(c => !form.responsables_directos.includes(c)).map((c) => (
-                    <button key={c} onClick={() => toggleCargo('responsables_indirectos', c)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                        form.responsables_indirectos.includes(c)
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >{c}</button>
-                  ))}
+                  {form.departamento.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-1">Selecciona uno o mas departamentos primero para ver los cargos disponibles.</p>
+                  ) : (() => {
+                    const cargosIndirectos = cargosFiltrados.filter(c => !form.responsables_directos.includes(c))
+                    return cargosIndirectos.length === 0 ? (
+                      <p className="text-xs text-slate-400 p-1">Todos los cargos disponibles ya estan como responsables directos.</p>
+                    ) : cargosIndirectos.map((c) => (
+                      <button key={c} onClick={() => toggleCargo('responsables_indirectos', c)}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                          form.responsables_indirectos.includes(c)
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >{c}</button>
+                    ))
+                  })()}
                 </div>
               </div>
               <div>
@@ -555,17 +577,21 @@ export function Documentacion() {
                   <option value="Semestral">Semestral</option>
                 </select>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Departamento <span className="text-red-500">*</span></label>
-                <select required value={form.departamento} onChange={(e) => setForm({ ...form, departamento: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="">Seleccionar...</option>
-                  <option value="TODOS">TODOS</option>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-slate-600">Departamentos <span className="text-red-500">*</span></label>
+                <div className="flex flex-wrap gap-1.5 mb-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-2">
                   {DIRECCIONES.flatMap((dir) => DEPARTAMENTOS_POR_DIRECCION[dir]).map((d) => (
-                    <option key={d} value={d}>{d}</option>
+                    <button key={d} onClick={() => setForm((f) => ({
+                      ...f, departamento: f.departamento.includes(d) ? f.departamento.filter((x: string) => x !== d) : [...f.departamento, d]
+                    }))}
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                        form.departamento.includes(d)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >{d}</button>
                   ))}
-                </select>
+                </div>
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-xs font-medium text-slate-600">Repercusion a nivel de la relacion laboral <span className="text-red-500">*</span></label>
@@ -581,7 +607,7 @@ export function Documentacion() {
               >
                 Cancelar
               </button>
-              <button onClick={guardar} disabled={guardando || !form.titulo || !form.tipo || !form.introduccion || !form.objetivo_principal || form.objetivos_secundarios.length === 0 || !form.metodo_evaluacion || !form.valoracion_resultados || !form.impacto_negocio || form.responsables_directos.length === 0 || !form.frecuencia_medicion || !form.departamento || !form.repercusion_laboral}
+              <button onClick={guardar} disabled={guardando || !form.titulo || !form.tipo || !form.introduccion || !form.objetivo_principal || form.objetivos_secundarios.length === 0 || !form.metodo_evaluacion || !form.valoracion_resultados || !form.impacto_negocio || form.responsables_directos.length === 0 || !form.frecuencia_medicion || form.departamento.length === 0 || !form.repercusion_laboral}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear documentacion'}

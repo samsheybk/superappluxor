@@ -7,7 +7,7 @@ interface Indicador {
   titulo: string
   tipo: string
   frecuencia_medicion: string
-  departamento: string
+  departamento: string[]
 }
 
 interface Resultado {
@@ -46,7 +46,7 @@ export function Dashboard() {
   }, [desde, hasta, indicadores])
 
   async function cargarIndicadores() {
-    const { data } = await supabase.from('documentacion_indicadores').select('id, titulo, tipo, frecuencia_medicion, departamento').order('departamento').order('titulo')
+    const { data } = await supabase.from('documentacion_indicadores').select('id, titulo, tipo, frecuencia_medicion, departamento').order('titulo')
     if (data) setIndicadores(data as Indicador[])
     setLoading(false)
   }
@@ -94,9 +94,11 @@ export function Dashboard() {
 
   const indicadoresPorDepto = new Map<string, Indicador[]>()
   for (const ind of indicadores) {
-    const key = ind.departamento
-    if (!indicadoresPorDepto.has(key)) indicadoresPorDepto.set(key, [])
-    indicadoresPorDepto.get(key)!.push(ind)
+    const depts = Array.isArray(ind.departamento) ? ind.departamento : [ind.departamento]
+    for (const key of depts) {
+      if (!indicadoresPorDepto.has(key)) indicadoresPorDepto.set(key, [])
+      indicadoresPorDepto.get(key)!.push(ind)
+    }
   }
 
   return (

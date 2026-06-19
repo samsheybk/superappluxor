@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { SUPERMERCADOS } from '../../types'
@@ -456,6 +456,8 @@ function PlantillaAprobada({ tab }: { tab: string }) {
   const [departamento, setDepartamento] = useState('')
   const [ubicaciones, setUbicaciones] = useState<{ ubicacion: string; vacantes: number }[]>([])
   const [showCumplimiento, setShowCumplimiento] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showImportModal, setShowImportModal] = useState(false)
 
   useEffect(() => { if (tab === 'plantilla-aprobada') cargarPlantillas() }, [tab])
 
@@ -545,6 +547,56 @@ function PlantillaAprobada({ tab }: { tab: string }) {
     if (error) setMensaje(`Error: ${error.message}`)
   }
 
+  async function importarCargos(file: File) {
+    setMensaje('')
+    try {
+      let filas: Record<string, string>[] = []
+      const name = file.name.toLowerCase()
+      if (name.endsWith('.csv')) {
+        const text = await file.text()
+        const lines = text.split('\n').filter(l => l.trim())
+        if (lines.length < 2) { setMensaje('Error: El archivo debe tener un encabezado y al menos una fila.'); return }
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+        filas = lines.slice(1).map(line => {
+          const cols = line.split(',').map(c => c.trim())
+          const row: Record<string, string> = {}
+          headers.forEach((h, i) => { row[h] = cols[i] || '' })
+          return row
+        })
+      } else {
+        const XLSX = await import('xlsx')
+        const buf = await file.arrayBuffer()
+        const wb = XLSX.read(buf, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const data = XLSX.utils.sheet_to_json<Record<string, string>>(ws)
+        filas = data.map(r => {
+          const row: Record<string, string> = {}
+          Object.entries(r).forEach(([k, v]) => { row[k.trim().toLowerCase()] = String(v ?? '').trim() })
+          return row
+        })
+      }
+      if (filas.length === 0) { setMensaje('Error: No se encontraron filas de datos.'); return }
+      let insertados = 0, errores = 0
+      for (const row of filas) {
+        const desc = (row['descripcion'] || '').toUpperCase()
+        const dept = (row['departamento'] || '').toUpperCase()
+        const ubic = (row['ubicacion'] || '').toUpperCase()
+        const vac = parseInt(row['vacantes']) || 1
+        if (!desc || !dept) { errores++; continue }
+        const { data: pt, error: errPt } = await supabase.from('rrhh_plantillas_aprobadas').insert({ descripcion: desc, departamento: dept }).select().single()
+        if (errPt) { errores++; continue }
+        if (ubic && TODAS_UBICACIONES.includes(ubic)) {
+          await supabase.from('rrhh_plantillas_ubicaciones').insert({ plantilla_id: pt.id, ubicacion: ubic, vacantes: vac })
+        }
+        insertados++
+      }
+      setMensaje(`Importacion completada: ${insertados} insertados, ${errores} errores.`)
+      cargarPlantillas()
+    } catch (e: any) {
+      setMensaje(`Error al procesar el archivo: ${e.message}`)
+    }
+  }
+
   function cumplimientoData() {
     const acc: Record<string, { vacantes: number; activos: number }> = {}
     for (const p of plantillas) {
@@ -573,6 +625,9 @@ function PlantillaAprobada({ tab }: { tab: string }) {
           <button onClick={() => { setShowCumplimiento(true) }}
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
           >Ver cumplimiento</button>
+          <button onClick={() => setShowImportModal(true)}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+          >Importar cargos</button>
           <button onClick={() => { setShowModal(true); setMensaje('') }}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >Nuevo cargo</button>
@@ -704,6 +759,56 @@ function PlantillaAprobada({ tab }: { tab: string }) {
           </div>
         </div>
       )}
+
+      {showImportModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowImportModal(false)}>
+          <div style={{
+            background: '#fff', padding: 32, width: '90%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#001A4A' }}>Importar cargos</h3>
+              <button onClick={() => setShowImportModal(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 text-lg leading-none">✕</button>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#475569', marginBottom: 12 }}>
+              El archivo puede ser CSV o Excel (.xls / .xlsx) con las siguientes columnas:
+            </p>
+            <div style={{ background: '#f8fafc', padding: 16, borderRadius: 8, marginBottom: 16, fontSize: '0.82rem' }}>
+              <code style={{ display: 'block', color: '#0f172a', marginBottom: 8 }}>
+                <b>descripcion</b> | <b>departamento</b> | <b>ubicacion</b> | <b>vacantes</b>
+              </code>
+              <code style={{ display: 'block', color: '#334155', marginBottom: 4 }}>CAJERO | SUPERMERCADOS | SUPERMERCAS LUXOR C.A. CATIA LA MAR | 1</code>
+              <code style={{ display: 'block', color: '#334155', marginBottom: 4 }}>CHOFER | ALMACEN Y DISTRIBUCION | OFICINA CENTRAL | 2</code>
+            </div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: 20, lineHeight: 1.6 }}>
+              • <b>descripcion</b>: nombre del cargo (obligatorio)<br />
+              • <b>departamento</b>: departamento al que pertenece (obligatorio)<br />
+              • <b>ubicacion</b>: ubicacion especifica (opcional)<br />
+              • <b>vacantes</b>: cantidad de vacantes (opcional, default 1)
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={async () => {
+                const XLSX = await import('xlsx')
+                const wb = XLSX.utils.book_new()
+                const ws = XLSX.utils.aoa_to_sheet([['descripcion', 'departamento', 'ubicacion', 'vacantes']])
+                XLSX.utils.book_append_sheet(wb, ws, 'Cargos')
+                XLSX.writeFile(wb, 'plantilla_cargos.xls', { bookType: 'xls' })
+              }}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+              >Descargar plantilla (.xls)</button>
+              <button onClick={() => { setShowImportModal(false); setTimeout(() => fileInputRef.current?.click(), 100) }}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >Seleccionar archivo</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) importarCargos(f); e.target.value = '' }}
+      />
 
       {showCumplimiento && (
         <div style={{
