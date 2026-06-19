@@ -504,7 +504,9 @@ export function Documentacion() {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
-                  {cargos.map((c) => (
+                  {cargos.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-1">No hay cargos registrados. Cree cargos en Reclutamiento → Plantilla Aprobada primero.</p>
+                  ) : cargos.map((c) => (
                     <button key={c} onClick={() => toggleCargo('responsables_directos', c)}
                       className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                         form.responsables_directos.includes(c)
@@ -527,7 +529,9 @@ export function Documentacion() {
                   ))}
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-slate-200 rounded-lg p-2">
-                  {cargos.filter(c => !form.responsables_directos.includes(c)).map((c) => (
+                  {cargos.length === 0 ? (
+                    <p className="text-xs text-slate-400 p-1">No hay cargos registrados. Cree cargos en Reclutamiento → Plantilla Aprobada primero.</p>
+                  ) : cargos.filter(c => !form.responsables_directos.includes(c)).map((c) => (
                     <button key={c} onClick={() => toggleCargo('responsables_indirectos', c)}
                       className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                         form.responsables_indirectos.includes(c)
