@@ -33,6 +33,7 @@ export function Dashboard() {
   const [indicadores, setIndicadores] = useState<Indicador[]>([])
   const [resultados, setResultados] = useState<Resultado[]>([])
   const [loading, setLoading] = useState(true)
+  const [autoCalculados, setAutoCalculados] = useState<Record<string, number>>({})
   const [dirAbierta, setDirAbierta] = useState<string | null>(null)
   const [deptoAbierto, setDeptoAbierto] = useState<string | null>(null)
 
@@ -53,6 +54,15 @@ export function Dashboard() {
   async function cargarResultados() {
     const { data } = await supabase.from('indicador_resultados').select('*').gte('fecha_desde', desde).lte('fecha_hasta', hasta)
     if (data) setResultados(data as Resultado[])
+
+    const autoCalc: Record<string, number> = {}
+    for (const ind of indicadores) {
+      if (ind.titulo === 'Promedio de las evaluaciones en el rango declarado') {
+        const { data: prom } = await supabase.rpc('calcular_promedio_evaluaciones', { p_desde: desde, p_hasta: hasta })
+        if (prom != null) autoCalc[ind.id] = prom
+      }
+    }
+    setAutoCalculados(autoCalc)
   }
 
   function resultadoDeIndicador(indId: string): Resultado | undefined {
@@ -161,37 +171,46 @@ export function Dashboard() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {inds.map(ind => {
-                                    const res = resultadoDeIndicador(ind.id)
-                                    const cumple = res && res.meta > 0 ? (res.resultado / res.meta) * 100 : null
-                                    return (
-                                      <tr key={ind.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '8px 12px', color: '#1e293b', fontWeight: 500 }}>{ind.titulo}</td>
-                                        <td style={{ padding: '8px 12px', textAlign: 'center', color: '#64748b', fontSize: '0.7rem' }}>{ind.tipo}</td>
-                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                                          <input type="number" step="0.01"
-                                            value={res?.meta ?? ''}
-                                            onChange={e => guardarCampo(ind.id, 'meta', e.target.value)}
-                                            style={{ width: 60, padding: '4px 6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', textAlign: 'center', outline: 'none' }}
-                                          />
-                                        </td>
-                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                                          <input type="number" step="0.01"
-                                            value={res?.resultado ?? ''}
-                                            onChange={e => guardarCampo(ind.id, 'resultado', e.target.value)}
-                                            style={{ width: 60, padding: '4px 6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', textAlign: 'center', outline: 'none' }}
-                                          />
-                                        </td>
-                                        <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                                          {cumple !== null ? (
-                                            <span style={{
-                                              fontWeight: 700, fontSize: '0.78rem',
-                                              color: cumple >= 100 ? '#16a34a' : cumple >= 70 ? '#f59e0b' : '#ef4444',
-                                            }}>{cumple.toFixed(1)}%</span>
-                                          ) : (
-                                            <span style={{ color: '#94a3b8' }}>-</span>
-                                          )}
-                                        </td>
+                                   {inds.map(ind => {
+                                     const autoVal = autoCalculados[ind.id]
+                                     const res = resultadoDeIndicador(ind.id)
+                                     const resultadoVal = autoVal != null ? autoVal : (res?.resultado ?? 0)
+                                     const metaVal = res?.meta ?? 100
+                                     const cumple = metaVal > 0 ? (resultadoVal / metaVal) * 100 : null
+                                     return (
+                                       <tr key={ind.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                         <td style={{ padding: '8px 12px', color: '#1e293b', fontWeight: 500 }}>{ind.titulo}</td>
+                                         <td style={{ padding: '8px 12px', textAlign: 'center', color: '#64748b', fontSize: '0.7rem' }}>{ind.tipo}</td>
+                                         <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                           <input type="number" step="0.01"
+                                             value={res?.meta ?? ''}
+                                             onChange={e => guardarCampo(ind.id, 'meta', e.target.value)}
+                                             style={{ width: 60, padding: '4px 6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', textAlign: 'center', outline: 'none' }}
+                                           />
+                                         </td>
+                                         <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                           {autoVal != null ? (
+                                             <span style={{ fontWeight: 600, fontSize: '0.78rem', color: '#0284c7' }}>
+                                               {autoVal.toFixed(2)}
+                                             </span>
+                                           ) : (
+                                             <input type="number" step="0.01"
+                                               value={res?.resultado ?? ''}
+                                               onChange={e => guardarCampo(ind.id, 'resultado', e.target.value)}
+                                               style={{ width: 60, padding: '4px 6px', border: '1px solid #e2e8f0', fontSize: '0.75rem', textAlign: 'center', outline: 'none' }}
+                                             />
+                                           )}
+                                         </td>
+                                         <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                                           {cumple !== null ? (
+                                             <span style={{
+                                               fontWeight: 700, fontSize: '0.78rem',
+                                               color: cumple >= 100 ? '#16a34a' : cumple >= 70 ? '#f59e0b' : '#ef4444',
+                                             }}>{cumple.toFixed(1)}%</span>
+                                           ) : (
+                                             <span style={{ color: '#94a3b8' }}>-</span>
+                                           )}
+                                         </td>
                                         <td style={{ padding: '8px 12px' }}>
                                           <input
                                             value={res?.observaciones ?? ''}
@@ -205,15 +224,15 @@ export function Dashboard() {
                                 </tbody>
                               </table>
                             </div>
-                          )}
+                          ))}
                         </div>
                       )
                     })}
                   </div>
                 )}
               </div>
-            )
-          })}
+            ))
+          }
         </div>
       )}
     </div>
