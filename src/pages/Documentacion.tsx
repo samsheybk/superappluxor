@@ -508,7 +508,7 @@ export function Documentacion() {
                 />
               </div>
               <div className="col-span-2">
-                <label className="mb-1 block text-xs font-medium text-slate-600">Responsables directos <span className="text-red-500">*</span></label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Responsables directos</label>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {form.responsables_directos.map((r, i) => (
                     <span key={i} className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs text-green-600">
