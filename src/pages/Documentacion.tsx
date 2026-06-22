@@ -607,7 +607,7 @@ export function Documentacion() {
               >
                 Cancelar
               </button>
-              <button onClick={guardar} disabled={guardando || !form.titulo || !form.tipo || !form.introduccion || !form.objetivo_principal || form.objetivos_secundarios.length === 0 || !form.metodo_evaluacion || !form.valoracion_resultados || !form.impacto_negocio || form.responsables_directos.length === 0 || !form.frecuencia_medicion || form.departamento.length === 0 || !form.repercusion_laboral}
+              <button onClick={guardar} disabled={guardando || !form.titulo || !form.tipo || !form.introduccion || !form.objetivo_principal || form.objetivos_secundarios.length === 0 || !form.metodo_evaluacion || !form.valoracion_resultados || !form.impacto_negocio || !form.frecuencia_medicion || form.departamento.length === 0 || !form.repercusion_laboral}
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear documentacion'}
